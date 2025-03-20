@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-
+import { RouterModule } from '@angular/router';
+import { NavbarComponent } from './navbar/navbar.component';
 @Component({
+  imports: [RouterModule, NavbarComponent],
   selector: 'app-root',
-  imports: [RouterOutlet],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.scss'
+  styleUrl: './app.component.scss',
+  standalone: true
 })
 export class AppComponent {
   title = 'frontend';
