@@ -2,6 +2,7 @@
 @use "./styles/theme_colors.scss" as theme-colors;
 @include mat.core();
 
+@import "tailwindcss";
 
 html {
   color-scheme: light dark;
