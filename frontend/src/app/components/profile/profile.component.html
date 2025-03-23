@@ -1,67 +1,251 @@
-<div class="profile-container">
-  @if (authService.currentUser(); as user) {
-    <div class="profile-card">
-      <div class="profile-header">
-        <h2>Your Profile</h2>
-        <div class="user-details">
+@let user = authService.currentUser();
+<div class="max-w-4xl mx-auto p-4 md:p-8">
+  @if (authService.loading()) {
+    <div class="flex flex-col items-center justify-center min-h-[300px]">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p class="mt-4 text-gray-600">Loading profile...</p>
+    </div>
+  } @else if (user) {
+    <div class="flex flex-col gap-6">
+      <!-- Profile Header Card -->
+      <mat-card class="relative overflow-visible">
+        <!-- Banner -->
+        <div
+          class="h-36 bg-gradient-to-r from-primary-700 to-primary-500 -mx-4 -mt-4 rounded-t-md"></div>
+
+        <!-- Avatar -->
+        <div class="relative -mt-12 mb-2 flex justify-center">
           @if (user.profileImage) {
-            <div class="profile-image">
-              <img [src]="user.profileImage" alt="Profile Picture" />
-            </div>
+            <img
+              [src]="user.profileImage"
+              alt="Profile picture"
+              class="w-24 h-24 rounded-full border-4 border-white shadow-md" />
           } @else {
-            <div class="profile-image placeholder">
-              {{ user.username.charAt(0).toUpperCase() }}
+            <div
+              class="w-24 h-24 rounded-full border-4 border-white shadow-md bg-primary-500 text-white flex items-center justify-center text-4xl">
+              {{ getInitials(user) }}
             </div>
           }
+        </div>
 
-          <div class="user-info">
-            <h3>{{ user.firstName }} {{ user.lastName }}</h3>
-            <p>{{ user.username }}</p>
+        <mat-card-content class="text-center">
+          <!-- Name Section -->
+          <div class="mb-4 flex flex-col items-center">
+            <h1 class="text-2xl font-medium">
+              @if (user.firstName || user.lastName) {
+                {{ user.firstName }} {{ user.lastName }}
+              } @else {
+                {{ user.username }}
+              }
+            </h1>
+            <p class="text-gray-600">{{ user.username }}</p>
+
+            @if (user.role) {
+              <div
+                class="mt-2 px-3 py-1 text-xs font-medium rounded-full uppercase"
+                [ngClass]="
+                  user.role === 'ADMIN'
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-gray-200 text-gray-800'
+                ">
+                {{ user.role }}
+              </div>
+            }
           </div>
-        </div>
-      </div>
 
-      <div class="profile-content">
-        <div class="info-group">
-          <span>Email</span>
-          <p>{{ user.email }}</p>
-        </div>
-
-        @if (user.firstName) {
-          <div class="info-group">
-            <span>First Name</span>
-            <p>{{ user.firstName }}</p>
+          <!-- User Meta -->
+          <div class="flex flex-col items-center gap-2 mb-6">
+            <div class="flex items-center gap-2 text-gray-600">
+              <mat-icon>email</mat-icon>
+              <span>{{ user.email }}</span>
+            </div>
+            <div class="flex items-center gap-2 text-gray-600">
+              <mat-icon>calendar_today</mat-icon>
+              <span>Member since {{ formatDate(user.createdAt) }}</span>
+            </div>
           </div>
-        }
 
-        @if (user.lastName) {
-          <div class="info-group">
-            <span>Last Name</span>
-            <p>{{ user.lastName }}</p>
+          <!-- Actions -->
+          <div class="mt-4">
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="enableEditMode()"
+              *ngIf="!editMode">
+              <mat-icon>edit</mat-icon> Edit Profile
+            </button>
           </div>
-        }
+        </mat-card-content>
+      </mat-card>
 
-        <div class="info-group">
-          <span>Role</span>
-          <p>{{ user.role }}</p>
-        </div>
+      <!-- Profile Details Card -->
+      <mat-card>
+        <mat-card-content>
+          @if (!editMode) {
+            <!-- View Mode -->
+            <div class="mb-8">
+              <h2 class="text-xl font-medium mb-4">Personal Information</h2>
 
-        <div class="info-group">
-          <span>Member Since</span>
-          <p>{{ user.createdAt | date: 'mediumDate' }}</p>
-        </div>
-      </div>
+              <div class="py-3 border-b border-gray-200 flex">
+                <div class="w-36 font-medium text-gray-600">Username</div>
+                <div>{{ user.username }}</div>
+              </div>
 
-      <div class="profile-actions">
-        <button class="btn-secondary">Edit Profile</button>
-        <button class="btn-danger" (click)="authService.logout()">
-          Logout
-        </button>
-      </div>
+              <div class="py-3 border-b border-gray-200 flex">
+                <div class="w-36 font-medium text-gray-600">Email</div>
+                <div>{{ user.email }}</div>
+              </div>
+
+              @if (user.firstName) {
+                <div class="py-3 border-b border-gray-200 flex">
+                  <div class="w-36 font-medium text-gray-600">First Name</div>
+                  <div>{{ user.firstName }}</div>
+                </div>
+              }
+
+              @if (user.lastName) {
+                <div class="py-3 border-b border-gray-200 flex">
+                  <div class="w-36 font-medium text-gray-600">Last Name</div>
+                  <div>{{ user.lastName }}</div>
+                </div>
+              }
+            </div>
+
+            <div class="my-6 border-t border-gray-200"></div>
+
+            <div>
+              <h2 class="text-xl font-medium mb-4">Account Information</h2>
+
+              <div class="py-3 border-b border-gray-200 flex">
+                <div class="w-36 font-medium text-gray-600">Account Type</div>
+                <div>{{ user.role }}</div>
+              </div>
+
+              <div class="py-3 border-b border-gray-200 flex">
+                <div class="w-36 font-medium text-gray-600">Created</div>
+                <div>{{ formatDate(user.createdAt) }}</div>
+              </div>
+
+              @if (user.updatedAt) {
+                <div class="py-3 border-b border-gray-200 flex">
+                  <div class="w-36 font-medium text-gray-600">Last Updated</div>
+                  <div>{{ formatDate(user.updatedAt) }}</div>
+                </div>
+              }
+            </div>
+          } @else {
+            <!-- Edit Mode -->
+            <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+              <h2 class="text-xl font-medium mb-4">Edit Profile</h2>
+
+              <div class="flex flex-col md:flex-row gap-4 mb-4">
+                <mat-form-field appearance="outline" class="w-full md:w-1/2">
+                  <mat-label>First Name</mat-label>
+                  <input
+                    matInput
+                    formControlName="firstName"
+                    placeholder="First name" />
+                  <mat-icon matPrefix>person</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full md:w-1/2">
+                  <mat-label>Last Name</mat-label>
+                  <input
+                    matInput
+                    formControlName="lastName"
+                    placeholder="Last name" />
+                </mat-form-field>
+              </div>
+
+              <mat-form-field appearance="outline" class="w-full mb-4">
+                <mat-label>Username</mat-label>
+                <input
+                  matInput
+                  formControlName="username"
+                  placeholder="Username" />
+                <mat-icon matPrefix>alternate_email</mat-icon>
+                @if (
+                  profileForm.get('username')?.invalid &&
+                  profileForm.get('username')?.touched
+                ) {
+                  <mat-error
+                    >Username is required (min. 3 characters)</mat-error
+                  >
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full mb-4">
+                <mat-label>Email</mat-label>
+                <input
+                  matInput
+                  formControlName="email"
+                  placeholder="Email address" />
+                <mat-icon matPrefix>email</mat-icon>
+                @if (
+                  profileForm.get('email')?.invalid &&
+                  profileForm.get('email')?.touched
+                ) {
+                  <mat-error>Valid email is required</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full mb-4">
+                <mat-label>Bio</mat-label>
+                <textarea
+                  matInput
+                  formControlName="bio"
+                  placeholder="Tell us about yourself"
+                  rows="4">
+                </textarea>
+                <mat-icon matPrefix>description</mat-icon>
+                <mat-hint align="end"
+                  >{{
+                    profileForm.get('bio')?.value?.length || 0
+                  }}/300</mat-hint
+                >
+              </mat-form-field>
+
+              <div class="flex justify-end gap-4 mt-8">
+                <button
+                  mat-stroked-button
+                  type="button"
+                  color="warn"
+                  (click)="cancelEdit()"
+                  [disabled]="saving">
+                  Cancel
+                </button>
+                <button
+                  mat-raised-button
+                  type="submit"
+                  color="primary"
+                  [disabled]="profileForm.invalid || saving">
+                  @if (saving) {
+                    <mat-spinner diameter="20" class="mr-2"></mat-spinner>
+                    Saving...
+                  } @else {
+                    Save Changes
+                  }
+                </button>
+              </div>
+            </form>
+          }
+        </mat-card-content>
+      </mat-card>
     </div>
-  }
-
-  @if (authService.loading()) {
-    <div class="loading">Loading profile...</div>
+  } @else {
+    <mat-card class="p-8 text-center">
+      <mat-card-content>
+        <div class="flex flex-col items-center mb-6">
+          <mat-icon class="text-warn-500 mb-4">error</mat-icon>
+          <p>Unable to load profile information. Please try again later.</p>
+        </div>
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="authService.fetchCurrentUser()">
+          Retry
+        </button>
+      </mat-card-content>
+    </mat-card>
   }
 </div>

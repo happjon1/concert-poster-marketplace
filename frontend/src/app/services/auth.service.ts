@@ -1,7 +1,7 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed, inject, effect } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { environment } from '../../environment';
+import { environment } from '../../environment.dev';
 import { AuthResponse } from '../models/auth-response.model';
 import { LoginRequest } from '../models/login-request.model';
 import { RegisterRequest } from '../models/register-request.model';
@@ -28,6 +28,16 @@ export class AuthService {
   public error = this.errorSignal.asReadonly();
 
   constructor() {
+    // Debug effect to log auth state changes
+    effect(() => {
+      console.log('Auth state changed:', {
+        isLoggedIn: this.isLoggedIn(),
+        currentUser: this.currentUserSignal(),
+        token: this.getToken(),
+      });
+    });
+
+    // Initialize auth state from stored token
     this.loadUserFromStorage();
   }
 
@@ -65,10 +75,12 @@ export class AuthService {
         next: response => {
           this.setSession(response);
           this.currentUserSignal.set(response.user);
-          this.router.navigate(['/dashboard']);
+          console.log('User logged in:', response.user);
+          this.router.navigate(['/profile']);
           this.loadingSignal.set(false);
         },
         error: error => {
+          console.error('Login error:', error);
           this.errorSignal.set(error.error?.message || 'Login failed');
           this.loadingSignal.set(false);
         },
@@ -78,20 +90,26 @@ export class AuthService {
   logout(): void {
     localStorage.removeItem(this.tokenKey);
     this.currentUserSignal.set(null);
+    console.log('User logged out');
     this.router.navigate(['/login']);
   }
 
   fetchCurrentUser(): void {
-    if (!this.getToken()) return;
+    if (!this.getToken()) {
+      console.log('No token found, skipping user fetch');
+      return;
+    }
 
     this.loadingSignal.set(true);
 
     this.http.get<{ user: User }>(`${this.apiUrl}/me`).subscribe({
       next: response => {
+        console.log('User fetched:', response.user);
         this.currentUserSignal.set(response.user);
         this.loadingSignal.set(false);
       },
-      error: () => {
+      error: error => {
+        console.error('Error fetching user:', error);
         // If token is invalid, clear storage
         this.logout();
         this.loadingSignal.set(false);
@@ -105,10 +123,13 @@ export class AuthService {
 
   private setSession(authResult: AuthResponse): void {
     localStorage.setItem(this.tokenKey, authResult.token);
+    console.log('Token stored in localStorage');
   }
 
   private loadUserFromStorage(): void {
     const token = this.getToken();
+    console.log('Checking for token:', token ? 'Found' : 'Not found');
+
     if (token) {
       this.fetchCurrentUser();
     }

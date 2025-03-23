@@ -1,116 +1,190 @@
 <div class="register-container">
-  <div class="register-card">
-    <h2>Create Account</h2>
+  <mat-card class="register-card">
+    @if (authService.loading()) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
 
-    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-      <div class="form-group">
-        <label for="username">Username</label>
-        <input
-          type="text"
-          id="username"
-          formControlName="username"
-          class="form-control"
-          placeholder="Choose a username" />
+    <mat-card-header>
+      <mat-card-title>Create Account</mat-card-title>
+      <mat-card-subtitle>Enter your information to register</mat-card-subtitle>
+    </mat-card-header>
 
-        @if (
-          registerForm.get('username')?.invalid &&
-          registerForm.get('username')?.touched
-        ) {
-          <div class="error">
-            @if (registerForm.get('username')?.errors?.['required']) {
-              <span>Username is required</span>
-            }
-            @if (registerForm.get('username')?.errors?.['minlength']) {
-              <span>Username must be at least 3 characters</span>
-            }
-          </div>
-        }
-      </div>
-
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input
-          type="email"
-          id="email"
-          formControlName="email"
-          class="form-control"
-          placeholder="Enter your email" />
-
-        @if (
-          registerForm.get('email')?.invalid &&
-          registerForm.get('email')?.touched
-        ) {
-          <div class="error">
-            @if (registerForm.get('email')?.errors?.['required']) {
-              <span>Email is required</span>
-            }
-            @if (registerForm.get('email')?.errors?.['email']) {
-              <span>Please enter a valid email</span>
-            }
-          </div>
-        }
-      </div>
-
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input
-          type="password"
-          id="password"
-          formControlName="password"
-          class="form-control"
-          placeholder="Create a password" />
-
-        @if (
-          registerForm.get('password')?.invalid &&
-          registerForm.get('password')?.touched
-        ) {
-          <div class="error">
-            @if (registerForm.get('password')?.errors?.['required']) {
-              <span>Password is required</span>
-            }
-            @if (registerForm.get('password')?.errors?.['minlength']) {
-              <span>Password must be at least 6 characters</span>
-            }
-          </div>
-        }
-      </div>
-
-      <div class="name-fields">
-        <div class="form-group">
-          <label for="firstName">First Name</label>
+    <mat-card-content>
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+        <!-- Basic Information -->
+        <mat-form-field class="full-width">
+          <mat-label>Username</mat-label>
           <input
-            type="text"
-            id="firstName"
-            formControlName="firstName"
-            class="form-control"
-            placeholder="First name" />
+            matInput
+            formControlName="username"
+            placeholder="Choose a username"
+            autocomplete="username" />
+          <mat-icon matPrefix>person</mat-icon>
+          @if (registerForm.get('username')?.touched) {
+            @if (registerForm.get('username')?.hasError('required')) {
+              <mat-error>Username is required</mat-error>
+            }
+            @if (registerForm.get('username')?.hasError('minlength')) {
+              <mat-error>Username must be at least 3 characters</mat-error>
+            }
+          }
+        </mat-form-field>
+
+        <mat-form-field class="full-width">
+          <mat-label>Email</mat-label>
+          <input
+            matInput
+            formControlName="email"
+            placeholder="Your email address"
+            autocomplete="email" />
+          <mat-icon matPrefix>email</mat-icon>
+          @if (registerForm.get('email')?.touched) {
+            @if (registerForm.get('email')?.hasError('required')) {
+              <mat-error>Email is required</mat-error>
+            }
+            @if (registerForm.get('email')?.hasError('email')) {
+              <mat-error>Please enter a valid email address</mat-error>
+            }
+          }
+        </mat-form-field>
+
+        <!-- Password Section -->
+        <div formGroupName="passwordGroup">
+          <mat-form-field class="full-width">
+            <mat-label>Password</mat-label>
+            <input
+              matInput
+              [type]="hidePassword ? 'password' : 'text'"
+              formControlName="password"
+              (input)="onPasswordInput()"
+              autocomplete="new-password" />
+            <mat-icon matPrefix>lock</mat-icon>
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="hidePassword = !hidePassword"
+              [attr.aria-label]="'Hide password'"
+              [attr.aria-pressed]="hidePassword">
+              <mat-icon>{{
+                hidePassword ? 'visibility_off' : 'visibility'
+              }}</mat-icon>
+            </button>
+            @if (passwordControl?.touched) {
+              @if (passwordControl?.hasError('required')) {
+                <mat-error>Password is required</mat-error>
+              }
+              @if (passwordControl?.hasError('minlength')) {
+                <mat-error>Password must be at least 6 characters</mat-error>
+              }
+            }
+          </mat-form-field>
+
+          <!-- Password Strength Indicator -->
+          @if (passwordControl?.value) {
+            <div class="password-strength">
+              <div class="strength-text">
+                Password Strength: {{ getPasswordStrengthText() }}
+              </div>
+              <mat-progress-bar
+                [color]="getPasswordStrengthColor()"
+                [value]="passwordStrength">
+              </mat-progress-bar>
+            </div>
+          }
+
+          <mat-form-field class="full-width">
+            <mat-label>Confirm Password</mat-label>
+            <input
+              matInput
+              [type]="hideConfirmPassword ? 'password' : 'text'"
+              formControlName="confirmPassword"
+              autocomplete="new-password" />
+            <mat-icon matPrefix>lock_outline</mat-icon>
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="hideConfirmPassword = !hideConfirmPassword"
+              [attr.aria-label]="'Hide password'"
+              [attr.aria-pressed]="hideConfirmPassword">
+              <mat-icon>{{
+                hideConfirmPassword ? 'visibility_off' : 'visibility'
+              }}</mat-icon>
+            </button>
+            @if (confirmPasswordControl?.touched) {
+              @if (confirmPasswordControl?.hasError('required')) {
+                <mat-error>Please confirm your password</mat-error>
+              }
+            }
+          </mat-form-field>
+
+          @if (
+            passwordGroup?.hasError('passwordMismatch') &&
+            confirmPasswordControl?.touched
+          ) {
+            <div class="error-message">
+              <mat-icon>error_outline</mat-icon>
+              <span>Passwords do not match</span>
+            </div>
+          }
         </div>
 
-        <div class="form-group">
-          <label for="lastName">Last Name</label>
-          <input
-            type="text"
-            id="lastName"
-            formControlName="lastName"
-            class="form-control"
-            placeholder="Last name" />
+        <!-- Name Fields (Optional) -->
+        <div class="name-row">
+          <mat-form-field class="half-width">
+            <mat-label>First Name</mat-label>
+            <input
+              matInput
+              formControlName="firstName"
+              placeholder="First name (optional)"
+              autocomplete="given-name" />
+          </mat-form-field>
+
+          <mat-form-field class="half-width">
+            <mat-label>Last Name</mat-label>
+            <input
+              matInput
+              formControlName="lastName"
+              placeholder="Last name (optional)"
+              autocomplete="family-name" />
+          </mat-form-field>
         </div>
-      </div>
 
-      @if (authService.error()) {
-        <div class="error-message">{{ authService.error() }}</div>
-      }
+        <!-- Terms and Conditions -->
+        <div class="terms-checkbox">
+          <mat-checkbox
+            [(ngModel)]="acceptTerms"
+            [ngModelOptions]="{ standalone: true }">
+            I accept the <a href="#" target="_blank">Terms and Conditions</a>
+          </mat-checkbox>
+        </div>
 
-      <button
-        type="submit"
-        [disabled]="registerForm.invalid || authService.loading()"
-        class="btn-primary">
-        {{ authService.loading() ? 'Creating Account...' : 'Sign Up' }}
-      </button>
-    </form>
+        @if (authService.error()) {
+          <div class="error-alert">
+            <mat-icon>error</mat-icon>
+            <span>{{ authService.error() }}</span>
+          </div>
+        }
 
-    <div class="login-link">
-      <p>Already have an account? <a routerLink="/login">Log in</a></p>
-    </div>
-  </div>
+        <button
+          mat-raised-button
+          color="primary"
+          class="full-width submit-button"
+          type="submit"
+          [disabled]="
+            registerForm.invalid || !acceptTerms || authService.loading()
+          ">
+          {{ authService.loading() ? 'Creating Account...' : 'Create Account' }}
+        </button>
+      </form>
+    </mat-card-content>
+
+    <mat-divider></mat-divider>
+
+    <mat-card-actions align="end">
+      <span>Already have an account?</span>
+      <a mat-button color="accent" routerLink="/login">Sign In</a>
+    </mat-card-actions>
+  </mat-card>
 </div>
