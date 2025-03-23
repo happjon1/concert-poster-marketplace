@@ -1,0 +1,67 @@
+<div class="profile-container">
+  @if (authService.currentUser(); as user) {
+    <div class="profile-card">
+      <div class="profile-header">
+        <h2>Your Profile</h2>
+        <div class="user-details">
+          @if (user.profileImage) {
+            <div class="profile-image">
+              <img [src]="user.profileImage" alt="Profile Picture" />
+            </div>
+          } @else {
+            <div class="profile-image placeholder">
+              {{ user.username.charAt(0).toUpperCase() }}
+            </div>
+          }
+
+          <div class="user-info">
+            <h3>{{ user.firstName }} {{ user.lastName }}</h3>
+            <p>{{ user.username }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-content">
+        <div class="info-group">
+          <span>Email</span>
+          <p>{{ user.email }}</p>
+        </div>
+
+        @if (user.firstName) {
+          <div class="info-group">
+            <span>First Name</span>
+            <p>{{ user.firstName }}</p>
+          </div>
+        }
+
+        @if (user.lastName) {
+          <div class="info-group">
+            <span>Last Name</span>
+            <p>{{ user.lastName }}</p>
+          </div>
+        }
+
+        <div class="info-group">
+          <span>Role</span>
+          <p>{{ user.role }}</p>
+        </div>
+
+        <div class="info-group">
+          <span>Member Since</span>
+          <p>{{ user.createdAt | date: 'mediumDate' }}</p>
+        </div>
+      </div>
+
+      <div class="profile-actions">
+        <button class="btn-secondary">Edit Profile</button>
+        <button class="btn-danger" (click)="authService.logout()">
+          Logout
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (authService.loading()) {
+    <div class="loading">Loading profile...</div>
+  }
+</div>

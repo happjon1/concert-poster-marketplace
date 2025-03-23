@@ -16,5 +16,6 @@ import { MatIcon } from '@angular/material/icon';
   ],
   templateUrl: './poster-card.component.html',
   styleUrl: './poster-card.component.scss',
+  standalone: true,
 })
 export class PosterCardComponent {}

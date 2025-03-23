@@ -6,11 +6,12 @@ import { MatToolbar } from '@angular/material/toolbar';
   imports: [MatToolbar, MatIcon],
   selector: 'app-navbar',
   templateUrl: './navbar.component.html',
-  styleUrls: ['./navbar.component.scss']
+  styleUrls: ['./navbar.component.scss'],
+  standalone: true,
 })
 export class NavbarComponent {
   isMenuOpen = false;
-  
+
   toggleMenu(): void {
     this.isMenuOpen = !this.isMenuOpen;
   }
