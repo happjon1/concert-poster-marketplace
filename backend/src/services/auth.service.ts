@@ -10,10 +10,7 @@ export const generateToken = (user: User): string => {
 
   const secret: jwt.Secret = process.env.JWT_SECRET || "default_secret";
   const signOptions: jwt.SignOptions = {
-    expiresIn:
-      process.env.JWT_EXPIRES_IN && !isNaN(Number(process.env.JWT_EXPIRES_IN))
-        ? Number(process.env.JWT_EXPIRES_IN)
-        : "7d",
+    expiresIn: "1h",
   };
   return jwt.sign(payload, secret, signOptions);
 };

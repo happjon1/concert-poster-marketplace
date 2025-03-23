@@ -1,48 +1,54 @@
-import { effect, inject } from '@angular/core';
+import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
 export const authGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
+  console.log('Auth guard executed');
 
-  // If still loading, return a promise that resolves when loading is complete
-  if (authService.loading()) {
-    console.log('Auth still loading, waiting before navigation...');
+  // If auth service is still initializing, wait for it
+  if (!authService.initialized()) {
+    console.log('Auth not initialized yet, waiting...');
+
+    // Return a promise that resolves when initialization completes
     return new Promise<boolean>(resolve => {
-      // Create a one-time effect to wait for loading to complete
-      const cleanup = effect(() => {
-        if (!authService.loading()) {
-          cleanup.destroy(); // Remove the effect
+      // Poll until initialized
+      const checkInterval = setInterval(() => {
+        if (authService.initialized()) {
+          clearInterval(checkInterval);
+          clearTimeout(timeoutId);
 
-          // Now check if user is logged in
-          if (authService.isLoggedIn()) {
-            console.log('User authenticated, allowing navigation');
+          // Now we can check if user is authenticated
+          const isLoggedIn = authService.isLoggedIn();
+          console.log(`Auth initialized, user logged in: ${isLoggedIn}`);
+
+          if (isLoggedIn) {
             resolve(true);
           } else {
-            console.log('User not authenticated, redirecting to login');
             router.navigate(['/login']);
             resolve(false);
           }
         }
-      });
+      }, 100);
 
-      // Failsafe timeout to prevent getting stuck
-      setTimeout(() => {
-        cleanup.destroy();
-        console.warn('Auth loading timed out, redirecting to login');
+      // Set a timeout to prevent infinite waiting
+      const timeoutId = setTimeout(() => {
+        clearInterval(checkInterval);
+        console.warn('Auth initialization timed out');
         router.navigate(['/login']);
         resolve(false);
       }, 5000);
     });
   }
 
-  // Not loading, check logged in state immediately
+  // Auth is already initialized, check if logged in
   if (authService.isLoggedIn()) {
+    console.log('User is authenticated, proceeding');
     return true;
+  } else {
+    console.log('User is not authenticated, redirecting to login');
+    router.navigate(['/login']);
+    return false;
   }
-
-  // Not logged in, redirect to login
-  router.navigate(['/login']);
-  return false;
 };

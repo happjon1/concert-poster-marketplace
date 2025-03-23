@@ -1,11 +1,18 @@
-import { Injectable, signal, computed, inject, effect } from '@angular/core';
+import {
+  Injectable,
+  signal,
+  computed,
+  inject,
+  effect,
+  Inject,
+} from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { environment } from '../../environment.dev';
+import { User } from '../models/user.model';
 import { AuthResponse } from '../models/auth-response.model';
 import { LoginRequest } from '../models/login-request.model';
-import { RegisterRequest } from '../models/register-request.model';
-import { User } from '../models/user.model';
+import { RegisterRequest } from '../models/register-request.model'; // Import RegisterRequest
+import { environment } from '../../environment';
 
 @Injectable({
   providedIn: 'root',
@@ -15,161 +22,120 @@ export class AuthService {
   private router = inject(Router);
   private apiUrl = `${environment.apiUrl}/auth`;
   private tokenKey = 'auth_token';
+  private appInitialized = false;
 
   // Signals
   private currentUserSignal = signal<User | null>(null);
-  private loadingSignal = signal<boolean>(true); // Start with loading=true
+  private loadingSignal = signal<boolean>(true); // Start loading
   private errorSignal = signal<string | null>(null);
-  private refreshingSignal = signal<boolean>(false);
-  private refreshSuccessSignal = signal<boolean | null>(null);
+  private initializedSignal = signal<boolean>(false);
 
-  // Computed signals
-  public isLoggedIn = computed(() => !!this.currentUserSignal());
+  // Public readonly signals
   public currentUser = this.currentUserSignal.asReadonly();
   public loading = this.loadingSignal.asReadonly();
   public error = this.errorSignal.asReadonly();
-  public isRefreshing = this.refreshingSignal.asReadonly();
-  public refreshSuccess = this.refreshSuccessSignal.asReadonly();
+  public initialized = this.initializedSignal.asReadonly();
+  public isLoggedIn = computed(() => !!this.currentUserSignal());
 
-  constructor() {
-    // Debug effect to log auth state changes
+  // DEBUG flag for console logs
+  private DEBUG = true;
+
+  constructor(@Inject('NoAuthHttpClient') private noAuthHttp: HttpClient) {
+    this.debug('AuthService constructor called');
+
+    // This ensures auth is initialized before the app fully loads
+    this.initAuthState();
+
+    // Debug effect to track auth state changes
     effect(() => {
-      console.log('Auth state changed:', {
-        isLoggedIn: this.isLoggedIn(),
-        currentUser: this.currentUserSignal(),
-        token: this.getToken(),
-      });
+      this.debug(`Auth state changed: 
+        user: ${!!this.currentUserSignal()}, 
+        loading: ${this.loadingSignal()}, 
+        initialized: ${this.initializedSignal()},
+        error: ${this.errorSignal()}`);
     });
-
-    // Initialize auth state immediately when service is created
-    this.initializeAuthState();
   }
 
-  // Initialize auth state on startup
-  public initializeAuthState(): Promise<boolean> {
-    console.log('Initializing auth state...');
-    this.loadingSignal.set(true);
-
-    const token = localStorage.getItem(this.tokenKey);
-
-    if (token && this.isTokenValid(token)) {
-      console.log('Valid token found, fetching user data');
-      return this.fetchCurrentUserPromise();
-    } else {
-      if (token && !this.isTokenValid(token)) {
-        console.log('Token expired, removing from storage');
-        localStorage.removeItem(this.tokenKey);
-      }
-
-      console.log('No valid token found');
-      this.loadingSignal.set(false);
-      return Promise.resolve(false);
-    }
-  }
-
-  register(userData: RegisterRequest): void {
-    this.loadingSignal.set(true);
-    this.errorSignal.set(null);
-
-    this.http
-      .post<{
-        message: string;
-        user: User;
-      }>(`${this.apiUrl}/register`, userData)
-      .subscribe({
-        next: () => {
-          // Automatically log in after registration
-          this.login({
-            email: userData.email,
-            password: userData.password,
-          });
-        },
-        error: error => {
-          this.errorSignal.set(error.error?.message || 'Registration failed');
-          this.loadingSignal.set(false);
-        },
-      });
-  }
-
-  login(credentials: LoginRequest): void {
-    this.loadingSignal.set(true);
-    this.errorSignal.set(null);
-
-    this.http
-      .post<AuthResponse>(`${this.apiUrl}/login`, credentials)
-      .subscribe({
-        next: response => {
-          this.setSession(response);
-          this.currentUserSignal.set(response.user);
-          console.log('User logged in:', response.user);
-          this.router.navigate(['/profile']);
-          this.loadingSignal.set(false);
-        },
-        error: error => {
-          console.error('Login error:', error);
-          this.errorSignal.set(error.error?.message || 'Login failed');
-          this.loadingSignal.set(false);
-        },
-      });
-  }
-
-  logout(): void {
-    localStorage.removeItem(this.tokenKey);
-    this.currentUserSignal.set(null);
-    console.log('User logged out');
-    this.router.navigate(['/login']);
-  }
-
-  fetchCurrentUser(): void {
-    if (!this.getToken()) {
-      console.log('No token found, skipping user fetch');
-      this.loadingSignal.set(false);
+  // Initialize auth state immediately on service creation
+  initAuthState(): void {
+    if (!this.appInitialized) {
+      this.debug('Delaying auth initialization until app is ready');
       return;
     }
 
+    this.debug('Initializing auth state');
     this.loadingSignal.set(true);
 
-    this.http.get<{ user: User }>(`${this.apiUrl}/me`).subscribe({
-      next: response => {
-        console.log('User fetched:', response.user);
-        this.currentUserSignal.set(response.user);
-        this.loadingSignal.set(false);
-      },
-      error: error => {
-        console.error('Error fetching user:', error);
-        // If token is invalid, clear storage
-        this.logout();
-        this.loadingSignal.set(false);
-      },
-    });
-  }
+    try {
+      const token = localStorage.getItem(this.tokenKey);
+      this.debug(`Token from storage: ${!!token}`);
 
-  private fetchCurrentUserPromise(): Promise<boolean> {
-    return new Promise(resolve => {
-      const token = this.getToken();
       if (!token) {
+        this.debug('No token found, marking as initialized');
         this.loadingSignal.set(false);
-        resolve(false);
+        this.initializedSignal.set(true);
         return;
       }
 
-      this.http.get<{ user: User }>(`${this.apiUrl}/me`).subscribe({
-        next: response => {
-          console.log('User fetched successfully:', response.user);
-          this.currentUserSignal.set(response.user);
-          this.loadingSignal.set(false);
-          resolve(true);
-        },
-        error: error => {
-          console.error('Error fetching user:', error);
-          this.logout();
-          this.loadingSignal.set(false);
-          resolve(false);
-        },
-      });
+      if (!this.isTokenValid(token)) {
+        this.debug('Invalid or expired token, removing');
+        localStorage.removeItem(this.tokenKey);
+        this.loadingSignal.set(false);
+        this.initializedSignal.set(true);
+        return;
+      }
+
+      this.debug('Valid token found, fetching user data');
+      this.fetchCurrentUser();
+    } catch (err) {
+      this.debug('Error during auth initialization', err);
+      this.loadingSignal.set(false);
+      this.initializedSignal.set(true);
+    }
+  }
+
+  setAppInitialized(): void {
+    this.appInitialized = true;
+    this.initAuthState();
+  }
+
+  /**
+   * Fetch current user with the token in storage
+   */
+  fetchCurrentUser(): void {
+    this.debug('Fetching current user');
+    this.loadingSignal.set(true);
+
+    const token = this.getToken();
+    if (!token) {
+      this.debug('No token available, skipping user fetch');
+      this.loadingSignal.set(false);
+      this.initializedSignal.set(true);
+      return;
+    }
+
+    this.http.get<{ user: User }>(`${this.apiUrl}/me`).subscribe({
+      next: response => {
+        this.debug('User fetched successfully', response.user);
+        this.currentUserSignal.set(response.user);
+        this.loadingSignal.set(false);
+        this.initializedSignal.set(true);
+      },
+      error: error => {
+        this.debug('Error fetching user', error);
+        // Token is invalid, clear it
+        localStorage.removeItem(this.tokenKey);
+        this.currentUserSignal.set(null);
+        this.errorSignal.set('Session expired. Please login again.');
+        this.loadingSignal.set(false);
+        this.initializedSignal.set(true);
+      },
     });
   }
 
+  /**
+   * Get token from localStorage
+   */
   getToken(): string | null {
     const token = localStorage.getItem(this.tokenKey);
 
@@ -177,82 +143,112 @@ export class AuthService {
       return null;
     }
 
-    // Only return valid tokens
+    // Validate token before returning
     if (this.isTokenValid(token)) {
       return token;
     } else {
-      // Remove expired token from storage
-      console.log('Token expired, removing from storage');
+      this.debug('Token is invalid or expired');
       localStorage.removeItem(this.tokenKey);
       return null;
     }
   }
 
-  private setSession(authResult: AuthResponse): void {
-    localStorage.setItem(this.tokenKey, authResult.token);
-    console.log('Token stored in localStorage');
-  }
-
+  /**
+   * Validate JWT token
+   */
   private isTokenValid(token: string): boolean {
     try {
-      // For JWT tokens
       const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.exp > Date.now() / 1000;
+      // Check if token is expired
+      const isValid = payload.exp > Date.now() / 1000;
+      this.debug(`Token validation result: ${isValid}`);
+      return isValid;
     } catch (e) {
-      console.warn('Error validating token:', e);
+      this.debug('Error validating token', e);
       return false;
     }
   }
 
   /**
-   * Refresh token using signals instead of Observable
-   * Returns Promise<boolean> indicating success/failure
+   * Set session data after login
    */
-  async refreshToken(): Promise<boolean> {
-    const token = this.getToken();
+  private setSession(authResult: AuthResponse): void {
+    localStorage.setItem(this.tokenKey, authResult.token);
+    this.debug('Token stored in localStorage');
+  }
 
-    if (!token) {
-      this.errorSignal.set('No token available');
-      return false;
-    }
-
-    // Signal that refresh is in progress
-    this.refreshingSignal.set(true);
-    this.refreshSuccessSignal.set(null);
+  /**
+   * Login user
+   */
+  login(credentials: LoginRequest): void {
+    this.debug('Login attempt', credentials.email);
+    this.loadingSignal.set(true);
     this.errorSignal.set(null);
 
-    try {
-      // If your backend uses refresh tokens:
-      // const refreshToken = localStorage.getItem('refresh_token');
+    this.http
+      .post<AuthResponse>(`${this.apiUrl}/login`, credentials)
+      .subscribe({
+        next: response => {
+          this.debug('Login successful', response);
+          this.setSession(response);
+          this.currentUserSignal.set(response.user);
+          this.loadingSignal.set(false);
+          this.router.navigate(['/profile']);
+        },
+        error: error => {
+          this.debug('Login error', error);
+          this.errorSignal.set(error.error?.message || 'Login failed');
+          this.loadingSignal.set(false);
+        },
+      });
+  }
 
-      const response = await this.http
-        .post<AuthResponse>(`${this.apiUrl}/refresh`, { token })
-        .toPromise();
+  /**
+   * Register a new user
+   */
+  register(userData: RegisterRequest): void {
+    this.debug('Registration attempt', userData.email);
+    this.loadingSignal.set(true);
+    this.errorSignal.set(null);
 
-      if (response) {
-        this.setSession(response);
-        this.currentUserSignal.set(response.user);
-        this.refreshSuccessSignal.set(true);
-        this.refreshingSignal.set(false);
-        return true;
+    this.http
+      .post<AuthResponse>(`${this.apiUrl}/register`, userData)
+      .subscribe({
+        next: response => {
+          this.debug('Registration successful', response);
+          this.setSession(response);
+          this.currentUserSignal.set(response.user);
+          this.loadingSignal.set(false);
+          this.router.navigate(['/profile']);
+        },
+        error: error => {
+          this.debug('Registration error', error);
+          this.errorSignal.set(error.error?.message || 'Registration failed');
+          this.loadingSignal.set(false);
+        },
+      });
+  }
+
+  /**
+   * Logout user
+   */
+  logout(): void {
+    this.debug('Logging out user');
+    localStorage.removeItem(this.tokenKey);
+    this.currentUserSignal.set(null);
+    this.router.navigate(['/login']);
+  }
+
+  /**
+   * Debug logger
+   */
+  private debug(message: string, data?: unknown): void {
+    if (this.DEBUG) {
+      if (data) {
+        console.log(`[AuthService] ${message}`, data);
       } else {
-        throw new Error('Empty response from refresh token');
+        console.log(`[AuthService] ${message}`);
       }
-    } catch (error: unknown) {
-      console.error('Token refresh failed:', error);
-      this.errorSignal.set(
-        (error as { error?: { message?: string } }).error?.message ||
-          'Token refresh failed'
-      );
-      this.refreshSuccessSignal.set(false);
-      this.refreshingSignal.set(false);
-      this.logout();
-      return false;
     }
-
-    // If your backend doesn't support token refresh yet, use this temporary solution:
-    // this.refreshSuccessSignal.set(true);
-    // this.refreshingSignal.set(false);
-    // return true;
   }
 }
