@@ -18,14 +18,18 @@ export class AuthService {
 
   // Signals
   private currentUserSignal = signal<User | null>(null);
-  private loadingSignal = signal<boolean>(false);
+  private loadingSignal = signal<boolean>(true); // Start with loading=true
   private errorSignal = signal<string | null>(null);
+  private refreshingSignal = signal<boolean>(false);
+  private refreshSuccessSignal = signal<boolean | null>(null);
 
   // Computed signals
   public isLoggedIn = computed(() => !!this.currentUserSignal());
   public currentUser = this.currentUserSignal.asReadonly();
   public loading = this.loadingSignal.asReadonly();
   public error = this.errorSignal.asReadonly();
+  public isRefreshing = this.refreshingSignal.asReadonly();
+  public refreshSuccess = this.refreshSuccessSignal.asReadonly();
 
   constructor() {
     // Debug effect to log auth state changes
@@ -37,8 +41,30 @@ export class AuthService {
       });
     });
 
-    // Initialize auth state from stored token
-    this.loadUserFromStorage();
+    // Initialize auth state immediately when service is created
+    this.initializeAuthState();
+  }
+
+  // Initialize auth state on startup
+  public initializeAuthState(): Promise<boolean> {
+    console.log('Initializing auth state...');
+    this.loadingSignal.set(true);
+
+    const token = localStorage.getItem(this.tokenKey);
+
+    if (token && this.isTokenValid(token)) {
+      console.log('Valid token found, fetching user data');
+      return this.fetchCurrentUserPromise();
+    } else {
+      if (token && !this.isTokenValid(token)) {
+        console.log('Token expired, removing from storage');
+        localStorage.removeItem(this.tokenKey);
+      }
+
+      console.log('No valid token found');
+      this.loadingSignal.set(false);
+      return Promise.resolve(false);
+    }
   }
 
   register(userData: RegisterRequest): void {
@@ -97,6 +123,7 @@ export class AuthService {
   fetchCurrentUser(): void {
     if (!this.getToken()) {
       console.log('No token found, skipping user fetch');
+      this.loadingSignal.set(false);
       return;
     }
 
@@ -117,8 +144,48 @@ export class AuthService {
     });
   }
 
+  private fetchCurrentUserPromise(): Promise<boolean> {
+    return new Promise(resolve => {
+      const token = this.getToken();
+      if (!token) {
+        this.loadingSignal.set(false);
+        resolve(false);
+        return;
+      }
+
+      this.http.get<{ user: User }>(`${this.apiUrl}/me`).subscribe({
+        next: response => {
+          console.log('User fetched successfully:', response.user);
+          this.currentUserSignal.set(response.user);
+          this.loadingSignal.set(false);
+          resolve(true);
+        },
+        error: error => {
+          console.error('Error fetching user:', error);
+          this.logout();
+          this.loadingSignal.set(false);
+          resolve(false);
+        },
+      });
+    });
+  }
+
   getToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
+    const token = localStorage.getItem(this.tokenKey);
+
+    if (!token) {
+      return null;
+    }
+
+    // Only return valid tokens
+    if (this.isTokenValid(token)) {
+      return token;
+    } else {
+      // Remove expired token from storage
+      console.log('Token expired, removing from storage');
+      localStorage.removeItem(this.tokenKey);
+      return null;
+    }
   }
 
   private setSession(authResult: AuthResponse): void {
@@ -126,12 +193,66 @@ export class AuthService {
     console.log('Token stored in localStorage');
   }
 
-  private loadUserFromStorage(): void {
-    const token = this.getToken();
-    console.log('Checking for token:', token ? 'Found' : 'Not found');
-
-    if (token) {
-      this.fetchCurrentUser();
+  private isTokenValid(token: string): boolean {
+    try {
+      // For JWT tokens
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp > Date.now() / 1000;
+    } catch (e) {
+      console.warn('Error validating token:', e);
+      return false;
     }
+  }
+
+  /**
+   * Refresh token using signals instead of Observable
+   * Returns Promise<boolean> indicating success/failure
+   */
+  async refreshToken(): Promise<boolean> {
+    const token = this.getToken();
+
+    if (!token) {
+      this.errorSignal.set('No token available');
+      return false;
+    }
+
+    // Signal that refresh is in progress
+    this.refreshingSignal.set(true);
+    this.refreshSuccessSignal.set(null);
+    this.errorSignal.set(null);
+
+    try {
+      // If your backend uses refresh tokens:
+      // const refreshToken = localStorage.getItem('refresh_token');
+
+      const response = await this.http
+        .post<AuthResponse>(`${this.apiUrl}/refresh`, { token })
+        .toPromise();
+
+      if (response) {
+        this.setSession(response);
+        this.currentUserSignal.set(response.user);
+        this.refreshSuccessSignal.set(true);
+        this.refreshingSignal.set(false);
+        return true;
+      } else {
+        throw new Error('Empty response from refresh token');
+      }
+    } catch (error: unknown) {
+      console.error('Token refresh failed:', error);
+      this.errorSignal.set(
+        (error as { error?: { message?: string } }).error?.message ||
+          'Token refresh failed'
+      );
+      this.refreshSuccessSignal.set(false);
+      this.refreshingSignal.set(false);
+      this.logout();
+      return false;
+    }
+
+    // If your backend doesn't support token refresh yet, use this temporary solution:
+    // this.refreshSuccessSignal.set(true);
+    // this.refreshingSignal.set(false);
+    // return true;
   }
 }
