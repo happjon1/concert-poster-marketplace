@@ -12,7 +12,7 @@ import { User } from '../models/user.model';
 import { AuthResponse } from '../models/auth-response.model';
 import { LoginRequest } from '../models/login-request.model';
 import { RegisterRequest } from '../models/register-request.model'; // Import RegisterRequest
-import { environment } from '../../environment';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
