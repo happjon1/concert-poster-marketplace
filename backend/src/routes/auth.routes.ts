@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { RequestHandler, Router } from "express";
 import {
   registerUser,
   loginUser,
@@ -8,12 +8,12 @@ import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
 
-router.post("/register", registerUser as import("express").RequestHandler);
-router.post("/login", loginUser as import("express").RequestHandler);
+router.post("/register", registerUser as RequestHandler);
+router.post("/login", loginUser as RequestHandler);
 router.get(
   "/me",
-  authMiddleware as import("express").RequestHandler,
-  getCurrentUser as import("express").RequestHandler
+  authMiddleware as RequestHandler,
+  getCurrentUser as RequestHandler
 );
 
 export default router;
