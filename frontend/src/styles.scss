@@ -1,25 +1,31 @@
-// Regular Bootstrap import if you don't need to customize it
+// 1. First import Bootstrap functions (required for variable overrides)
+@import 'bootstrap/scss/functions';
+
+// 2. Then include any default variable overrides
+$primary: #e04e1b;
+$secondary: #f5f1e6;
+$success: #8c6a3c;
+$danger: #b22222;
+$warning: #d9a441;
+$info: #a0c4e2;
+$light: #fff8f0;
+$dark: #3d2b1f;
+
+// 3. Include remainder of Bootstrap
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/variables-dark';
+@import 'bootstrap/scss/maps';
+@import 'bootstrap/scss/mixins';
+@import 'bootstrap/scss/root';
 @import 'bootstrap/scss/bootstrap';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
 
-// If you want to customize Bootstrap variables:
-/*
-$primary: #007bff;
-$secondary: #6c757d;
-$success: #28a745;
-$danger: #dc3545;
-$warning: #ffc107;
-$info: #17a2b8;
-$light: #f8f9fa;
-$dark: #343a40;
-
-@import 'bootstrap/scss/bootstrap';
-*/
-
-// html,
-// body {
-//   height: 100%;
-// }
-// body {
-//   margin: 0;
-//   font-family: 'Montserrat', 'Helvetica Neue', sans-serif;
-// }
+// 4. Your custom styles
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: 'Montserrat', 'Helvetica Neue', sans-serif;
+}

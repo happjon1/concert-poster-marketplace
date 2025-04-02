@@ -1,10 +1,62 @@
-.navbar {
-  -webkit-box-shadow: 3px 3px 5px 6px #ccc;  /* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */
-  -moz-box-shadow:    3px 3px 5px 6px #ccc;  /* Firefox 3.5 - 3.6 */
-   box-shadow:        2px 2px 4px 5px #ccc;  
-  z-index: 10;
-  top:0;
+// .navbar {
+//   -webkit-box-shadow: 3px 3px 5px 6px #ccc;  /* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */
+//   -moz-box-shadow:    3px 3px 5px 6px #ccc;  /* Firefox 3.5 - 3.6 */
+//    box-shadow:        2px 2px 4px 5px #ccc;
+//   z-index: 10;
+//   top:0;
+//   position: sticky;
+//   display: flex;
+//   justify-content: space-between;
+// }
+
+.navbar-gradient {
+  background: linear-gradient(to bottom, #e04e1b 0%, #f37a4c 100%);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   position: sticky;
-  display: flex;
-  justify-content: space-between;
+  top: 0;
+  z-index: 1030;
+  padding-top: 0.75rem; // Increase top padding
+  padding-bottom: 0.75rem; // Increase bottom padding
+  min-height: 70px; // Set minimum height
+}
+
+// Add a subtle highlight to the bottom
+.navbar-gradient::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+// Make buttons stand out against the gradient
+.navbar-gradient .btn-primary {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: transparent;
+  transition: all 0.2s;
+}
+
+.navbar-gradient .btn-primary:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+// Adjust logo/brand size to match taller navbar
+.navbar-brand {
+  font-size: 1.4rem; // Make the brand text slightly larger
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+// Make offcanvas header match the navbar
+.offcanvas-header-gradient {
+  background: linear-gradient(to bottom, #e04e1b 0%, #f37a4c 100%);
+  color: white;
+  min-height: 70px; // Match navbar height
+}
+
+// Style the close button to be visible on the gradient
+.btn-close {
+  filter: brightness(0) invert(1);
 }
