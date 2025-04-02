@@ -15,9 +15,14 @@
   position: sticky;
   top: 0;
   z-index: 1030;
-  padding-top: 0.75rem; // Increase top padding
-  padding-bottom: 0.75rem; // Increase bottom padding
-  min-height: 70px; // Set minimum height
+  padding-top: 0.1rem !important; // Minimal padding
+  padding-bottom: 0.1rem !important; // Minimal padding
+  min-height: 60px !important; // Fixed height
+  max-height: 60px !important; // Added max-height constraint
+  display: flex;
+  align-items: center;
+  overflow: visible !important; // Allow logo to overflow
+  padding-left: 0.25rem !important; // Reduced left padding
 }
 
 // Add a subtle highlight to the bottom
@@ -36,6 +41,8 @@
   background-color: rgba(255, 255, 255, 0.15);
   border-color: transparent;
   transition: all 0.2s;
+  width: 36px !important; // Slightly smaller
+  height: 36px !important; // Slightly smaller
 }
 
 .navbar-gradient .btn-primary:hover {
@@ -59,4 +66,83 @@
 // Style the close button to be visible on the gradient
 .btn-close {
   filter: brightness(0) invert(1);
+}
+
+// Enhanced logo container
+.logo-container {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  overflow: visible !important; // Critical for overflow
+  padding: 0.25rem 0; // Reduced padding
+  padding-left: 0 !important; // Remove left padding from logo container
+  margin-left: -1rem !important; // Very aggressive negative margin
+}
+
+// Extreme logo size increase
+.svg-logo {
+  height: 85px !important; // Massively increased from 70px
+  width: auto !important;
+  max-width: 280px !important; // More width allowance
+  filter: brightness(0) invert(1); // Makes it white
+  position: relative;
+  z-index: 1030; // Keep it above other elements
+  margin-top: -1.5rem !important; // More extreme negative margin
+  margin-bottom: -1.5rem !important; // More extreme negative margin
+  margin-left: -0.25rem !important; // Pull the actual image left too
+
+  // Even larger scale transform
+  transform: scale(1.4); // Increased from 1.2
+  transform-origin: left center;
+
+  // Responsive adjustments (scaled up proportionally)
+  @media (max-width: 768px) {
+    height: 70px !important; // Larger on tablets
+    transform: scale(1.2);
+  }
+
+  @media (max-width: 576px) {
+    height: 60px !important; // Larger on phones
+    transform: scale(1.1);
+  }
+}
+
+// Container fluid adjustment
+.navbar > .container-fluid {
+  padding-left: 0.25rem !important; // Reduced container padding
+  padding-right: 0.5rem !important; // Add right padding to container
+}
+
+// Extreme left position for logo
+.navbar-edge-logo {
+  padding-left: 0 !important; // Remove all left padding
+}
+
+.navbar-edge-logo > .container-fluid {
+  padding-left: 0 !important; // Remove container padding
+}
+
+// Adjust content offset to prevent overlap
+.navbar-collapse {
+  margin-left: 1rem; // Add space after logo for content
+}
+
+// Make sure toggle button doesn't overlap with logo
+.navbar-toggler {
+  margin-right: 0.5rem;
+}
+
+// Add padding to the right side icons
+.navbar .d-flex:last-child {
+  margin-right: 0.75rem !important; // Add right margin to push icons inward
+  padding-right: 0.5rem !important; // Add padding for more space
+}
+
+// For smaller screens, maintain some padding
+@media (max-width: 768px) {
+  .navbar .d-flex:last-child {
+    margin-right: 0.5rem !important;
+    padding-right: 0.25rem !important;
+  }
 }
