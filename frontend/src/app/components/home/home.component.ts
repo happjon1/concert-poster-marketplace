@@ -1,10 +1,9 @@
 import { Component } from '@angular/core';
 import { PosterCardComponent } from '../poster-card/poster-card.component';
-import { MatGridListModule } from '@angular/material/grid-list';
 
 @Component({
   selector: 'app-home',
-  imports: [PosterCardComponent, MatGridListModule],
+  imports: [PosterCardComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
   standalone: true,

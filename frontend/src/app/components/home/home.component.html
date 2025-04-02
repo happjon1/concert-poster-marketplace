@@ -1,8 +1,9 @@
-<div class="p-3">
-  <div
-    class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+<div class="container-fluid p-3">
+  <div class="row g-4">
     @for (item of items; track item) {
-      <app-poster-card></app-poster-card>
+      <div class="col-12 col-md-4 col-lg-3">
+        <app-poster-card></app-poster-card>
+      </div>
     }
   </div>
 </div>

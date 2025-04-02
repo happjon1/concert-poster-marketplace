@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -7,50 +7,23 @@ import {
   Validators,
 } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
-
-// Angular Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { NgbToastModule } from '@ng-bootstrap/ng-bootstrap';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTabsModule,
-    MatDividerModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatProgressBarModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatDialogModule,
-    MatSnackBarModule,
-  ],
+  imports: [CommonModule, ReactiveFormsModule, NgbToastModule],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
 })
-export class ProfileComponent {
+export class ProfileComponent implements OnInit {
   public authService = inject(AuthService);
   private fb = inject(FormBuilder);
-  private snackBar = inject(MatSnackBar);
 
   editMode = false;
   saving = false;
+  showToast = false;
+  toastMessage = '';
 
   profileForm: FormGroup = this.fb.group({
     firstName: ['', []],
@@ -101,11 +74,15 @@ export class ProfileComponent {
     setTimeout(() => {
       this.saving = false;
       this.editMode = false;
-      this.snackBar.open('Profile updated successfully', 'Close', {
-        duration: 3000,
-        horizontalPosition: 'center',
-        verticalPosition: 'bottom',
-      });
+
+      // Show Bootstrap toast instead of MatSnackBar
+      this.toastMessage = 'Profile updated successfully';
+      this.showToast = true;
+
+      // Auto-hide toast after 3 seconds
+      setTimeout(() => {
+        this.showToast = false;
+      }, 3000);
     }, 1500);
 
     // In a real implementation, you would:

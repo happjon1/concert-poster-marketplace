@@ -9,19 +9,8 @@ import {
   ValidationErrors,
 } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-
-// Angular Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatStepperModule } from '@angular/material/stepper';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../services/auth.service';
+import { CommonModule } from '@angular/common';
 
 // Password matching validator
 const passwordMatchValidator = (
@@ -39,21 +28,7 @@ const passwordMatchValidator = (
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    FormsModule,
-    RouterLink,
-    MatCardModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressBarModule,
-    MatDividerModule,
-    MatStepperModule,
-    MatCheckboxModule,
-    MatProgressSpinnerModule,
-  ],
+  imports: [ReactiveFormsModule, FormsModule, RouterLink, CommonModule],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss'],
 })

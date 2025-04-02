@@ -1,18 +1,14 @@
 import { Component } from '@angular/core';
-import { MatIcon } from '@angular/material/icon';
-import { MatToolbar } from '@angular/material/toolbar';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 @Component({
-  imports: [MatToolbar, MatIcon],
   selector: 'app-navbar',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.scss'],
-  standalone: true,
 })
 export class NavbarComponent {
-  isMenuOpen = false;
-
-  toggleMenu(): void {
-    this.isMenuOpen = !this.isMenuOpen;
-  }
+  // Your component logic here
 }

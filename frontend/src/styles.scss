@@ -1,29 +1,25 @@
-@use '@angular/material' as mat;
-@use './styles/theme_colors.scss' as theme-colors;
-@include mat.core();
+// Regular Bootstrap import if you don't need to customize it
+@import 'bootstrap/scss/bootstrap';
 
-@import 'tailwindcss';
+// If you want to customize Bootstrap variables:
+/*
+$primary: #007bff;
+$secondary: #6c757d;
+$success: #28a745;
+$danger: #dc3545;
+$warning: #ffc107;
+$info: #17a2b8;
+$light: #f8f9fa;
+$dark: #343a40;
 
-html {
-  color-scheme: light dark;
-  @include mat.theme(
-    (
-      color: (
-        theme-type: light,
-        primary: theme-colors.$primary-palette,
-        tertiary: theme-colors.$tertiary-palette,
-      ),
-      typography: Montserrat,
-      density: 0,
-    )
-  );
-}
+@import 'bootstrap/scss/bootstrap';
+*/
 
-html,
-body {
-  height: 100%;
-}
-body {
-  margin: 0;
-  font-family: 'Montserrat', sans-serif;
-}
+// html,
+// body {
+//   height: 100%;
+// }
+// body {
+//   margin: 0;
+//   font-family: 'Montserrat', 'Helvetica Neue', sans-serif;
+// }

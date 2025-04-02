@@ -1,0 +1,252 @@
+<div
+  class="container d-flex justify-content-center align-items-center min-vh-100 py-4 py-md-5 bg-light">
+  <div class="card shadow w-100" style="max-width: 500px">
+    <!-- Progress bar for loading state -->
+    @if (authService.loading()) {
+      <div class="progress" style="height: 4px">
+        <div
+          class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
+      </div>
+    }
+
+    <div class="card-header bg-white">
+      <h4 class="card-title mb-1">Create Account</h4>
+      <p class="card-subtitle text-muted">Enter your information to register</p>
+    </div>
+
+    <div class="card-body">
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+        <!-- Basic Information -->
+        <div class="mb-3">
+          <label for="username" class="form-label">Username</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="bi bi-person"></i>
+            </span>
+            <input
+              type="text"
+              class="form-control"
+              id="username"
+              formControlName="username"
+              placeholder="Choose a username"
+              autocomplete="username"
+              [ngClass]="{
+                'is-invalid':
+                  registerForm.get('username')?.touched &&
+                  registerForm.get('username')?.invalid,
+              }" />
+            <div class="invalid-feedback">
+              @if (registerForm.get('username')?.hasError('required')) {
+                Username is required
+              } @else if (registerForm.get('username')?.hasError('minlength')) {
+                Username must be at least 3 characters
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="email" class="form-label">Email</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="bi bi-envelope"></i>
+            </span>
+            <input
+              type="email"
+              class="form-control"
+              id="email"
+              formControlName="email"
+              placeholder="Your email address"
+              autocomplete="email"
+              [ngClass]="{
+                'is-invalid':
+                  registerForm.get('email')?.touched &&
+                  registerForm.get('email')?.invalid,
+              }" />
+            <div class="invalid-feedback">
+              @if (registerForm.get('email')?.hasError('required')) {
+                Email is required
+              } @else if (registerForm.get('email')?.hasError('email')) {
+                Please enter a valid email address
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Password Section -->
+        <div formGroupName="passwordGroup">
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="bi bi-lock"></i>
+              </span>
+              <input
+                [type]="hidePassword ? 'password' : 'text'"
+                class="form-control"
+                id="password"
+                formControlName="password"
+                (input)="onPasswordInput()"
+                autocomplete="new-password"
+                [ngClass]="{
+                  'is-invalid':
+                    passwordControl?.touched && passwordControl?.invalid,
+                }" />
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                (click)="hidePassword = !hidePassword">
+                <i
+                  class="bi"
+                  [ngClass]="hidePassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+              </button>
+              <div class="invalid-feedback">
+                @if (passwordControl?.hasError('required')) {
+                  Password is required
+                } @else if (passwordControl?.hasError('minlength')) {
+                  Password must be at least 6 characters
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Password Strength Indicator -->
+          @if (passwordControl?.value) {
+            <div class="mb-3">
+              <div
+                class="d-flex justify-content-between align-items-center mb-1">
+                <small
+                  >Password Strength: {{ getPasswordStrengthText() }}</small
+                >
+              </div>
+              <div class="progress" style="height: 8px">
+                <div
+                  class="progress-bar"
+                  [ngClass]="{
+                    'bg-danger': passwordStrength < 33,
+                    'bg-warning':
+                      passwordStrength >= 33 && passwordStrength < 66,
+                    'bg-success': passwordStrength >= 66,
+                  }"
+                  [style.width.%]="passwordStrength"></div>
+              </div>
+            </div>
+          }
+
+          <div class="mb-3">
+            <label for="confirmPassword" class="form-label"
+              >Confirm Password</label
+            >
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="bi bi-lock"></i>
+              </span>
+              <input
+                [type]="hideConfirmPassword ? 'password' : 'text'"
+                class="form-control"
+                id="confirmPassword"
+                formControlName="confirmPassword"
+                autocomplete="new-password"
+                [ngClass]="{
+                  'is-invalid':
+                    (confirmPasswordControl?.touched &&
+                      confirmPasswordControl?.invalid) ||
+                    (passwordGroup?.hasError('passwordMismatch') &&
+                      confirmPasswordControl?.touched),
+                }" />
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                (click)="hideConfirmPassword = !hideConfirmPassword">
+                <i
+                  class="bi"
+                  [ngClass]="
+                    hideConfirmPassword ? 'bi-eye-slash' : 'bi-eye'
+                  "></i>
+              </button>
+              <div class="invalid-feedback">
+                @if (confirmPasswordControl?.hasError('required')) {
+                  Please confirm your password
+                } @else if (
+                  passwordGroup?.hasError('passwordMismatch') &&
+                  confirmPasswordControl?.touched
+                ) {
+                  Passwords do not match
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Name Fields (Optional) -->
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="firstName" class="form-label">First Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="firstName"
+              formControlName="firstName"
+              placeholder="First name (optional)"
+              autocomplete="given-name" />
+          </div>
+
+          <div class="col-md-6">
+            <label for="lastName" class="form-label">Last Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="lastName"
+              formControlName="lastName"
+              placeholder="Last name (optional)"
+              autocomplete="family-name" />
+          </div>
+        </div>
+
+        <!-- Terms and Conditions -->
+        <div class="mb-3 form-check">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="acceptTerms"
+            [(ngModel)]="acceptTerms"
+            [ngModelOptions]="{ standalone: true }" />
+          <label class="form-check-label" for="acceptTerms">
+            I accept the <a href="#" target="_blank">Terms and Conditions</a>
+          </label>
+        </div>
+
+        @if (authService.error()) {
+          <div class="alert alert-danger d-flex align-items-center mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div>{{ authService.error() }}</div>
+          </div>
+        }
+
+        <button
+          type="submit"
+          class="btn btn-primary w-100 py-2"
+          [disabled]="
+            registerForm.invalid || !acceptTerms || authService.loading()
+          ">
+          @if (authService.loading()) {
+            <span
+              class="spinner-border spinner-border-sm me-2"
+              role="status"
+              aria-hidden="true"></span>
+            Creating Account...
+          } @else {
+            Create Account
+          }
+        </button>
+      </form>
+    </div>
+
+    <hr class="m-0" />
+
+    <div class="card-footer bg-white text-end">
+      <span class="me-2">Already have an account?</span>
+      <a routerLink="/login" class="btn btn-outline-primary">Sign In</a>
+    </div>
+  </div>
+</div>

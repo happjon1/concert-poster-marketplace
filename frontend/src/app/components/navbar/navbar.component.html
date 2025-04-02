@@ -1,22 +1,77 @@
-<mat-toolbar class="navbar">
-  <div class="flex flex-row">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container-fluid">
+    <!-- Logo and Brand -->
+    <div class="d-flex align-items-center">
+      <button
+        class="btn btn-primary me-2 d-flex justify-content-center align-items-center rounded-circle"
+        style="width: 40px; height: 40px"
+        type="button"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#sidebarMenu"
+        aria-controls="sidebarMenu">
+        <i class="bi bi-list fs-5"></i>
+      </button>
+      <a class="navbar-brand" href="#">Tube Bazaar</a>
+    </div>
+
+    <!-- Navbar toggler for mobile -->
     <button
-      mat-mini-fab
-      class="mr-2"
-      aria-label="Example icon-button with menu icon">
-      <mat-icon>menu</mat-icon>
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarContent"
+      aria-controls="navbarContent"
+      aria-expanded="false"
+      aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
     </button>
-    <span>Tube Bazaar</span>
+
+    <!-- Navbar content -->
+    <div class="collapse navbar-collapse" id="navbarContent">
+      <!-- Navigation links (if needed) -->
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <!-- Add nav items here if needed -->
+      </ul>
+
+      <!-- Action buttons -->
+      <div class="d-flex">
+        <button class="btn btn-primary me-2" aria-label="Favorite">
+          <i class="bi bi-heart"></i>
+        </button>
+        <button class="btn btn-primary" aria-label="Share">
+          <i class="bi bi-share"></i>
+        </button>
+      </div>
+    </div>
   </div>
-  <div>
+</nav>
+
+<!-- Optional: Sidebar/Offcanvas that opens when menu button is clicked -->
+<div
+  class="offcanvas offcanvas-start"
+  tabindex="-1"
+  id="sidebarMenu"
+  aria-labelledby="sidebarMenuLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="sidebarMenuLabel">Tube Bazaar</h5>
     <button
-      mat-icon-button
-      class="example-icon favorite-icon"
-      aria-label="Example icon-button with heart icon">
-      <mat-icon>favorite</mat-icon>
-    </button>
-    <button mat-icon-button aria-label="Example icon-button with share icon">
-      <mat-icon>share</mat-icon>
-    </button>
+      type="button"
+      class="btn-close text-reset"
+      data-bs-dismiss="offcanvas"
+      aria-label="Close"></button>
   </div>
-</mat-toolbar>
+  <div class="offcanvas-body">
+    <ul class="nav flex-column">
+      <li class="nav-item">
+        <a class="nav-link active" routerLink="/">Home</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" routerLink="/posters">Posters</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" routerLink="/artists">Artists</a>
+      </li>
+      <!-- Add more navigation items as needed -->
+    </ul>
+  </div>
+</div>
