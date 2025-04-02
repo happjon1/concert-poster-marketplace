@@ -101,11 +101,6 @@
     height: 70px !important; // Larger on tablets
     transform: scale(1.2);
   }
-
-  @media (max-width: 576px) {
-    height: 60px !important; // Larger on phones
-    transform: scale(1.1);
-  }
 }
 
 // Container fluid adjustment
