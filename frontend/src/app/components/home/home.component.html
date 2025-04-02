@@ -1,9 +1,71 @@
-<div class="container-fluid p-3">
-  <div class="row g-4">
-    @for (item of items; track item) {
-      <div class="col-12 col-md-4 col-lg-3">
-        <app-poster-card></app-poster-card>
+<!-- Main wrapper to ensure footer doesn't overlap content -->
+<div class="d-flex flex-column min-vh-100">
+  <!-- Main content area -->
+  <div class="container-fluid p-3 flex-grow-1">
+    <!-- Optional: Add a heading or filters -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">Featured Posters</h4>
+      <div class="dropdown">
+        <button
+          class="btn btn-sm btn-outline-secondary dropdown-toggle"
+          type="button"
+          data-bs-toggle="dropdown">
+          Sort by
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><button class="dropdown-item" type="button">Newest</button></li>
+          <li>
+            <button class="dropdown-item" type="button">
+              Price: Low to High
+            </button>
+          </li>
+          <li>
+            <button class="dropdown-item" type="button">
+              Price: High to Low
+            </button>
+          </li>
+        </ul>
       </div>
-    }
+    </div>
+
+    <!-- Poster grid -->
+    <div class="row g-4">
+      @for (item of items; track item) {
+        <div class="col-6 col-sm-4 col-lg-3 col-xl-2">
+          <app-poster-card></app-poster-card>
+        </div>
+      }
+    </div>
   </div>
+
+  <!-- Sticky footer with pagination -->
+  <footer class="footer mt-auto py-3 bg-white border-top shadow-sm">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="text-muted"
+          >Showing <strong>1-24</strong> of 120 posters</span
+        >
+
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item disabled">
+              <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                <i class="bi bi-chevron-left"></i>
+              </a>
+            </li>
+            <li class="page-item active">
+              <a class="page-link" href="#">1</a>
+            </li>
+            <li class="page-item"><a class="page-link" href="#">2</a></li>
+            <li class="page-item"><a class="page-link" href="#">3</a></li>
+            <li class="page-item">
+              <a class="page-link" href="#">
+                <i class="bi bi-chevron-right"></i>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </footer>
 </div>
