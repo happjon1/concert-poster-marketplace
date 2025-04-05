@@ -17,40 +17,25 @@
 
         <!-- Avatar -->
         <div class="position-relative mt-n5 mb-2 d-flex justify-content-center">
-          @if (user.profileImage) {
-            <img
-              [src]="user.profileImage"
-              alt="Profile picture"
-              class="rounded-circle border border-4 border-white shadow-sm"
-              style="width: 96px; height: 96px; object-fit: cover" />
-          } @else {
-            <div
-              class="rounded-circle border border-4 border-white shadow-sm bg-primary text-white d-flex align-items-center justify-content-center"
-              style="width: 96px; height: 96px; font-size: 2rem">
-              {{ getInitials(user) }}
-            </div>
-          }
+          <div
+            class="rounded-circle border border-4 border-white shadow-sm bg-primary text-white d-flex align-items-center justify-content-center"
+            style="width: 96px; height: 96px; font-size: 2rem">
+            {{ getInitials(user) }}
+          </div>
         </div>
 
         <div class="card-body text-center">
           <!-- Name Section -->
           <div class="mb-4 d-flex flex-column align-items-center">
             <h1 class="fs-4 fw-medium">
-              @if (user.firstName || user.lastName) {
-                {{ user.firstName }} {{ user.lastName }}
-              } @else {
-                {{ user.username }}
-              }
+              {{ user.name || 'Anonymous User' }}
             </h1>
-            <p class="text-secondary">{{ user.username }}</p>
+            <p class="text-secondary">{{ user.email }}</p>
 
-            @if (user.role) {
+            @if (user.isAdmin) {
               <div
-                class="mt-2 px-3 py-1 badge rounded-pill text-uppercase"
-                [ngClass]="
-                  user.role === 'ADMIN' ? 'bg-primary' : 'bg-secondary'
-                ">
-                {{ user.role }}
+                class="mt-2 px-3 py-1 badge rounded-pill text-uppercase bg-primary">
+                ADMIN
               </div>
             }
           </div>
@@ -88,32 +73,16 @@
               <h2 class="fs-5 fw-medium mb-4">Personal Information</h2>
 
               <div class="py-3 border-bottom d-flex">
-                <div class="col-4 col-md-3 fw-medium text-secondary">
-                  Username
-                </div>
-                <div>{{ user.username }}</div>
-              </div>
-
-              <div class="py-3 border-bottom d-flex">
                 <div class="col-4 col-md-3 fw-medium text-secondary">Email</div>
                 <div>{{ user.email }}</div>
               </div>
 
-              @if (user.firstName) {
+              @if (user.name) {
                 <div class="py-3 border-bottom d-flex">
                   <div class="col-4 col-md-3 fw-medium text-secondary">
-                    First Name
+                    Name
                   </div>
-                  <div>{{ user.firstName }}</div>
-                </div>
-              }
-
-              @if (user.lastName) {
-                <div class="py-3 border-bottom d-flex">
-                  <div class="col-4 col-md-3 fw-medium text-secondary">
-                    Last Name
-                  </div>
-                  <div>{{ user.lastName }}</div>
+                  <div>{{ user.name }}</div>
                 </div>
               }
             </div>
@@ -127,7 +96,7 @@
                 <div class="col-4 col-md-3 fw-medium text-secondary">
                   Account Type
                 </div>
-                <div>{{ user.role }}</div>
+                <div>{{ user.isAdmin ? 'Administrator' : 'Regular User' }}</div>
               </div>
 
               <div class="py-3 border-bottom d-flex">
@@ -151,57 +120,29 @@
             <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
               <h2 class="fs-5 fw-medium mb-4">Edit Profile</h2>
 
-              <div class="row mb-4">
-                <div class="col-12 col-md-6 mb-3 mb-md-0">
-                  <div class="form-floating">
-                    <input
-                      type="text"
-                      id="firstName"
-                      class="form-control"
-                      formControlName="firstName"
-                      placeholder="First name" />
-                    <label for="firstName">
-                      <i class="bi bi-person me-2"></i>First Name
-                    </label>
-                  </div>
-                </div>
-
-                <div class="col-12 col-md-6">
-                  <div class="form-floating">
-                    <input
-                      type="text"
-                      id="lastName"
-                      class="form-control"
-                      formControlName="lastName"
-                      placeholder="Last name" />
-                    <label for="lastName">Last Name</label>
-                  </div>
-                </div>
-              </div>
-
               <div class="mb-4">
                 <div class="form-floating">
                   <input
                     type="text"
-                    id="username"
+                    id="name"
                     class="form-control"
-                    formControlName="username"
-                    placeholder="Username"
+                    formControlName="name"
+                    placeholder="Full name"
                     [ngClass]="{
                       'is-invalid':
-                        profileForm.get('username')?.invalid &&
-                        profileForm.get('username')?.touched,
+                        profileForm.get('name')?.invalid &&
+                        profileForm.get('name')?.touched,
                     }" />
-                  <label for="username">
-                    <i class="bi bi-at me-2"></i>Username
+                  <label for="name">
+                    <i class="bi bi-person me-2"></i>Name
                   </label>
                   <div
                     class="invalid-feedback"
                     *ngIf="
-                      profileForm.get('username')?.invalid &&
-                      profileForm.get('username')?.touched
+                      profileForm.get('name')?.invalid &&
+                      profileForm.get('name')?.touched
                     ">
-                    Username is required (min. 3 characters)
+                    Name is required (min. 2 characters)
                   </div>
                 </div>
               </div>

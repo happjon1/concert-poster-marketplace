@@ -7,52 +7,309 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id           String   @id @default(uuid())
-  username     String   @unique
-  email        String   @unique
-  password     String
-  firstName    String?
-  lastName     String?
-  profileImage String?
-  role         UserRole @default(USER)
-  posters      Poster[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+// Enums remain unchanged
+
+enum PosterType {
+  EVENT
+  TOUR
+  PROMO
+  ART_PRINT
+  OTHER
+}
+
+enum PosterStatus {
+  ACTIVE
+  SOLD
+  CANCELED
+  EXPIRED
+}
+
+enum OrderStatus {
+  PENDING
+  SHIP_TO_US
+  VERIFYING
+  VERIFIED
+  REJECTED
+  SHIP_TO_BUYER
+  DELIVERED
+  COMPLETED
+  RETURN_TO_SELLER
+}
+
+enum TransactionType {
+  BID_HOLD
+  PURCHASE
+  PAYOUT
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum UploadedBy {
+  SELLER
+  VERIFIER
+}
+
+enum OrderActor {
+  BUYER
+  SELLER
+  ADMIN
+  SYSTEM
 }
 
 model Poster {
-  id        String   @id @default(uuid())
-  title     String
-  artist    String
-  venue     String
-  eventDate DateTime
-  designer  String?
-  
-  // Stored as JSON
-  dimensions Json    
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String
+  imageUrls   String[]
+  type        PosterType @default(EVENT)
 
-  condition String
-  printType String
-  limited   Boolean @default(false)
-  
-  // Stored as JSON if limited is true
-  edition   Json?   
+  isAuction    Boolean      @default(true)
+  startPrice   Float?
+  buyNowPrice  Float?
+  auctionEndAt DateTime?
+  status       PosterStatus @default(ACTIVE)
 
-  // Array of image URLs
-  images    String[]
+  variant          String?
+  paperType        String?
+  signedByArtist   Boolean @default(false)
+  signedByMusician Boolean @default(false)
+  isNumbered       Boolean @default(false)
+  editionNumber    String?
+  notes            String? @db.VarChar(1000)
+  widthInInches    Float?
+  heightInInches   Float?
 
-  price     Decimal  @db.Decimal(10, 2)
-  
-  // Relationships
-  sellerId  String
-  seller    User     @relation(fields: [sellerId], references: [id])
-  
+  sellerId String
+  seller   User   @relation(fields: [sellerId], references: [id])
+  order    Order? @relation
+
+  events  PosterEvent[]
+  artists PosterArtist[]
+  bids    Bid[] // Changed from Bid? to Bid[] to make it one-to-many
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-enum UserRole {
-  USER
-  ADMIN
+model User {
+  id                   String    @id @default(uuid())
+  email                String    @unique
+  passwordHash         String
+  phone                String?
+  name                 String?
+  isAdmin              Boolean   @default(false)
+  stripeAccountId      String?
+  defaultAddressId     String?   @unique
+  resetPasswordToken   String? // Token for password reset
+  resetPasswordExpires DateTime? // When the token expires
+  lastLogin            DateTime? // Track last successful login
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posters        Poster[]
+  orders         Order[]       @relation("buyerOrders")
+  bids           Bid[]
+  transactions   Transaction[]
+  addresses      Address[]
+  defaultAddress Address?      @relation("DefaultAddress", fields: [defaultAddressId], references: [id])
+  sellerOrders   Order[]       @relation("sellerOrders")
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  userId      String
+  label       String?
+  address1    String
+  address2    String?
+  city        String
+  state       String?
+  province    String?
+  zip         String?
+  country     String
+  isValidated Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user       User  @relation(fields: [userId], references: [id])
+  defaultFor User? @relation("DefaultAddress")
+}
+
+model Bid {
+  id       Int     @id @default(autoincrement())
+  amount   Decimal
+  poster   Poster  @relation(fields: [posterId], references: [id])
+  posterId Int
+  user     User    @relation(fields: [userId], references: [id])
+  userId   String // Changed from Int to String to match User.id
+}
+
+model Order {
+  id       String      @id @default(uuid())
+  buyerId  String
+  posterId Int         @unique // Changed from String to Int to match Poster.id
+  sellerId String
+  status   OrderStatus @default(PENDING)
+
+  shippingTrackingNumber        String?
+  shippingCarrier               String?
+  shippingTrackingNumberToBuyer String?
+  shippingCarrierToBuyer        String?
+  shippingLabelUrl              String?
+  shippingLabelToBuyer          String?
+
+  sellerPayoutInCents Int
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  buyer  User   @relation("buyerOrders", fields: [buyerId], references: [id])
+  seller User   @relation("sellerOrders", fields: [sellerId], references: [id]) // Add relation name
+  poster Poster @relation(fields: [posterId], references: [id])
+
+  transactions       Transaction[]
+  stateHistory       OrderStateHistory[]
+  verificationImages VerificationImage[]
+}
+
+model Transaction {
+  id                  String            @id @default(uuid())
+  orderId             String
+  userId              String
+  amount              Float
+  currency            String
+  paymentMethod       String
+  transactionType     TransactionType
+  status              TransactionStatus @default(PENDING)
+  stripeTransactionId String?
+  createdAt           DateTime          @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+}
+
+model OrderStateHistory {
+  id        String      @id @default(uuid())
+  orderId   String
+  fromState String
+  toState   String
+  event     String
+  actor     OrderActor?
+  createdAt DateTime    @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+model VerificationImage {
+  id         String      @id @default(uuid())
+  orderId    String
+  url        String
+  label      String?
+  uploadedBy UploadedBy?
+  createdAt  DateTime    @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+model Genre {
+  id        String        @id @default(uuid())
+  jambaseId String        @unique
+  name      String        @unique
+  artists   ArtistGenre[]
+  createdAt DateTime      @default(now())
+}
+
+model Artist {
+  id        String  @id @default(uuid())
+  jambaseId String  @unique
+  name      String
+  imageUrl  String?
+
+  genres ArtistGenre[]
+
+  events  EventArtist[]
+  posters PosterArtist[]
+
+  createdAt DateTime @default(now())
+}
+
+model ArtistGenre {
+  id       String @id @default(uuid())
+  artistId String
+  genreId  String
+
+  artist Artist @relation(fields: [artistId], references: [id])
+  genre  Genre  @relation(fields: [genreId], references: [id])
+
+  @@unique([artistId, genreId])
+}
+
+model Event {
+  id        String   @id @default(uuid())
+  jambaseId String   @unique
+  name      String
+  date      DateTime
+
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id])
+
+  posters PosterEvent[]
+  artists EventArtist[]
+
+  createdAt DateTime @default(now())
+}
+
+model Venue {
+  id        String  @id @default(uuid())
+  jambaseId String  @unique
+  name      String
+  address   String?
+  city      String
+  state     String?
+  province  String?
+  zip       String?
+  country   String
+  latitude  Float?
+  longitude Float?
+  capacity  Int?
+
+  events    Event[]
+  createdAt DateTime @default(now())
+}
+
+model PosterEvent {
+  id       String @id @default(uuid())
+  posterId Int // Changed from String to Int
+  eventId  String
+
+  poster Poster @relation(fields: [posterId], references: [id])
+  event  Event  @relation(fields: [eventId], references: [id])
+
+  @@unique([posterId, eventId])
+}
+
+model PosterArtist {
+  id       String @id @default(uuid())
+  posterId Int // Changed from String to Int
+  artistId String
+
+  poster Poster @relation(fields: [posterId], references: [id])
+  artist Artist @relation(fields: [artistId], references: [id])
+
+  @@unique([posterId, artistId])
+}
+
+model EventArtist {
+  id       String @id @default(uuid())
+  eventId  String
+  artistId String
+
+  event  Event  @relation(fields: [eventId], references: [id])
+  artist Artist @relation(fields: [artistId], references: [id])
+
+  @@unique([eventId, artistId]) // Added missing unique constraint
 }

@@ -18,34 +18,6 @@
       <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
         <!-- Basic Information -->
         <div class="mb-3">
-          <label for="username" class="form-label">Username</label>
-          <div class="input-group">
-            <span class="input-group-text">
-              <i class="bi bi-person"></i>
-            </span>
-            <input
-              type="text"
-              class="form-control"
-              id="username"
-              formControlName="username"
-              placeholder="Choose a username"
-              autocomplete="username"
-              [ngClass]="{
-                'is-invalid':
-                  registerForm.get('username')?.touched &&
-                  registerForm.get('username')?.invalid,
-              }" />
-            <div class="invalid-feedback">
-              @if (registerForm.get('username')?.hasError('required')) {
-                Username is required
-              } @else if (registerForm.get('username')?.hasError('minlength')) {
-                Username must be at least 3 characters
-              }
-            </div>
-          </div>
-        </div>
-
-        <div class="mb-3">
           <label for="email" class="form-label">Email</label>
           <div class="input-group">
             <span class="input-group-text">
@@ -68,6 +40,33 @@
                 Email is required
               } @else if (registerForm.get('email')?.hasError('email')) {
                 Please enter a valid email address
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Name Field (Optional) -->
+        <div class="mb-3">
+          <label for="name" class="form-label">Name</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="bi bi-person"></i>
+            </span>
+            <input
+              type="text"
+              class="form-control"
+              id="name"
+              formControlName="name"
+              placeholder="Your full name (optional)"
+              autocomplete="name"
+              [ngClass]="{
+                'is-invalid':
+                  registerForm.get('name')?.touched &&
+                  registerForm.get('name')?.invalid,
+              }" />
+            <div class="invalid-feedback">
+              @if (registerForm.get('name')?.hasError('minlength')) {
+                Name must be at least 2 characters
               }
             </div>
           </div>
@@ -175,31 +174,6 @@
                 }
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Name Fields (Optional) -->
-        <div class="row mb-3">
-          <div class="col-md-6 mb-3 mb-md-0">
-            <label for="firstName" class="form-label">First Name</label>
-            <input
-              type="text"
-              class="form-control"
-              id="firstName"
-              formControlName="firstName"
-              placeholder="First name (optional)"
-              autocomplete="given-name" />
-          </div>
-
-          <div class="col-md-6">
-            <label for="lastName" class="form-label">Last Name</label>
-            <input
-              type="text"
-              class="form-control"
-              id="lastName"
-              formControlName="lastName"
-              placeholder="Last name (optional)"
-              autocomplete="family-name" />
           </div>
         </div>
 

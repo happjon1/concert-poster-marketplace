@@ -9,6 +9,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
+import { LoginRequest } from '../../models/login-request.model';
 
 @Component({
   selector: 'app-login',
@@ -21,6 +22,8 @@ export class LoginComponent {
   loginForm: FormGroup;
   hidePassword = true;
   rememberMe = false;
+  errorMessage = '';
+  submitting = false;
 
   constructor(
     private fb: FormBuilder,
@@ -32,9 +35,31 @@ export class LoginComponent {
     });
   }
 
-  onSubmit() {
-    if (this.loginForm.valid) {
-      this.authService.login(this.loginForm.value);
+  async onSubmit(): Promise<void> {
+    if (!this.loginForm.valid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
+
+    this.submitting = true;
+    this.errorMessage = '';
+
+    // Create login request with correct field name for backend
+    const loginData: LoginRequest = {
+      email: this.loginForm.get('email')?.value,
+      passwordHash: this.loginForm.get('password')?.value, // Changed from password to passwordHash
+    };
+
+    try {
+      await this.authService.login(loginData);
+      this.submitting = false;
+    } catch (error: any) {
+      this.submitting = false;
+      if (error?.error?.message) {
+        this.errorMessage = error.error.message;
+      } else {
+        this.errorMessage = 'Login failed. Please check your credentials.';
+      }
     }
   }
 }

@@ -1,52 +1,236 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { UserRole } from "@prisma/client";
+import { verifyToken, extractTokenFromHeader } from "../services/auth.service";
 
-interface UserPayload {
-  id: string;
-  role: UserRole;
-}
+import { findUserById } from "../services/user.service";
+import { SafeUser } from "../types";
 
+// Extend Express Request type to include user properties
 declare global {
   namespace Express {
     interface Request {
-      user?: UserPayload;
+      userId?: string;
+      user?: SafeUser;
     }
   }
 }
 
-export const authMiddleware = (
+/**
+ * Authentication middleware - validates JWT tokens
+ */
+export const authMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-
-  const token = authHeader.split(" ")[1];
-
+): Promise<void> => {
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "default_secret"
-    ) as UserPayload;
-    req.user = decoded;
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const token = extractTokenFromHeader(authHeader);
+
+    if (!token) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid authorization header format",
+      });
+      return;
+    }
+
+    const userId = verifyToken(token);
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid or expired token",
+      });
+      return;
+    }
+
+    req.userId = userId;
     next();
   } catch (error) {
-    return res.status(401).json({ message: "Invalid or expired token" });
+    console.error("Auth middleware error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Authentication failed",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 };
 
-export const adminMiddleware = (
+/**
+ * Middleware to load the user data
+ * This can be used after authMiddleware when you need the full user object
+ */
+export const loadUserMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
-  if (req.user?.role !== UserRole.ADMIN) {
-    return res.status(403).json({ message: "Admin access required" });
+): Promise<void> => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({
+        success: false,
+        message: "User ID not found in request",
+      });
+      return;
+    }
+
+    const user = await findUserById(req.userId);
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    req.user = user as SafeUser;
+    next();
+  } catch (error) {
+    console.error("User loading error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error loading user data",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
   }
-  next();
+};
+
+/**
+ * Admin authorization middleware - requires isAdmin: true
+ */
+export const adminMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Load user if not already loaded
+    if (!req.user) {
+      if (!req.userId) {
+        res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+        return;
+      }
+
+      const user = await findUserById(req.userId);
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+        return;
+      }
+
+      if (!user.isAdmin) {
+        res.status(403).json({
+          success: false,
+          message: "Admin access required",
+        });
+        return;
+      }
+
+      req.user = user as SafeUser;
+    } else if (!req.user.isAdmin) {
+      res.status(403).json({
+        success: false,
+        message: "Admin access required",
+      });
+      return;
+    }
+
+    next();
+  } catch (error) {
+    console.error("Admin middleware error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error checking admin status",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+/**
+ * Resource ownership middleware - ensures user can only access their own resources
+ * @param userIdExtractor Function that extracts the owner ID from the request
+ */
+export const ownershipMiddleware = (
+  userIdExtractor: (req: Request) => string | undefined
+) => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const resourceOwnerId = userIdExtractor(req);
+
+      if (!resourceOwnerId) {
+        res.status(400).json({
+          success: false,
+          message: "Resource owner ID not found",
+        });
+        return;
+      }
+
+      if (!req.userId) {
+        res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+        return;
+      }
+
+      // Check if this is the owner
+      if (resourceOwnerId === req.userId) {
+        return next();
+      }
+
+      // If not owner, check if admin
+      if (!req.user) {
+        const user = await findUserById(req.userId);
+
+        if (!user) {
+          res.status(404).json({
+            success: false,
+            message: "User not found",
+          });
+          return;
+        }
+
+        if (user.isAdmin) {
+          next();
+          return;
+        }
+      } else if (req.user.isAdmin) {
+        next();
+        return;
+      }
+
+      // Neither owner nor admin
+      res.status(403).json({
+        success: false,
+        message: "Access denied: you don't own this resource",
+      });
+    } catch (error) {
+      console.error("Ownership middleware error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error checking resource ownership",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
 };

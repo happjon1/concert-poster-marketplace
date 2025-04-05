@@ -1,11 +1,8 @@
 export interface User {
   id: string;
-  username: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
-  profileImage?: string;
-  role: 'USER' | 'ADMIN';
+  name?: string;
+  isAdmin: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

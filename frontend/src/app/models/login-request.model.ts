@@ -1,4 +1,4 @@
 export interface LoginRequest {
   email: string;
-  password: string;
+  passwordHash: string; // Change this from password to passwordHash
 }

@@ -11,8 +11,9 @@ import { Router } from '@angular/router';
 import { User } from '../models/user.model';
 import { AuthResponse } from '../models/auth-response.model';
 import { LoginRequest } from '../models/login-request.model';
-import { RegisterRequest } from '../models/register-request.model'; // Import RegisterRequest
+import { RegisterRequest } from '../models/register-request.model';
 import { environment } from '../../environments/environment';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -57,10 +58,10 @@ export class AuthService {
   }
 
   // Initialize auth state immediately on service creation
-  initAuthState(): void {
+  async initAuthState(): Promise<void> {
     if (!this.appInitialized) {
       this.debug('Delaying auth initialization until app is ready');
-      return;
+      return Promise.resolve();
     }
 
     this.debug('Initializing auth state');
@@ -74,23 +75,19 @@ export class AuthService {
         this.debug('No token found, marking as initialized');
         this.loadingSignal.set(false);
         this.initializedSignal.set(true);
-        return;
+        return Promise.resolve();
       }
 
-      if (!this.isTokenValid(token)) {
-        this.debug('Invalid or expired token, removing');
-        localStorage.removeItem(this.tokenKey);
-        this.loadingSignal.set(false);
-        this.initializedSignal.set(true);
-        return;
-      }
-
-      this.debug('Valid token found, fetching user data');
-      this.fetchCurrentUser();
+      // Bypass token validation completely and just try to use it
+      // The server will reject an invalid token anyway
+      this.debug('Attempting to use stored token');
+      await this.fetchCurrentUser();
+      return Promise.resolve();
     } catch (err) {
       this.debug('Error during auth initialization', err);
       this.loadingSignal.set(false);
       this.initializedSignal.set(true);
+      return Promise.reject(err);
     }
   }
 
@@ -101,72 +98,48 @@ export class AuthService {
 
   /**
    * Fetch current user with the token in storage
+   * @returns Promise that resolves when user is fetched
    */
-  fetchCurrentUser(): void {
+  fetchCurrentUser(): Promise<User | null> {
     this.debug('Fetching current user');
     this.loadingSignal.set(true);
 
-    const token = this.getToken();
+    const token = localStorage.getItem(this.tokenKey);
     if (!token) {
       this.debug('No token available, skipping user fetch');
       this.loadingSignal.set(false);
       this.initializedSignal.set(true);
-      return;
+      return Promise.resolve(null);
     }
 
-    this.http.get<{ user: User }>(`${this.apiUrl}/me`).subscribe({
-      next: response => {
+    return firstValueFrom(this.http.get<{ user: User }>(`${this.apiUrl}/me`))
+      .then(response => {
         this.debug('User fetched successfully', response.user);
         this.currentUserSignal.set(response.user);
         this.loadingSignal.set(false);
         this.initializedSignal.set(true);
-      },
-      error: error => {
+        return response.user;
+      })
+      .catch(error => {
         this.debug('Error fetching user', error);
-        // Token is invalid, clear it
-        localStorage.removeItem(this.tokenKey);
-        this.currentUserSignal.set(null);
-        this.errorSignal.set('Session expired. Please login again.');
+
+        // Only clear token if it's an auth error (401)
+        if (error.status === 401) {
+          this.debug('Unauthorized error, clearing token');
+          localStorage.removeItem(this.tokenKey);
+          this.currentUserSignal.set(null);
+          this.errorSignal.set('Session expired. Please login again.');
+        } else {
+          // For other errors, keep the token but show error
+          this.errorSignal.set(
+            'Error loading profile. Please try again later.'
+          );
+        }
+
         this.loadingSignal.set(false);
         this.initializedSignal.set(true);
-      },
-    });
-  }
-
-  /**
-   * Get token from localStorage
-   */
-  getToken(): string | null {
-    const token = localStorage.getItem(this.tokenKey);
-
-    if (!token) {
-      return null;
-    }
-
-    // Validate token before returning
-    if (this.isTokenValid(token)) {
-      return token;
-    } else {
-      this.debug('Token is invalid or expired');
-      localStorage.removeItem(this.tokenKey);
-      return null;
-    }
-  }
-
-  /**
-   * Validate JWT token
-   */
-  private isTokenValid(token: string): boolean {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      // Check if token is expired
-      const isValid = payload.exp > Date.now() / 1000;
-      this.debug(`Token validation result: ${isValid}`);
-      return isValid;
-    } catch (e) {
-      this.debug('Error validating token', e);
-      return false;
-    }
+        return Promise.reject(error);
+      });
   }
 
   /**
@@ -179,64 +152,138 @@ export class AuthService {
 
   /**
    * Login user
+   * @returns Promise that resolves to user when login is successful
    */
-  login(credentials: LoginRequest): void {
+  login(credentials: LoginRequest): Promise<User> {
     this.debug('Login attempt', credentials.email);
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
 
-    this.http
-      .post<AuthResponse>(`${this.apiUrl}/login`, credentials)
-      .subscribe({
-        next: response => {
-          this.debug('Login successful', response);
-          this.setSession(response);
-          this.currentUserSignal.set(response.user);
-          this.loadingSignal.set(false);
-          this.router.navigate(['/profile']);
-        },
-        error: error => {
-          this.debug('Login error', error);
-          this.errorSignal.set(error.error?.message || 'Login failed');
-          this.loadingSignal.set(false);
-        },
+    // FIX: Transform field names to match backend expectations
+    const backendCredentials = {
+      email: credentials.email,
+      passwordHash: credentials.passwordHash, // Transform password to passwordHash
+    };
+
+    return firstValueFrom(
+      this.http.post<AuthResponse>(`${this.apiUrl}/login`, backendCredentials)
+    )
+      .then(response => {
+        this.debug('Login successful', response);
+        this.setSession(response);
+        this.currentUserSignal.set(response.user);
+        this.loadingSignal.set(false);
+        this.router.navigate(['/profile']);
+        return response.user;
+      })
+      .catch(error => {
+        this.debug('Login error', error);
+        this.errorSignal.set(error.error?.message || 'Login failed');
+        this.loadingSignal.set(false);
+        return Promise.reject(error);
       });
   }
 
   /**
    * Register a new user
+   * @returns Promise that resolves to user when registration is successful
    */
-  register(userData: RegisterRequest): void {
+  register(userData: RegisterRequest): Promise<User> {
     this.debug('Registration attempt', userData.email);
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
 
-    this.http
-      .post<AuthResponse>(`${this.apiUrl}/register`, userData)
-      .subscribe({
-        next: response => {
-          this.debug('Registration successful', response);
-          this.setSession(response);
-          this.currentUserSignal.set(response.user);
-          this.loadingSignal.set(false);
-          this.router.navigate(['/profile']);
-        },
-        error: error => {
-          this.debug('Registration error', error);
-          this.errorSignal.set(error.error?.message || 'Registration failed');
-          this.loadingSignal.set(false);
-        },
+    // FIX: Transform field names to match backend expectations
+    const backendUserData = {
+      email: userData.email,
+      passwordHash: userData.passwordHash, // Transform password to passwordHash
+      name: userData.name,
+    };
+
+    return firstValueFrom(
+      this.http.post<AuthResponse>(`${this.apiUrl}/register`, backendUserData)
+    )
+      .then(response => {
+        this.debug('Registration successful', response);
+        this.setSession(response);
+        this.currentUserSignal.set(response.user);
+        this.loadingSignal.set(false);
+        this.router.navigate(['/profile']);
+        return response.user;
+      })
+      .catch(error => {
+        this.debug('Registration error', error);
+        this.errorSignal.set(error.error?.message || 'Registration failed');
+        this.loadingSignal.set(false);
+        return Promise.reject(error);
       });
   }
 
   /**
    * Logout user
+   * @returns Promise that resolves when logout is complete
    */
-  logout(): void {
+  logout(): Promise<void> {
     this.debug('Logging out user');
-    localStorage.removeItem(this.tokenKey);
-    this.currentUserSignal.set(null);
-    this.router.navigate(['/login']);
+
+    try {
+      // First try to call the logout endpoint if user is logged in
+      if (this.isLoggedIn()) {
+        return firstValueFrom(this.http.post<void>(`${this.apiUrl}/logout`, {}))
+          .then(() => {
+            localStorage.removeItem(this.tokenKey);
+            this.currentUserSignal.set(null);
+            this.router.navigate(['/login']);
+            return Promise.resolve();
+          })
+          .catch(() => {
+            // Even if the logout endpoint fails, clear local state
+            localStorage.removeItem(this.tokenKey);
+            this.currentUserSignal.set(null);
+            this.router.navigate(['/login']);
+            return Promise.resolve();
+          });
+      } else {
+        // If not logged in, just clear local state
+        localStorage.removeItem(this.tokenKey);
+        this.currentUserSignal.set(null);
+        this.router.navigate(['/login']);
+        return Promise.resolve();
+      }
+    } catch (error) {
+      // Still try to clear local state even if an error occurs
+      localStorage.removeItem(this.tokenKey);
+      this.currentUserSignal.set(null);
+      this.router.navigate(['/login']);
+      return Promise.reject(error);
+    }
+  }
+
+  /**
+   * Get token from localStorage
+   * @returns The authentication token or null if not available
+   */
+  getToken(): string | null {
+    const token = localStorage.getItem(this.tokenKey);
+    this.debug(`getToken called, token present: ${!!token}`);
+    return token;
+  }
+
+  /**
+   * Check if the auth token exists
+   * @returns True if token exists in localStorage
+   */
+  hasToken(): boolean {
+    return !!this.getToken();
+  }
+
+  /**
+   * Create authorization headers for HTTP requests
+   * @returns Headers object with Authorization header if token exists
+   */
+  getAuthHeaders(): { Authorization?: string } {
+    const token = this.getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   /**

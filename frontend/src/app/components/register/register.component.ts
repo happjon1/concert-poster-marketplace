@@ -11,6 +11,8 @@ import {
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
+import { RegisterRequest } from '../../models/register-request.model';
+import { HttpErrorResponse } from '@angular/common/http';
 
 // Password matching validator
 const passwordMatchValidator = (
@@ -39,11 +41,12 @@ export class RegisterComponent {
   hidePassword = true;
   hideConfirmPassword = true;
   acceptTerms = false;
+  submitting = false;
+  errorMessage = '';
 
   passwordStrength = 0;
 
   registerForm: FormGroup = this.fb.group({
-    username: ['', [Validators.required, Validators.minLength(3)]],
     email: ['', [Validators.required, Validators.email]],
     passwordGroup: this.fb.group(
       {
@@ -52,8 +55,7 @@ export class RegisterComponent {
       },
       { validators: passwordMatchValidator }
     ),
-    firstName: [''],
-    lastName: [''],
+    name: ['', [Validators.minLength(2)]],
   });
 
   get passwordControl() {
@@ -81,12 +83,6 @@ export class RegisterComponent {
     this.passwordStrength = strength;
   }
 
-  getPasswordStrengthColor() {
-    if (this.passwordStrength < 50) return 'warn';
-    if (this.passwordStrength < 75) return 'accent';
-    return 'primary';
-  }
-
   getPasswordStrengthText() {
     if (this.passwordStrength < 25) return 'Very Weak';
     if (this.passwordStrength < 50) return 'Weak';
@@ -95,19 +91,39 @@ export class RegisterComponent {
     return 'Very Strong';
   }
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (this.registerForm.invalid || !this.acceptTerms) {
+      // Mark all fields as touched to show validation errors
+      this.registerForm.markAllAsTouched();
       return;
     }
 
-    const formData = {
-      username: this.registerForm.get('username')?.value,
+    this.submitting = true;
+    this.errorMessage = '';
+
+    // Create request object that matches backend expectations
+    const formData: RegisterRequest = {
       email: this.registerForm.get('email')?.value,
-      password: this.passwordControl?.value,
-      firstName: this.registerForm.get('firstName')?.value,
-      lastName: this.registerForm.get('lastName')?.value,
+      passwordHash: this.passwordControl?.value, // Changed from password to passwordHash
+      name: this.registerForm.get('name')?.value || undefined,
     };
 
-    this.authService.register(formData);
+    try {
+      // Use await with the Promise-returning method
+      await this.authService.register(formData);
+      // Registration successful - handled by auth service
+      this.submitting = false;
+    } catch (error: unknown) {
+      this.submitting = false;
+
+      // Properly handle HttpErrorResponse type
+      const httpError = error as HttpErrorResponse;
+
+      if (httpError?.error?.message) {
+        this.errorMessage = httpError.error.message;
+      } else {
+        this.errorMessage = 'Registration failed. Please try again.';
+      }
+    }
   }
 }

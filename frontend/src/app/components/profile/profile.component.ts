@@ -26,9 +26,7 @@ export class ProfileComponent implements OnInit {
   toastMessage = '';
 
   profileForm: FormGroup = this.fb.group({
-    firstName: ['', []],
-    lastName: ['', []],
-    username: ['', [Validators.required, Validators.minLength(3)]],
+    name: ['', [Validators.required, Validators.minLength(2)]],
     email: ['', [Validators.required, Validators.email]],
     bio: ['', [Validators.maxLength(300)]],
   });
@@ -37,9 +35,7 @@ export class ProfileComponent implements OnInit {
     const user = this.authService.currentUser();
     if (user) {
       this.profileForm.patchValue({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        username: user.username,
+        name: user.name || '',
         email: user.email,
       });
     }
@@ -55,9 +51,7 @@ export class ProfileComponent implements OnInit {
     const user = this.authService.currentUser();
     if (user) {
       this.profileForm.patchValue({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        username: user.username,
+        name: user.name || '',
         email: user.email,
       });
     }
@@ -91,17 +85,24 @@ export class ProfileComponent implements OnInit {
     // 3. Handle any errors and show appropriate messages
   }
 
-  getInitials(
-    user: { firstName?: string; lastName?: string; username?: string } | null
-  ): string {
+  getInitials(user: { name?: string; email: string } | null): string {
     if (!user) return '';
 
-    if (user.firstName && user.lastName) {
-      return (user.firstName[0] + user.lastName[0]).toUpperCase();
-    } else if (user.username) {
-      return user.username[0].toUpperCase();
+    if (user.name) {
+      // Split the name and get initials from first and last parts
+      const nameParts = user.name.split(' ');
+      if (nameParts.length > 1) {
+        return (
+          nameParts[0][0] + nameParts[nameParts.length - 1][0]
+        ).toUpperCase();
+      } else {
+        // If only one name, just use the first letter
+        return nameParts[0][0].toUpperCase();
+      }
     }
-    return '?';
+
+    // Fallback to first letter of email if no name
+    return user.email[0].toUpperCase();
   }
 
   formatDate(dateString: string | undefined): string {

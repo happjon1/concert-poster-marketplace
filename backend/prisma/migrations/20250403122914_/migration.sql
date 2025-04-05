@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "resetPasswordExpires" SET DATA TYPE TIMESTAMP(3),
+ALTER COLUMN "lastLogin" SET DATA TYPE TIMESTAMP(3);

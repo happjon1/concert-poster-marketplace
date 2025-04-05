@@ -1,7 +1,5 @@
 export interface RegisterRequest {
-  username: string;
   email: string;
-  password: string;
-  firstName?: string;
-  lastName?: string;
+  passwordHash: string; // Change this from password to passwordHash
+  name?: string;
 }
