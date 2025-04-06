@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { createTRPCProxyClient } from '@trpc/client';
 import { httpBatchLink } from '@trpc/client/links/httpBatchLink';
-import { Observable, from } from 'rxjs';
 import superjson from 'superjson';
 import type {
   ClientAppRouter,
@@ -25,65 +24,55 @@ export class TrpcService {
     ],
   }) as unknown as ClientAppRouter;
 
-  private toObservable<T>(promise: Promise<T>): Observable<T> {
-    return from(promise);
-  }
-
   // Auth methods
   register(
     email: string,
     passwordHash: string,
     name?: string
-  ): Observable<RouterTypes.Auth.RegisterOutput> {
-    return this.toObservable(
-      this.client.auth.register.mutate({ email, passwordHash, name })
-    );
+  ): Promise<RouterTypes.Auth.RegisterOutput> {
+    return this.client.auth.register.mutate({ email, passwordHash, name });
   }
 
   login(
     email: string,
     passwordHash: string
-  ): Observable<RouterTypes.Auth.LoginOutput> {
-    return this.toObservable(
-      this.client.auth.login.mutate({ email, passwordHash })
-    );
+  ): Promise<RouterTypes.Auth.LoginOutput> {
+    return this.client.auth.login.mutate({ email, passwordHash });
   }
 
-  logout(token: string): Observable<RouterTypes.Auth.LogoutOutput> {
-    return this.toObservable(this.client.auth.logout.mutate({ token }));
+  logout(token: string): Promise<RouterTypes.Auth.LogoutOutput> {
+    return this.client.auth.logout.mutate({ token });
   }
 
-  getCurrentUser(): Observable<RouterTypes.Auth.MeOutput> {
-    return this.toObservable(this.client.auth.me.query());
+  getCurrentUser(): Promise<RouterTypes.Auth.MeOutput> {
+    return this.client.auth.me.query();
   }
 
   // Poster methods
   getAllPosters(
     params?: RouterTypes.Posters.GetAllInput
-  ): Observable<RouterTypes.Posters.GetAllOutput> {
-    return this.toObservable(this.client.posters.getAll.query(params || {}));
+  ): Promise<RouterTypes.Posters.GetAllOutput> {
+    return this.client.posters.getAll.query(params || {});
   }
 
-  getPosterById(id: number): Observable<RouterTypes.Posters.GetByIdOutput> {
-    return this.toObservable(this.client.posters.getById.query({ id }));
+  getPosterById(id: number): Promise<RouterTypes.Posters.GetByIdOutput> {
+    return this.client.posters.getById.query({ id });
   }
 
   createPoster(
     poster: RouterTypes.Posters.CreateInput
-  ): Observable<RouterTypes.Posters.CreateOutput> {
-    return this.toObservable(this.client.posters.create.mutate(poster));
+  ): Promise<RouterTypes.Posters.CreateOutput> {
+    return this.client.posters.create.mutate(poster);
   }
 
   updatePoster(
     id: number,
     posterData: Partial<Omit<RouterTypes.Posters.UpdateInput, 'id'>>
-  ): Observable<RouterTypes.Posters.UpdateOutput> {
-    return this.toObservable(
-      this.client.posters.update.mutate({ id, ...posterData })
-    );
+  ): Promise<RouterTypes.Posters.UpdateOutput> {
+    return this.client.posters.update.mutate({ id, ...posterData });
   }
 
-  deletePoster(id: number): Observable<RouterTypes.Posters.DeleteOutput> {
-    return this.toObservable(this.client.posters.delete.mutate({ id }));
+  deletePoster(id: number): Promise<RouterTypes.Posters.DeleteOutput> {
+    return this.client.posters.delete.mutate({ id });
   }
 }

@@ -1,15 +1,12 @@
 import { Injectable, signal, inject, effect } from '@angular/core';
 import { Router } from '@angular/router';
 import { RegisterRequest } from '../models/register-request.model';
-import { firstValueFrom, Observable } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
 import { TrpcService } from './trpc.service';
 import { RouterTypes } from '@concert-poster-marketplace/shared';
 
 // Use type imports from shared package
 type User = RouterTypes.Auth.MeOutput;
 type LoginOutput = RouterTypes.Auth.LoginOutput;
-type LogoutOutput = RouterTypes.Auth.LogoutOutput;
 
 @Injectable({
   providedIn: 'root',
@@ -92,46 +89,35 @@ export class AuthService {
    * Fetch current user with the token in storage using tRPC
    * @returns Promise that resolves when user is fetched
    */
-  fetchCurrentUser(): Promise<User | null> {
-    this.debug('Fetching current user with tRPC');
+  async fetchCurrentUser(): Promise<User | null> {
     this.loadingSignal.set(true);
 
     const token = localStorage.getItem(this.tokenKey);
     if (!token) {
-      this.debug('No token available, skipping user fetch');
       this.loadingSignal.set(false);
       this.initializedSignal.set(true);
       return Promise.resolve(null);
     }
 
-    return firstValueFrom(this.trpcService.getCurrentUser())
-      .then(user => {
-        this.debug('User fetched successfully', user);
-        this.currentUserSignal.set(user);
+    try {
+      const currentUser = await this.trpcService.getCurrentUser();
+      if (!currentUser) {
+        this.debug('No current user found');
         this.loadingSignal.set(false);
         this.initializedSignal.set(true);
-        return user;
-      })
-      .catch(error => {
-        this.debug('Error fetching user with tRPC', error);
-
-        // Handle errors appropriately
-        if (error.code === 'UNAUTHORIZED') {
-          this.debug('Unauthorized error, clearing token');
-          localStorage.removeItem(this.tokenKey);
-          this.currentUserSignal.set(null);
-          this.errorSignal.set('Session expired. Please login again.');
-        } else {
-          // For other errors, keep the token but show error
-          this.errorSignal.set(
-            'Error loading profile. Please try again later.'
-          );
-        }
-
-        this.loadingSignal.set(false);
-        this.initializedSignal.set(true);
-        return Promise.reject(error);
-      });
+        return null;
+      }
+      this.debug('Current user found', currentUser);
+      this.currentUserSignal.set(currentUser);
+      this.loadingSignal.set(false);
+      this.initializedSignal.set(true);
+      return currentUser;
+    } catch (error) {
+      this.debug('Error fetching current user', error);
+      this.loadingSignal.set(false);
+      this.initializedSignal.set(true);
+      throw error;
+    }
   }
 
   /**
@@ -144,66 +130,79 @@ export class AuthService {
   /**
    * Login user with tRPC
    */
-  login(email: string, passwordHash: string): Observable<LoginOutput> {
+  async login(email: string, passwordHash: string): Promise<LoginOutput> {
     this.debug('Login attempt with tRPC', email);
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
 
-    return this.trpcService.login(email, passwordHash).pipe(
-      tap((response: LoginOutput) => {
-        this.debug('Login successful', response);
-        this.setSession(response);
-        this.loadingSignal.set(false);
-      }),
-      catchError(error => {
-        this.debug('Login error', error);
+    try {
+      const response = await this.trpcService.login(email, passwordHash);
+      this.debug('Login successful', response);
+      this.setSession(response);
+      this.loadingSignal.set(false);
+      return response;
+    } catch (error: unknown) {
+      this.debug('Login error', error);
+      if (error instanceof Error) {
         this.errorSignal.set(error.message || 'Login failed');
-        this.loadingSignal.set(false);
-        throw error;
-      })
-    );
+      } else {
+        this.errorSignal.set('An unknown error occurred');
+      }
+      this.loadingSignal.set(false);
+      throw error;
+    }
   }
 
   /**
    * Register a new user (using tRPC if available on backend)
    * @returns Promise that resolves to user when registration is successful
    */
-  register(userData: RegisterRequest): Promise<LoginOutput> {
+  async register(userData: RegisterRequest): Promise<LoginOutput> {
     this.debug('Registration attempt', userData.email);
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
 
-    return firstValueFrom(
-      this.trpcService.register(
+    try {
+      const response = await this.trpcService.register(
         userData.email,
         userData.passwordHash,
         userData.name || undefined
-      )
-    );
+      );
+      this.debug('Registration successful', response);
+      this.setSession(response);
+      this.loadingSignal.set(false);
+      return response;
+    } catch (error: any) {
+      this.debug('Registration error', error);
+      this.errorSignal.set(error.message || 'Registration failed');
+      this.loadingSignal.set(false);
+      throw error;
+    }
   }
 
   /**
    * Logout user with tRPC
    */
-  logout(): Observable<LogoutOutput> {
+  async logout(): Promise<void> {
     this.debug('Logging out user with tRPC');
 
     const token = localStorage.getItem(this.tokenKey) || '';
-    return this.trpcService.logout(token).pipe(
-      tap(() => {
-        localStorage.removeItem(this.tokenKey);
-        this.currentUserSignal.set(null);
-        this.debug('Token removed from localStorage');
-        this.router.navigate(['/login']);
-      }),
-      catchError(error => {
-        this.debug('Logout error', error);
-        // Clean up anyway on error
-        localStorage.removeItem(this.tokenKey);
-        this.currentUserSignal.set(null);
+    try {
+      await this.trpcService.logout(token);
+      localStorage.removeItem(this.tokenKey);
+      this.currentUserSignal.set(null);
+      this.debug('Token removed from localStorage');
+      this.router.navigate(['/login']);
+    } catch (error: unknown) {
+      this.debug('Logout error', error);
+      // Clean up anyway on error
+      localStorage.removeItem(this.tokenKey);
+      this.currentUserSignal.set(null);
+      if (error instanceof Error) {
         throw error;
-      })
-    );
+      }
+      throw new Error('An unknown error occurred during logout');
+    }
   }
 
   /**

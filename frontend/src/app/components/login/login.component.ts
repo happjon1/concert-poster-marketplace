@@ -9,7 +9,6 @@ import {
 import { RouterLink, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
-import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -50,7 +49,7 @@ export class LoginComponent {
 
     try {
       // Using the updated login method that now returns an Observable
-      await firstValueFrom(this.authService.login(email, passwordHash));
+      await this.authService.login(email, passwordHash);
 
       this.submitting = false;
       // Navigate to home or dashboard after successful login

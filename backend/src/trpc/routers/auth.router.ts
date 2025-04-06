@@ -159,6 +159,56 @@ export const authRouter = router({
       };
     }),
 
+  // Register
+  register: publicProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+        passwordHash: z.string().min(8), // Ensure a minimum password length
+        name: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      // Check if the user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: input.email },
+      });
+
+      if (existingUser) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "User with this email already exists",
+        });
+      }
+
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(input.passwordHash, 10);
+
+      // Create the new user
+      const newUser = await prisma.user.create({
+        data: {
+          email: input.email,
+          passwordHash: hashedPassword,
+          name: input.name || null,
+        },
+      });
+
+      // Generate tokens
+      const { token, refreshToken } = generateTokens(newUser.id);
+
+      // Return the user data and tokens
+      return {
+        token,
+        refreshToken,
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          name: newUser.name,
+          isAdmin: newUser.isAdmin || false,
+        },
+      };
+    }),
+
   // Refresh token
   refresh: publicProcedure
     .input(

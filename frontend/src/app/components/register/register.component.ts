@@ -8,7 +8,7 @@ import {
   AbstractControl,
   ValidationErrors,
 } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { RegisterRequest } from '../../models/register-request.model';
@@ -37,6 +37,7 @@ const passwordMatchValidator = (
 export class RegisterComponent {
   private fb = inject(FormBuilder);
   public authService = inject(AuthService);
+  private router = inject(Router);
 
   hidePassword = true;
   hideConfirmPassword = true;
@@ -113,6 +114,9 @@ export class RegisterComponent {
       await this.authService.register(formData);
       // Registration successful - handled by auth service
       this.submitting = false;
+
+      // Navigate to home or dashboard after successful login
+      this.router.navigate(['/']);
     } catch (error: unknown) {
       this.submitting = false;
 
