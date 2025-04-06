@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormsModule,
@@ -11,23 +11,39 @@ import {
 import { Router, RouterModule } from '@angular/router';
 import { TrpcService } from '../../services/trpc.service';
 import { RouterTypes } from '@concert-poster-marketplace/shared';
+import { BasicInfoFormComponent } from './basic-info-form/basic-info-form.component';
+import { ArtistSelectorComponent } from './artist-selector/artist-selector.component';
+import { EventSelectorComponent } from './event-selector/event-selector.component';
+import { ImageUploaderComponent } from './image-uploader/image-uploader.component';
+import { ListingDetailsFormComponent } from './listing-details-form/listing-details-form.component';
+import Stepper from 'bs-stepper';
 
 @Component({
   selector: 'app-create-poster',
   templateUrl: './create-poster.component.html',
   styleUrls: ['./create-poster.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    RouterModule,
+    BasicInfoFormComponent,
+    ArtistSelectorComponent,
+    EventSelectorComponent,
+    ImageUploaderComponent,
+    ListingDetailsFormComponent,
+  ],
 })
-export class CreatePosterComponent implements OnInit {
+export class CreatePosterComponent implements OnInit, AfterViewInit {
   posterForm!: FormGroup;
   isSubmitting = false;
   errorMessage = '';
 
   // For image uploads
-  uploadedImages: { url: string; file: File }[] = [];
+  uploadedImages: string[] = [];
   isUploading = false;
-  maxImages = 3;
+  maxImages = 5;
   activeImageIndex = 0;
 
   // For dropdowns - use imported types
@@ -40,6 +56,13 @@ export class CreatePosterComponent implements OnInit {
   artistSearch = '';
   eventSearch = '';
 
+  formInitialized = false;
+
+  private stepper!: Stepper;
+
+  // Add this property to control whether to enforce linear progression
+  enforceLinearStepper = true; // Set to false if you want to allow jumping to any step
+
   constructor(
     private fb: FormBuilder,
     private trpcService: TrpcService,
@@ -48,23 +71,42 @@ export class CreatePosterComponent implements OnInit {
 
   ngOnInit(): void {
     this.initForm();
+    this.formInitialized = true;
     this.loadArtists();
     this.loadEvents();
+  }
+
+  ngAfterViewInit() {
+    const stepperElement = document.querySelector('.bs-stepper');
+    if (stepperElement) {
+      this.stepper = new Stepper(stepperElement, {
+        linear: true,
+        animation: true,
+      });
+    } else {
+      console.error('Stepper element not found');
+    }
   }
 
   private initForm(): void {
     this.posterForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(3)]],
-      description: ['', [Validators.required, Validators.minLength(10)]],
-      condition: ['', [Validators.required]],
-      dimensions: ['', [Validators.required]],
-      artistIds: this.fb.array([], Validators.required),
-      eventIds: this.fb.array([], Validators.required),
+      description: ['', Validators.required],
+      condition: ['', Validators.required],
+      dimensions: ['', Validators.required],
+      artistIds: this.fb.array(
+        [],
+        [Validators.required, Validators.minLength(1)]
+      ),
+      eventIds: this.fb.array(
+        [],
+        [Validators.required, Validators.minLength(1)]
+      ),
+      images: this.fb.array([], [Validators.required, Validators.minLength(1)]),
       listingType: ['buyNow', Validators.required],
       buyNowPrice: [null],
       auctionMinPrice: [null],
       auctionEndDate: [null],
-      images: this.fb.array([], [Validators.required, Validators.minLength(1)]),
     });
 
     // Set conditional validators based on listing type
@@ -104,7 +146,7 @@ export class CreatePosterComponent implements OnInit {
     return this.posterForm.get('images') as FormArray;
   }
 
-  get listingType(): string {
+  get listingType(): 'buyNow' | 'auction' {
     return this.posterForm.get('listingType')?.value;
   }
 
@@ -128,25 +170,29 @@ export class CreatePosterComponent implements OnInit {
   }
 
   // Filter artists and events based on search term
-  filterArtists(): void {
+  filterArtists(searchTerm: string = this.artistSearch): void {
+    this.artistSearch = searchTerm;
     this.filteredArtists = this.artists.filter(artist =>
-      artist.name.toLowerCase().includes(this.artistSearch.toLowerCase())
+      artist.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }
 
-  filterEvents(): void {
+  filterEvents(searchTerm: string = this.eventSearch): void {
+    this.eventSearch = searchTerm;
     this.filteredEvents = this.events.filter(event =>
-      event.name.toLowerCase().includes(this.eventSearch.toLowerCase())
+      event.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }
 
   // Add/remove artists and events
   addArtist(artist: RouterTypes.Artists.Artist): void {
-    // Check if artist already added
-    if (this.artistIdsArray.value.includes(artist.id)) {
-      return;
+    const exists = this.artistIdsArray.controls.some(
+      control => control.value === artist.id
+    );
+
+    if (!exists) {
+      this.artistIdsArray.push(this.fb.control(artist.id));
     }
-    this.artistIdsArray.push(this.fb.control(artist.id));
   }
 
   removeArtist(index: number): void {
@@ -154,11 +200,13 @@ export class CreatePosterComponent implements OnInit {
   }
 
   addEvent(event: RouterTypes.Events.Event): void {
-    // Check if event already added
-    if (this.eventIdsArray.value.includes(event.id)) {
-      return;
+    const exists = this.eventIdsArray.controls.some(
+      control => control.value === event.id
+    );
+
+    if (!exists) {
+      this.eventIdsArray.push(this.fb.control(event.id));
     }
-    this.eventIdsArray.push(this.fb.control(event.id));
   }
 
   removeEvent(index: number): void {
@@ -177,53 +225,42 @@ export class CreatePosterComponent implements OnInit {
   }
 
   // Image handling
-  async onFileSelected(event: Event): Promise<void> {
+  onFileSelected(event: Event): void {
+    console.log('File selection received in parent component:', event);
+
     const input = event.target as HTMLInputElement;
-    const files = input.files;
-
-    if (!files || files.length === 0) return;
-
-    if (this.uploadedImages.length + files.length > this.maxImages) {
-      alert(`You can only upload up to ${this.maxImages} images`);
+    if (!input.files?.length) {
+      console.log('No files selected');
       return;
     }
 
+    console.log('Files selected:', input.files.length);
+
+    // Process files
+    const files = Array.from(input.files);
+    this.processSelectedFiles(files);
+  }
+
+  private processSelectedFiles(files: File[]): void {
+    // Implement file processing logic
     this.isUploading = true;
 
-    for (const file of files) {
-      try {
-        // Get signed URL from your backend
-        const { uploadUrl, publicUrl } = await this.trpcService.getSignedUrl({
-          fileName: file.name,
-          fileType: file.type,
-        });
+    // Create temporary URLs for preview
+    const newImages = files.map(file => URL.createObjectURL(file));
+    this.uploadedImages = [...this.uploadedImages, ...newImages];
 
-        // Upload directly to Digital Ocean with the correct headers
-        const uploadResponse = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': file.type,
-            'x-amz-acl': 'public-read',
-          },
-          body: file,
-          mode: 'cors', // Explicitly specify CORS mode
-        });
+    // Update form array
+    const imagesArray = this.posterForm.get('images') as FormArray;
+    files.forEach(() => {
+      // Add placeholder values to form array
+      imagesArray.push(this.fb.control(''));
+    });
 
-        if (!uploadResponse.ok) {
-          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-        }
-
-        // Add to our local array and form array
-        this.uploadedImages.push({ url: publicUrl, file });
-        this.imagesArray.push(this.fb.control(publicUrl));
-      } catch (error: unknown) {
-        console.error('Upload failed', error);
-        this.errorMessage =
-          error instanceof Error ? error.message : 'Failed to upload image';
-      }
-    }
-
-    this.isUploading = false;
+    // Simulate upload delay
+    setTimeout(() => {
+      this.isUploading = false;
+      // In a real app, you'd upload files to server here
+    }, 1500);
   }
 
   removeImage(index: number): void {
@@ -298,5 +335,114 @@ export class CreatePosterComponent implements OnInit {
     } finally {
       this.isSubmitting = false;
     }
+  }
+
+  // Add helper methods
+  next() {
+    this.stepper.next();
+  }
+
+  previous() {
+    this.stepper.previous();
+  }
+
+  goToStep(stepIndex: number): void {
+    // Validate current step if enforcing linear progression
+    if (this.enforceLinearStepper) {
+      // Get the current step index properly
+      const currentIndex = this.getCurrentStepIndex();
+
+      // Only allow moving forward if previous steps are valid
+      if (stepIndex > currentIndex) {
+        let canAdvance = true;
+
+        // Check all previous steps
+        for (let i = 0; i < stepIndex; i++) {
+          if (!this.validateStep(i)) {
+            canAdvance = false;
+            this.errorMessage =
+              'Please complete all required fields in previous steps first.';
+
+            // Clear error after 3 seconds
+            setTimeout(() => (this.errorMessage = ''), 3000);
+            break;
+          }
+        }
+
+        if (!canAdvance) {
+          return;
+        }
+      }
+    }
+
+    // Mark previous steps as visited
+    for (let i = 0; i <= stepIndex; i++) {
+      const stepElement = document.querySelector(
+        `.step[data-target="#${this.getStepTargetId(i)}"]`
+      );
+      if (stepElement && !stepElement.classList.contains('visited')) {
+        stepElement.classList.add('visited');
+      }
+    }
+
+    // Navigate to the step
+    this.stepper.to(stepIndex);
+  }
+
+  // Add this helper method to get the current step index
+  private getCurrentStepIndex(): number {
+    // If stepper is not initialized, return 0
+    if (!this.stepper) return 0;
+
+    // Find which step is currently active
+    const stepperElement = document.querySelector('.bs-stepper');
+    if (!stepperElement) return 0;
+
+    const steps = Array.from(stepperElement.querySelectorAll('.step'));
+    const activeStep = steps.findIndex(step =>
+      step.classList.contains('active')
+    );
+
+    return activeStep !== -1 ? activeStep : 0;
+  }
+
+  // Add this method if you don't already have it
+  validateStep(stepIndex: number): boolean {
+    switch (stepIndex) {
+      case 0: // Basic info
+        return (
+          (this.posterForm.get('title')?.valid ?? false) &&
+          (this.posterForm.get('description')?.valid ?? false) &&
+          (this.posterForm.get('condition')?.valid ?? false) &&
+          (this.posterForm.get('dimensions')?.valid ?? false)
+        );
+
+      case 1: // Artists
+        return (this.posterForm.get('artistIds') as FormArray).length > 0;
+      case 2: // Events
+        return (this.posterForm.get('eventIds') as FormArray).length > 0;
+      case 3: // Images
+        return (this.posterForm.get('images') as FormArray).length > 0;
+      case 4: // Listing details
+        return (
+          (this.posterForm.get('price')?.valid ?? false) ||
+          ((this.posterForm.get('startingBid')?.valid ?? false) &&
+            (this.posterForm.get('endDate')?.valid ?? false))
+        );
+      default:
+        return true;
+    }
+  }
+
+  // Helper method to get step target ID
+  getStepTargetId(stepIndex: number): string {
+    const targets = [
+      'basic-info',
+      'artists',
+      'events',
+      'images',
+      'listing-details',
+    ];
+    return targets[stepIndex] || '';
   }
 }

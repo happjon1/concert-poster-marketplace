@@ -31,3 +31,21 @@ body {
   margin: 0;
   font-family: 'Montserrat', 'Helvetica Neue', sans-serif;
 }
+
+// Ensure all dark/primary buttons have white text
+.btn-primary,
+.btn-success,
+.btn-danger,
+.btn-dark,
+.btn-secondary {
+  color: white !important;
+}
+
+// Ensure hover states maintain white text
+.btn-primary:hover,
+.btn-success:hover,
+.btn-danger:hover,
+.btn-dark:hover,
+.btn-secondary:hover {
+  color: white !important;
+}

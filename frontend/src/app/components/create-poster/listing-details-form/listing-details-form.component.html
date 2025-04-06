@@ -1,0 +1,99 @@
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-white py-3">
+    <div class="d-flex align-items-center">
+      <span class="badge bg-primary rounded-pill me-2">5</span>
+      <h5 class="mb-0">Listing Details</h5>
+    </div>
+  </div>
+  <div class="card-body p-4" [formGroup]="parentForm">
+    <!-- Listing Type -->
+    <div class="mb-4">
+      <label for="listingType" class="form-label">Listing Type</label>
+      <div class="d-flex gap-4">
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            id="buyNowOption"
+            value="buyNow"
+            formControlName="listingType" />
+          <label class="form-check-label" for="buyNowOption">
+            <i class="bi bi-tag-fill text-success me-2"></i>Fixed Price
+          </label>
+        </div>
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            id="auctionOption"
+            value="auction"
+            formControlName="listingType" />
+          <label class="form-check-label" for="auctionOption">
+            <i class="bi bi-hammer text-primary me-2"></i>Auction
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buy Now Fields -->
+    <div *ngIf="listingType === 'buyNow'" class="mb-3">
+      <label for="buyNowPrice" class="form-label">Price</label>
+      <div class="input-group mb-2">
+        <span class="input-group-text">$</span>
+        <input
+          type="number"
+          id="buyNowPrice"
+          formControlName="buyNowPrice"
+          class="form-control form-control-lg"
+          [ngClass]="{
+            'is-invalid':
+              parentForm.get('buyNowPrice')?.touched &&
+              parentForm.get('buyNowPrice')?.invalid,
+          }"
+          placeholder="0.00"
+          min="1"
+          step="0.01" />
+        <div class="invalid-feedback">Please enter a valid price</div>
+      </div>
+    </div>
+
+    <!-- Auction Fields -->
+    <div *ngIf="listingType === 'auction'" class="row g-3">
+      <div class="col-md-6">
+        <label for="auctionMinPrice" class="form-label">Starting Price</label>
+        <div class="input-group mb-2">
+          <span class="input-group-text">$</span>
+          <input
+            type="number"
+            id="auctionMinPrice"
+            formControlName="auctionMinPrice"
+            class="form-control"
+            [ngClass]="{
+              'is-invalid':
+                parentForm.get('auctionMinPrice')?.touched &&
+                parentForm.get('auctionMinPrice')?.invalid,
+            }"
+            placeholder="0.00"
+            min="1"
+            step="0.01" />
+        </div>
+        <div class="invalid-feedback">Please enter a valid starting price</div>
+      </div>
+
+      <div class="col-md-6">
+        <label for="auctionEndDate" class="form-label">Auction End Date</label>
+        <input
+          type="datetime-local"
+          id="auctionEndDate"
+          formControlName="auctionEndDate"
+          class="form-control"
+          [ngClass]="{
+            'is-invalid':
+              parentForm.get('auctionEndDate')?.touched &&
+              parentForm.get('auctionEndDate')?.invalid,
+          }" />
+        <div class="invalid-feedback">Please select a valid end date</div>
+      </div>
+    </div>
+  </div>
+</div>

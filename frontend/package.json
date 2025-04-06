@@ -20,6 +20,7 @@
     "@angular/platform-browser": "^19.2.4",
     "@angular/platform-browser-dynamic": "^19.2.4",
     "@angular/router": "^19.2.4",
+    "@concert-poster-marketplace/shared": "file:../shared",
     "@ng-bootstrap/ng-bootstrap": "^18.0.0",
     "@popperjs/core": "^2.11.8",
     "@tailwindcss/postcss": "^4.0.15",
@@ -27,11 +28,11 @@
     "@trpc/server": "^11.0.2",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
+    "bs-stepper": "^1.7.0",
     "rxjs": "~7.8.0",
     "superjson": "^2.2.2",
     "tslib": "^2.3.0",
-    "zone.js": "~0.15.0",
-    "@concert-poster-marketplace/shared": "file:../shared"
+    "zone.js": "~0.15.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^19.2.4",

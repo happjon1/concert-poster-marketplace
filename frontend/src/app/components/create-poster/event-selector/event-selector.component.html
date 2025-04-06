@@ -1,0 +1,86 @@
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-white py-3">
+    <div class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center">
+        <span class="badge bg-primary rounded-pill me-2">3</span>
+        <h5 class="mb-0">Events</h5>
+      </div>
+      <span class="badge bg-light text-dark"
+        >{{ eventIdsArray.length }} selected</span
+      >
+    </div>
+  </div>
+  <div class="card-body p-4">
+    <!-- Search -->
+    <div class="input-group mb-3">
+      <span class="input-group-text bg-white">
+        <i class="bi bi-search"></i>
+      </span>
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Search events..."
+        [(ngModel)]="eventSearchTerm"
+        (input)="onSearch()" />
+    </div>
+
+    <!-- Results -->
+    <div class="mb-3">
+      <div class="list-group" style="max-height: 250px; overflow-y: auto">
+        <button
+          *ngFor="let event of filteredEvents"
+          type="button"
+          class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+          (click)="onAddEvent(event)">
+          <div>
+            <div>{{ event.name }}</div>
+            <small class="text-muted">
+              {{ formatVenue(event.venue) }} •
+              {{ event.date | date: 'mediumDate' }}
+            </small>
+          </div>
+          <i class="bi bi-plus-circle"></i>
+        </button>
+        <div
+          *ngIf="filteredEvents.length === 0"
+          class="list-group-item text-center py-3">
+          <i class="bi bi-calendar-x d-block mb-2 fs-4"></i>
+          <span class="text-muted">No events found</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selected Events -->
+    <div *ngIf="eventIdsArray.controls.length > 0" class="mb-3">
+      <label for="selectedEvents" class="form-label">Selected Events</label>
+      <div class="list-group mb-3">
+        <div
+          *ngFor="let eventIdControl of eventIdsArray.controls; let i = index"
+          class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <div>
+            <div>{{ getEvent(eventIdControl.value)?.name }}</div>
+            <small class="text-muted">
+              {{ formatVenue(getEvent(eventIdControl.value)?.venue) }} •
+              {{ getEvent(eventIdControl.value)?.date | date: 'mediumDate' }}
+            </small>
+          </div>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-danger rounded-circle"
+            (click)="onRemoveEvent(i)">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="invalid-feedback d-block"
+      *ngIf="
+        parentForm.get('eventIds')?.touched &&
+        parentForm.get('eventIds')?.invalid
+      ">
+      Please select at least one event
+    </div>
+  </div>
+</div>

@@ -69,7 +69,12 @@ export namespace RouterTypes {
       auctionEndDate?: Date | null;
       sellerId: string;
       artists: Array<{ id: string; name: string }>;
-      events: Array<{ id: string; name: string; venue: string; date: string }>;
+      events: Array<{
+        id: string;
+        name: string;
+        venue: Venues.Venue;
+        date: Date;
+      }>;
       createdAt: Date;
       updatedAt: Date;
     }
@@ -184,8 +189,9 @@ export namespace RouterTypes {
     export interface Event {
       id: string;
       name: string;
-      date: string;
-      venue: string;
+      date: Date;
+      venue: Venues.Venue;
+      venueId: string;
       location?: string;
       description?: string;
       imageUrl?: string;
@@ -199,8 +205,9 @@ export namespace RouterTypes {
       cursor?: string;
       search?: string;
       artistId?: number;
-      fromDate?: string;
-      toDate?: string;
+      fromDate?: Date;
+      toDate?: Date;
+      venueId?: string;
     }
 
     export interface GetAllOutput {
@@ -216,8 +223,8 @@ export namespace RouterTypes {
 
     export interface CreateInput {
       name: string;
-      date: string;
-      venue: string;
+      date: Date;
+      venueId: string;
       location?: string;
       description?: string;
       imageUrl?: string;
@@ -229,8 +236,8 @@ export namespace RouterTypes {
     export interface UpdateInput {
       id: string;
       name?: string;
-      date?: string;
-      venue?: string;
+      date?: Date;
+      venueId?: string;
       location?: string;
       description?: string;
       imageUrl?: string;
@@ -247,6 +254,48 @@ export namespace RouterTypes {
       success: boolean;
       message: string;
     }
+  }
+
+  export namespace Venues {
+    export interface Venue {
+      id: string;
+      name: string;
+      location: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      capacity?: number;
+      createdAt: Date;
+      updatedAt: Date;
+    }
+
+    export interface GetAllInput {
+      limit?: number;
+      cursor?: string;
+      search?: string;
+    }
+
+    export interface GetAllOutput {
+      items: Venue[];
+      nextCursor: string | null;
+    }
+
+    export interface GetByIdInput {
+      id: string;
+    }
+
+    export type GetByIdOutput = Venue;
+
+    export interface CreateInput {
+      name: string;
+      location: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      capacity?: number;
+    }
+
+    export type CreateOutput = Venue;
   }
 
   export namespace Upload {
@@ -381,6 +430,26 @@ export type ClientAppRouter = {
       mutate: (
         input: RouterTypes.Events.DeleteInput
       ) => Promise<RouterTypes.Events.DeleteOutput>;
+      query: never;
+    };
+  };
+  venues: {
+    getAll: {
+      query: (
+        input?: RouterTypes.Venues.GetAllInput
+      ) => Promise<RouterTypes.Venues.GetAllOutput>;
+      mutate: never;
+    };
+    getById: {
+      query: (
+        input: RouterTypes.Venues.GetByIdInput
+      ) => Promise<RouterTypes.Venues.GetByIdOutput>;
+      mutate: never;
+    };
+    create: {
+      mutate: (
+        input: RouterTypes.Venues.CreateInput
+      ) => Promise<RouterTypes.Venues.CreateOutput>;
       query: never;
     };
   };

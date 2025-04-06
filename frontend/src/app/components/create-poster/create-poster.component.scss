@@ -1,96 +1,208 @@
-// Enhance the carousel and thumbnail experience
-.carousel {
-  background-color: #f8f9fa;
-  border-radius: 0.25rem;
-  overflow: hidden;
-}
-
-.carousel-item img {
-  transition: transform 0.3s ease;
-}
-
-.img-thumbnail {
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
-  }
-
-  &.border-primary {
-    border-width: 3px;
-  }
-}
-
-// Style the form sections
+// Just add a few custom enhancements
 .card {
   transition:
-    box-shadow 0.3s ease,
-    transform 0.3s ease;
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 
   &:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .card-header {
+    background-color: #fff;
   }
 }
 
-.card-header {
-  background-color: #f8f9fa;
-}
-
-// Improve list groups
 .list-group-item {
-  transition: all 0.2s ease;
+  transition: padding-left 0.2s ease;
 
   &:hover {
-    background-color: #f8f9fa;
-  }
-
-  &.active {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
+    padding-left: 1.5rem;
   }
 }
 
-// Badges
-.badge {
-  font-weight: 500;
+.thumbnail-wrapper .btn-close {
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-// Custom form controls
-.form-control,
-.form-select,
-.input-group-text {
-  padding: 0.5rem 0.75rem;
+.thumbnail-wrapper:hover .btn-close {
+  opacity: 1;
 }
 
-.form-check-input:checked {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+.img-thumbnail.border-primary {
+  border-width: 2px;
 }
 
-// Focus styles
-.form-control:focus,
-.form-select:focus,
-.form-check-input:focus {
-  border-color: #86b7fe;
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+// Enhanced stepper styling
+.bs-stepper {
+  border-radius: 8px;
+  overflow: hidden;
+
+  .bs-stepper-header {
+    overflow-x: auto;
+
+    &::-webkit-scrollbar {
+      height: 0;
+      display: none;
+    }
+
+    .step {
+      cursor: default;
+    }
+
+    .bs-stepper-circle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      margin: 0 auto 0.5rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+      border-radius: 50%;
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+    }
+
+    .bs-stepper-label {
+      font-weight: 500;
+      color: #6c757d;
+    }
+
+    .active .bs-stepper-circle {
+      transform: scale(1.1);
+    }
+
+    .active .bs-stepper-label {
+      color: #212529;
+      font-weight: 600;
+    }
+
+    .line {
+      flex: 1;
+      min-width: 1.5rem;
+      margin: 0 0.5rem;
+      height: 2px;
+      background-color: #dee2e6;
+      align-self: center;
+    }
+  }
+
+  .bs-stepper-content {
+    .content {
+      padding: 2rem 1rem;
+      background: white;
+    }
+
+    .content.fade {
+      transition: opacity 0.15s linear;
+    }
+
+    // Card styling within stepper content
+    .card {
+      border-radius: 0.5rem;
+      border: 1px solid #edf2f9;
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05);
+
+      .card-header {
+        background-color: white;
+        border-bottom-color: #edf2f9;
+      }
+    }
+
+    // Remove borders from child components in stepper
+    ::ng-deep .card {
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    // Add separation between sections with subtle dividers instead
+    ::ng-deep .card-header {
+      border-bottom: 1px solid #f0f0f0;
+      background-color: transparent;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    ::ng-deep .card-body {
+      padding-left: 0;
+      padding-right: 0;
+    }
+  }
 }
 
-// Button styles
-.btn-close {
-  font-size: 0.65rem;
+// Mobile responsiveness
+@media (max-width: 767.98px) {
+  .bs-stepper-header {
+    margin: 0;
+    padding: 0.75rem !important;
+    justify-content: space-between;
+
+    // Show all steps but modify for small screens
+    .step:not(.active) {
+      display: block; // Show all steps
+    }
+
+    // Hide labels but keep circles on non-active steps
+    .step:not(.active) .bs-stepper-label {
+      display: none;
+    }
+
+    // Make circles smaller on mobile
+    .bs-stepper-circle {
+      width: 2rem;
+      height: 2rem;
+      font-size: 1rem;
+      margin-bottom: 0;
+    }
+
+    // Make lines shorter
+    .line {
+      min-width: 10px;
+      margin: 0 2px;
+    }
+
+    // Keep label for active step
+    .active .bs-stepper-label {
+      display: block;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    // Make active step more prominent
+    .active .bs-stepper-circle {
+      width: 2.2rem;
+      height: 2.2rem;
+    }
+  }
 }
 
-.btn {
-  padding: 0.5rem 1rem;
-}
+// For extremely small screens (iPhone SE, etc.)
+@media (max-width: 375px) {
+  .bs-stepper-header {
+    .bs-stepper-circle {
+      width: 1.75rem;
+      height: 1.75rem;
+      font-size: 0.875rem;
+    }
 
-.btn-primary {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+    .line {
+      min-width: 5px;
+      margin: 0 1px;
+    }
 
-  &:hover {
-    background-color: #0b5ed7;
-    border-color: #0a58ca;
+    .active .bs-stepper-circle {
+      width: 2rem;
+      height: 2rem;
+    }
+
+    .active .bs-stepper-label {
+      font-size: 0.8rem;
+      max-width: 70px;
+    }
   }
 }

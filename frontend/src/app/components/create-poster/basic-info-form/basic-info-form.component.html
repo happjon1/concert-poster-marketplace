@@ -1,0 +1,99 @@
+<div class="card shadow-sm mb-4" *ngIf="parentForm">
+  <div class="card-header bg-white py-3">
+    <div class="d-flex align-items-center">
+      <span class="badge bg-primary rounded-pill me-2">1</span>
+      <h5 class="mb-0">Basic Information</h5>
+    </div>
+  </div>
+
+  <div class="card-body p-4" [formGroup]="parentForm">
+    <!-- Always check if parentForm exists and control is accessible -->
+    <div class="mb-3" *ngIf="parentForm.get('title')">
+      <label for="title" class="form-label">Title</label>
+      <input
+        type="text"
+        id="title"
+        formControlName="title"
+        class="form-control"
+        [ngClass]="{
+          'is-invalid':
+            parentForm.get('title')?.touched &&
+            parentForm.get('title')?.invalid,
+        }"
+        placeholder="Enter a descriptive title" />
+      <div
+        class="invalid-feedback"
+        *ngIf="parentForm.get('title')?.errors?.['required']">
+        Title is required
+      </div>
+      <div
+        class="invalid-feedback"
+        *ngIf="parentForm.get('title')?.errors?.['minlength']">
+        Title must be at least 3 characters
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="mb-3" *ngIf="parentForm.get('description')">
+      <label for="description" class="form-label">Description</label>
+      <textarea
+        id="description"
+        formControlName="description"
+        class="form-control"
+        [ngClass]="{
+          'is-invalid':
+            parentForm.get('description')?.touched &&
+            parentForm.get('description')?.invalid,
+        }"
+        rows="3"
+        placeholder="Describe your poster's unique features and condition"></textarea>
+      <div
+        class="invalid-feedback"
+        *ngIf="parentForm.get('description')?.errors?.['required']">
+        Description is required
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Condition -->
+      <div class="col-md-6 mb-3" *ngIf="parentForm.get('condition')">
+        <label for="condition" class="form-label">Condition</label>
+        <select
+          id="condition"
+          formControlName="condition"
+          class="form-select"
+          [ngClass]="{
+            'is-invalid':
+              parentForm.get('condition')?.touched &&
+              parentForm.get('condition')?.invalid,
+          }">
+          <option value="">Select condition</option>
+          <option value="mint">Mint - Perfect condition</option>
+          <option value="nearMint">Near Mint - Almost perfect</option>
+          <option value="excellent">Excellent - Minor wear</option>
+          <option value="good">Good - Some visible wear</option>
+          <option value="fair">Fair - Noticeable wear</option>
+          <option value="poor">Poor - Heavy wear</option>
+        </select>
+        <div class="invalid-feedback">Please select the condition</div>
+      </div>
+
+      <!-- Dimensions -->
+      <div class="col-md-6 mb-3" *ngIf="parentForm.get('dimensions')">
+        <label for="dimensions" class="form-label">Dimensions</label>
+        <input
+          type="text"
+          id="dimensions"
+          formControlName="dimensions"
+          class="form-control"
+          [ngClass]="{
+            'is-invalid':
+              parentForm.get('dimensions')?.touched &&
+              parentForm.get('dimensions')?.invalid,
+          }"
+          placeholder="e.g. 24in x 36in" />
+        <div class="invalid-feedback">Please enter dimensions</div>
+      </div>
+    </div>
+  </div>
+</div>
