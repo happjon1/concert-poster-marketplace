@@ -4,6 +4,7 @@ import { ProfileComponent } from './components/profile/profile.component';
 import { RegisterComponent } from './components/register/register.component';
 import { HomeComponent } from './components/home/home.component';
 import { authGuard } from './guards/auth.guard';
+import { CreatePosterComponent } from './components/create-poster/create-poster.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/home', pathMatch: 'full' },
@@ -11,5 +12,15 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
+  {
+    path: 'poster',
+    children: [
+      {
+        path: 'create',
+        component: CreatePosterComponent,
+        canActivate: [authGuard],
+      },
+    ],
+  },
   // Add other routes as needed
 ];

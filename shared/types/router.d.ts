@@ -59,13 +59,17 @@ export namespace RouterTypes {
     export interface PosterData {
       id: number;
       title: string;
-      artist: string;
-      venue: string;
-      price: number;
-      date: string;
       description?: string;
+      price: number;
+      condition: string;
+      dimensions: string;
       imageUrl: string;
+      images: string[];
+      listingType: "buyNow" | "auction";
+      auctionEndDate?: Date | null;
       sellerId: string;
+      artists: Array<{ id: string; name: string }>;
+      events: Array<{ id: string; name: string; venue: string; date: string }>;
       createdAt: Date;
       updatedAt: Date;
     }
@@ -83,12 +87,15 @@ export namespace RouterTypes {
 
     export interface CreateInput {
       title: string;
-      artist: string;
-      venue: string;
+      artistIds: string[];
+      eventIds: string[];
       price: number;
-      date: string;
       description: string;
-      imageUrl: string;
+      condition: string;
+      dimensions: string;
+      imageUrls: string[];
+      listingType: "buyNow" | "auction";
+      auctionEndDate?: Date | null;
     }
 
     export type CreateOutput = PosterData;
@@ -96,12 +103,15 @@ export namespace RouterTypes {
     export interface UpdateInput {
       id: number;
       title?: string;
-      artist?: string;
-      venue?: string;
+      artistIds?: string[];
+      eventIds?: string[];
       price?: number;
-      date?: string;
       description?: string;
-      imageUrl?: string;
+      condition?: string;
+      dimensions?: string;
+      images?: string[];
+      listingType?: "buyNow" | "auction";
+      auctionEndDate?: Date | null;
     }
 
     export type UpdateOutput = PosterData;
@@ -113,6 +123,141 @@ export namespace RouterTypes {
     export interface DeleteOutput {
       success: boolean;
       message: string;
+    }
+  }
+
+  export namespace Artists {
+    export interface Artist {
+      id: string;
+      name: string;
+      bio?: string;
+      imageUrl?: string;
+      createdAt: Date;
+      updatedAt: Date;
+    }
+
+    export interface GetAllInput {
+      limit?: number;
+      cursor?: string;
+      search?: string;
+    }
+
+    export interface GetAllOutput {
+      items: Artist[];
+      nextCursor: string | null;
+    }
+
+    export interface GetByIdInput {
+      id: string;
+    }
+
+    export type GetByIdOutput = Artist;
+
+    export interface CreateInput {
+      name: string;
+      bio?: string;
+      imageUrl?: string;
+    }
+
+    export type CreateOutput = Artist;
+
+    export interface UpdateInput {
+      id: string;
+      name?: string;
+      bio?: string;
+      imageUrl?: string;
+    }
+
+    export type UpdateOutput = Artist;
+
+    export interface DeleteInput {
+      id: string;
+    }
+
+    export interface DeleteOutput {
+      success: boolean;
+      message: string;
+    }
+  }
+
+  export namespace Events {
+    export interface Event {
+      id: string;
+      name: string;
+      date: string;
+      venue: string;
+      location?: string;
+      description?: string;
+      imageUrl?: string;
+      artistIds?: string[];
+      createdAt: Date;
+      updatedAt: Date;
+    }
+
+    export interface GetAllInput {
+      limit?: number;
+      cursor?: string;
+      search?: string;
+      artistId?: number;
+      fromDate?: string;
+      toDate?: string;
+    }
+
+    export interface GetAllOutput {
+      items: Event[];
+      nextCursor: string | null;
+    }
+
+    export interface GetByIdInput {
+      id: string;
+    }
+
+    export type GetByIdOutput = Event;
+
+    export interface CreateInput {
+      name: string;
+      date: string;
+      venue: string;
+      location?: string;
+      description?: string;
+      imageUrl?: string;
+      artistIds?: string[];
+    }
+
+    export type CreateOutput = Event;
+
+    export interface UpdateInput {
+      id: string;
+      name?: string;
+      date?: string;
+      venue?: string;
+      location?: string;
+      description?: string;
+      imageUrl?: string;
+      artistIds?: string[];
+    }
+
+    export type UpdateOutput = Event;
+
+    export interface DeleteInput {
+      id: string;
+    }
+
+    export interface DeleteOutput {
+      success: boolean;
+      message: string;
+    }
+  }
+
+  export namespace Upload {
+    export interface GetSignedUrlInput {
+      fileName: string;
+      fileType: string;
+    }
+
+    export interface GetSignedUrlOutput {
+      uploadUrl: string;
+      publicUrl: string;
     }
   }
 }
@@ -172,6 +317,78 @@ export type ClientAppRouter = {
       mutate: (
         input: RouterTypes.Posters.DeleteInput
       ) => Promise<RouterTypes.Posters.DeleteOutput>;
+      query: never;
+    };
+  };
+  artists: {
+    getAll: {
+      query: (
+        input?: RouterTypes.Artists.GetAllInput
+      ) => Promise<RouterTypes.Artists.GetAllOutput>;
+      mutate: never;
+    };
+    getById: {
+      query: (
+        input: RouterTypes.Artists.GetByIdInput
+      ) => Promise<RouterTypes.Artists.GetByIdOutput>;
+      mutate: never;
+    };
+    create: {
+      mutate: (
+        input: RouterTypes.Artists.CreateInput
+      ) => Promise<RouterTypes.Artists.CreateOutput>;
+      query: never;
+    };
+    update: {
+      mutate: (
+        input: RouterTypes.Artists.UpdateInput
+      ) => Promise<RouterTypes.Artists.UpdateOutput>;
+      query: never;
+    };
+    delete: {
+      mutate: (
+        input: RouterTypes.Artists.DeleteInput
+      ) => Promise<RouterTypes.Artists.DeleteOutput>;
+      query: never;
+    };
+  };
+  events: {
+    getAll: {
+      query: (
+        input?: RouterTypes.Events.GetAllInput
+      ) => Promise<RouterTypes.Events.GetAllOutput>;
+      mutate: never;
+    };
+    getById: {
+      query: (
+        input: RouterTypes.Events.GetByIdInput
+      ) => Promise<RouterTypes.Events.GetByIdOutput>;
+      mutate: never;
+    };
+    create: {
+      mutate: (
+        input: RouterTypes.Events.CreateInput
+      ) => Promise<RouterTypes.Events.CreateOutput>;
+      query: never;
+    };
+    update: {
+      mutate: (
+        input: RouterTypes.Events.UpdateInput
+      ) => Promise<RouterTypes.Events.UpdateOutput>;
+      query: never;
+    };
+    delete: {
+      mutate: (
+        input: RouterTypes.Events.DeleteInput
+      ) => Promise<RouterTypes.Events.DeleteOutput>;
+      query: never;
+    };
+  };
+  upload: {
+    getSignedUrl: {
+      mutate: (
+        input: RouterTypes.Upload.GetSignedUrlInput
+      ) => Promise<RouterTypes.Upload.GetSignedUrlOutput>;
       query: never;
     };
   };

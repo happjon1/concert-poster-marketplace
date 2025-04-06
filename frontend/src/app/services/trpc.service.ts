@@ -75,4 +75,34 @@ export class TrpcService {
   deletePoster(id: number): Promise<RouterTypes.Posters.DeleteOutput> {
     return this.client.posters.delete.mutate({ id });
   }
+
+  // Upload methods
+  getSignedUrl(params: {
+    fileName: string;
+    fileType: string;
+  }): Promise<RouterTypes.Upload.GetSignedUrlOutput> {
+    return this.client.upload.getSignedUrl.mutate(params);
+  }
+
+  // Artist methods
+  getAllArtists(
+    params?: RouterTypes.Artists.GetAllInput
+  ): Promise<RouterTypes.Artists.GetAllOutput> {
+    return this.client.artists.getAll.query(params || {});
+  }
+
+  getArtistById(id: string): Promise<RouterTypes.Artists.GetByIdOutput> {
+    return this.client.artists.getById.query({ id });
+  }
+
+  // Event methods
+  getAllEvents(
+    params?: RouterTypes.Events.GetAllInput
+  ): Promise<RouterTypes.Events.GetAllOutput> {
+    return this.client.events.getAll.query(params || {});
+  }
+
+  getEventById(id: string): Promise<RouterTypes.Events.GetByIdOutput> {
+    return this.client.events.getById.query({ id });
+  }
 }

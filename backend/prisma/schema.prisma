@@ -217,7 +217,7 @@ model VerificationImage {
 
 model Genre {
   id        String        @id @default(uuid())
-  jambaseId String        @unique
+  jambaseId String?
   name      String        @unique
   artists   ArtistGenre[]
   createdAt DateTime      @default(now())
@@ -225,7 +225,7 @@ model Genre {
 
 model Artist {
   id        String  @id @default(uuid())
-  jambaseId String  @unique
+  jambaseId String?
   name      String
   imageUrl  String?
 

@@ -15,15 +15,23 @@ async function findAllPosters({
   limit = 50,
   cursor,
   filter,
+  artistId,
+  eventId,
 }: {
   limit?: number;
   cursor?: string;
   filter?: string;
+  artistId?: number;
+  eventId?: number;
 } = {}) {
   const query: any = {
     take: limit,
     orderBy: {
       createdAt: "desc" as const,
+    },
+    include: {
+      artists: true,
+      events: true,
     },
   };
 
@@ -35,14 +43,45 @@ async function findAllPosters({
     query.skip = 1; // Skip the cursor itself
   }
 
+  // Build the where clause
+  const whereConditions: any[] = [];
+
   // Add search filter if provided
   if (filter) {
-    query.where = {
+    whereConditions.push({
       OR: [
         { title: { contains: filter, mode: "insensitive" as const } },
-        { artist: { contains: filter, mode: "insensitive" as const } },
-        { venue: { contains: filter, mode: "insensitive" as const } },
+        { description: { contains: filter, mode: "insensitive" as const } },
       ],
+    });
+  }
+
+  // Filter by artist
+  if (artistId) {
+    whereConditions.push({
+      artists: {
+        some: {
+          id: artistId,
+        },
+      },
+    });
+  }
+
+  // Filter by event
+  if (eventId) {
+    whereConditions.push({
+      events: {
+        some: {
+          id: eventId,
+        },
+      },
+    });
+  }
+
+  // Apply all where conditions if any exist
+  if (whereConditions.length > 0) {
+    query.where = {
+      AND: whereConditions,
     };
   }
 
@@ -71,6 +110,8 @@ async function findPosterById(id: number) {
           email: true,
         },
       },
+      artists: true,
+      events: true,
     },
   });
 }
@@ -80,22 +121,50 @@ async function findPosterById(id: number) {
  */
 async function createPoster(data: {
   title: string;
-  artist: string;
-  venue: string;
+  artistIds: string[];
+  eventIds: string[];
   price: number;
-  date: string;
   description: string;
-  imageUrl: string;
+  condition: string;
+  dimensions: string;
+  listingType: string;
+  auctionEndDate?: Date | null;
+  imageUrls: string[];
   sellerId: string;
 }) {
+  const { artistIds, eventIds, imageUrls, ...posterData } = data;
+
   return prisma.poster.create({
-    data,
+    data: {
+      ...posterData,
+      imageUrls: imageUrls, // All images
+      artists: {
+        create: artistIds.map((artistId) => ({
+          artist: { connect: { id: artistId } },
+        })),
+      },
+      events: {
+        create: eventIds.map((eventId) => ({
+          event: { connect: { id: eventId } },
+        })),
+      },
+    },
     include: {
       seller: {
         select: {
           id: true,
           name: true,
           email: true,
+        },
+      },
+      artists: {
+        include: {
+          artist: true,
+        },
+      },
+      events: {
+        include: {
+          event: true,
         },
       },
     },
@@ -109,26 +178,101 @@ async function updatePoster(
   id: number,
   data: {
     title?: string;
-    artist?: string;
-    venue?: string;
+    artistIds?: string[];
+    eventIds?: string[];
     price?: number;
-    date?: string;
     description?: string;
-    imageUrl?: string;
+    condition?: string;
+    dimensions?: string;
+    listingType?: string;
+    auctionEndDate?: Date | null;
+    images?: string[];
   }
 ) {
-  return prisma.poster.update({
-    where: { id },
-    data,
-    include: {
-      seller: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+  const { artistIds, eventIds, images, ...posterData } = data;
+
+  // Start with basic poster updates
+  const updateData: any = {
+    ...posterData,
+    ...(images && { images, imageUrl: images[0] }),
+  };
+
+  // Handle relationship updates with transactions
+  return prisma.$transaction(async (tx) => {
+    // Update basic poster data
+    const updatedPoster = await tx.poster.update({
+      where: { id },
+      data: updateData,
+      include: {
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
-    },
+    });
+
+    // If artistIds provided, delete existing relationships and create new ones
+    if (artistIds) {
+      // Delete existing artist connections
+      await tx.posterArtist.deleteMany({
+        where: { posterId: id },
+      });
+
+      // Create new artist connections
+      for (const artistId of artistIds) {
+        await tx.posterArtist.create({
+          data: {
+            posterId: id,
+            artistId,
+          },
+        });
+      }
+    }
+
+    // If eventIds provided, delete existing relationships and create new ones
+    if (eventIds) {
+      // Delete existing event connections
+      await tx.posterEvent.deleteMany({
+        where: { posterId: id },
+      });
+
+      // Create new event connections
+      for (const eventId of eventIds) {
+        await tx.posterEvent.create({
+          data: {
+            posterId: id,
+            eventId,
+          },
+        });
+      }
+    }
+
+    // Return the complete updated poster with relationships
+    return tx.poster.findUnique({
+      where: { id },
+      include: {
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        artists: {
+          include: {
+            artist: true,
+          },
+        },
+        events: {
+          include: {
+            event: true,
+          },
+        },
+      },
+    });
   });
 }
 
@@ -151,6 +295,8 @@ export const posterRouter = router({
         limit: z.number().min(1).max(100).optional(),
         cursor: z.string().optional(),
         filter: z.string().optional(),
+        artistId: z.number().optional(),
+        eventId: z.number().optional(),
       })
     )
     .query(async ({ input }) => {
@@ -177,13 +323,16 @@ export const posterRouter = router({
   create: protectedProcedure
     .input(
       z.object({
-        title: z.string(),
-        artist: z.string(),
-        venue: z.string(),
+        title: z.string().min(3),
+        artistIds: z.array(z.string()).min(1),
+        eventIds: z.array(z.string()).min(1),
         price: z.number().positive(),
-        date: z.string(),
-        description: z.string(),
-        imageUrl: z.string().url(),
+        description: z.string().min(10),
+        condition: z.string().min(1),
+        dimensions: z.string().min(1),
+        listingType: z.enum(["buyNow", "auction"]),
+        auctionEndDate: z.date().nullable().optional(),
+        imageUrls: z.array(z.string().url()).min(1).max(3),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -198,13 +347,16 @@ export const posterRouter = router({
     .input(
       z.object({
         id: z.number(),
-        title: z.string().optional(),
-        artist: z.string().optional(),
-        venue: z.string().optional(),
+        title: z.string().min(3).optional(),
+        artistIds: z.array(z.string()).min(1).optional(),
+        eventIds: z.array(z.string()).min(1).optional(),
         price: z.number().positive().optional(),
-        date: z.string().optional(),
-        description: z.string().optional(),
-        imageUrl: z.string().url().optional(),
+        description: z.string().min(10).optional(),
+        condition: z.string().min(1).optional(),
+        dimensions: z.string().min(1).optional(),
+        listingType: z.enum(["buyNow", "auction"]).optional(),
+        auctionEndDate: z.date().nullable().optional(),
+        imageUrls: z.array(z.string().url()).min(1).max(3).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
