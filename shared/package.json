@@ -1,0 +1,16 @@
+{
+  "name": "@concert-poster-marketplace/shared",
+  "version": "1.0.0",
+  "description": "Shared types for concert-poster-marketplace",
+  "main": "types/index.js",
+  "types": "types/index.d.ts",
+  "files": [
+    "types"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "typescript": "^5.0.0"
+  }
+}

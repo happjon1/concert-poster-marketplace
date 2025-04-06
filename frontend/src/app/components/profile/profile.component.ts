@@ -85,12 +85,12 @@ export class ProfileComponent implements OnInit {
     // 3. Handle any errors and show appropriate messages
   }
 
-  getInitials(user: { name?: string; email: string } | null): string {
-    if (!user) return '';
+  getInitials(name: string | null): string {
+    if (!name) return '';
 
-    if (user.name) {
+    if (name) {
       // Split the name and get initials from first and last parts
-      const nameParts = user.name.split(' ');
+      const nameParts = name.split(' ');
       if (nameParts.length > 1) {
         return (
           nameParts[0][0] + nameParts[nameParts.length - 1][0]
@@ -100,19 +100,6 @@ export class ProfileComponent implements OnInit {
         return nameParts[0][0].toUpperCase();
       }
     }
-
-    // Fallback to first letter of email if no name
-    return user.email[0].toUpperCase();
-  }
-
-  formatDate(dateString: string | undefined): string {
-    if (!dateString) return 'Unknown';
-
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    return '';
   }
 }

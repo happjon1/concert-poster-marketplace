@@ -1,33 +1,27 @@
-import {
-  Injectable,
-  signal,
-  computed,
-  inject,
-  effect,
-  Inject,
-} from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, signal, inject, effect } from '@angular/core';
 import { Router } from '@angular/router';
-import { User } from '../models/user.model';
-import { AuthResponse } from '../models/auth-response.model';
-import { LoginRequest } from '../models/login-request.model';
 import { RegisterRequest } from '../models/register-request.model';
-import { environment } from '../../environments/environment';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
+import { TrpcService } from './trpc.service';
+import { RouterTypes } from '@concert-poster-marketplace/shared';
+
+// Use type imports from shared package
+type User = RouterTypes.Auth.MeOutput;
+type LoginOutput = RouterTypes.Auth.LoginOutput;
+type LogoutOutput = RouterTypes.Auth.LogoutOutput;
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private http = inject(HttpClient);
   private router = inject(Router);
-  private apiUrl = `${environment.apiUrl}/auth`;
-  private tokenKey = 'auth_token';
+  private tokenKey = 'token'; // Consistent token key
   private appInitialized = false;
 
   // Signals
   private currentUserSignal = signal<User | null>(null);
-  private loadingSignal = signal<boolean>(true); // Start loading
+  private loadingSignal = signal<boolean>(true);
   private errorSignal = signal<string | null>(null);
   private initializedSignal = signal<boolean>(false);
 
@@ -36,12 +30,11 @@ export class AuthService {
   public loading = this.loadingSignal.asReadonly();
   public error = this.errorSignal.asReadonly();
   public initialized = this.initializedSignal.asReadonly();
-  public isLoggedIn = computed(() => !!this.currentUserSignal());
 
   // DEBUG flag for console logs
   private DEBUG = true;
 
-  constructor(@Inject('NoAuthHttpClient') private noAuthHttp: HttpClient) {
+  constructor(private trpcService: TrpcService) {
     this.debug('AuthService constructor called');
 
     // This ensures auth is initialized before the app fully loads
@@ -78,8 +71,7 @@ export class AuthService {
         return Promise.resolve();
       }
 
-      // Bypass token validation completely and just try to use it
-      // The server will reject an invalid token anyway
+      // Fetch current user using tRPC
       this.debug('Attempting to use stored token');
       await this.fetchCurrentUser();
       return Promise.resolve();
@@ -97,11 +89,11 @@ export class AuthService {
   }
 
   /**
-   * Fetch current user with the token in storage
+   * Fetch current user with the token in storage using tRPC
    * @returns Promise that resolves when user is fetched
    */
   fetchCurrentUser(): Promise<User | null> {
-    this.debug('Fetching current user');
+    this.debug('Fetching current user with tRPC');
     this.loadingSignal.set(true);
 
     const token = localStorage.getItem(this.tokenKey);
@@ -112,19 +104,19 @@ export class AuthService {
       return Promise.resolve(null);
     }
 
-    return firstValueFrom(this.http.get<{ user: User }>(`${this.apiUrl}/me`))
-      .then(response => {
-        this.debug('User fetched successfully', response.user);
-        this.currentUserSignal.set(response.user);
+    return firstValueFrom(this.trpcService.getCurrentUser())
+      .then(user => {
+        this.debug('User fetched successfully', user);
+        this.currentUserSignal.set(user);
         this.loadingSignal.set(false);
         this.initializedSignal.set(true);
-        return response.user;
+        return user;
       })
       .catch(error => {
-        this.debug('Error fetching user', error);
+        this.debug('Error fetching user with tRPC', error);
 
-        // Only clear token if it's an auth error (401)
-        if (error.status === 401) {
+        // Handle errors appropriately
+        if (error.code === 'UNAUTHORIZED') {
           this.debug('Unauthorized error, clearing token');
           localStorage.removeItem(this.tokenKey);
           this.currentUserSignal.set(null);
@@ -145,145 +137,91 @@ export class AuthService {
   /**
    * Set session data after login
    */
-  private setSession(authResult: AuthResponse): void {
+  private setSession(authResult: LoginOutput): void {
     localStorage.setItem(this.tokenKey, authResult.token);
-    this.debug('Token stored in localStorage');
   }
 
   /**
-   * Login user
-   * @returns Promise that resolves to user when login is successful
+   * Login user with tRPC
    */
-  login(credentials: LoginRequest): Promise<User> {
-    this.debug('Login attempt', credentials.email);
+  login(email: string, passwordHash: string): Observable<LoginOutput> {
+    this.debug('Login attempt with tRPC', email);
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
 
-    // FIX: Transform field names to match backend expectations
-    const backendCredentials = {
-      email: credentials.email,
-      passwordHash: credentials.passwordHash, // Transform password to passwordHash
-    };
-
-    return firstValueFrom(
-      this.http.post<AuthResponse>(`${this.apiUrl}/login`, backendCredentials)
-    )
-      .then(response => {
+    return this.trpcService.login(email, passwordHash).pipe(
+      tap((response: LoginOutput) => {
         this.debug('Login successful', response);
         this.setSession(response);
-        this.currentUserSignal.set(response.user);
         this.loadingSignal.set(false);
-        this.router.navigate(['/profile']);
-        return response.user;
-      })
-      .catch(error => {
+      }),
+      catchError(error => {
         this.debug('Login error', error);
-        this.errorSignal.set(error.error?.message || 'Login failed');
+        this.errorSignal.set(error.message || 'Login failed');
         this.loadingSignal.set(false);
-        return Promise.reject(error);
-      });
+        throw error;
+      })
+    );
   }
 
   /**
-   * Register a new user
+   * Register a new user (using tRPC if available on backend)
    * @returns Promise that resolves to user when registration is successful
    */
-  register(userData: RegisterRequest): Promise<User> {
+  register(userData: RegisterRequest): Promise<LoginOutput> {
     this.debug('Registration attempt', userData.email);
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
 
-    // FIX: Transform field names to match backend expectations
-    const backendUserData = {
-      email: userData.email,
-      passwordHash: userData.passwordHash, // Transform password to passwordHash
-      name: userData.name,
-    };
-
     return firstValueFrom(
-      this.http.post<AuthResponse>(`${this.apiUrl}/register`, backendUserData)
-    )
-      .then(response => {
-        this.debug('Registration successful', response);
-        this.setSession(response);
-        this.currentUserSignal.set(response.user);
-        this.loadingSignal.set(false);
-        this.router.navigate(['/profile']);
-        return response.user;
-      })
-      .catch(error => {
-        this.debug('Registration error', error);
-        this.errorSignal.set(error.error?.message || 'Registration failed');
-        this.loadingSignal.set(false);
-        return Promise.reject(error);
-      });
+      this.trpcService.register(
+        userData.email,
+        userData.passwordHash,
+        userData.name || undefined
+      )
+    );
   }
 
   /**
-   * Logout user
-   * @returns Promise that resolves when logout is complete
+   * Logout user with tRPC
    */
-  logout(): Promise<void> {
-    this.debug('Logging out user');
+  logout(): Observable<LogoutOutput> {
+    this.debug('Logging out user with tRPC');
 
-    try {
-      // First try to call the logout endpoint if user is logged in
-      if (this.isLoggedIn()) {
-        return firstValueFrom(this.http.post<void>(`${this.apiUrl}/logout`, {}))
-          .then(() => {
-            localStorage.removeItem(this.tokenKey);
-            this.currentUserSignal.set(null);
-            this.router.navigate(['/login']);
-            return Promise.resolve();
-          })
-          .catch(() => {
-            // Even if the logout endpoint fails, clear local state
-            localStorage.removeItem(this.tokenKey);
-            this.currentUserSignal.set(null);
-            this.router.navigate(['/login']);
-            return Promise.resolve();
-          });
-      } else {
-        // If not logged in, just clear local state
+    const token = localStorage.getItem(this.tokenKey) || '';
+    return this.trpcService.logout(token).pipe(
+      tap(() => {
         localStorage.removeItem(this.tokenKey);
         this.currentUserSignal.set(null);
+        this.debug('Token removed from localStorage');
         this.router.navigate(['/login']);
-        return Promise.resolve();
-      }
-    } catch (error) {
-      // Still try to clear local state even if an error occurs
-      localStorage.removeItem(this.tokenKey);
-      this.currentUserSignal.set(null);
-      this.router.navigate(['/login']);
-      return Promise.reject(error);
-    }
+      }),
+      catchError(error => {
+        this.debug('Logout error', error);
+        // Clean up anyway on error
+        localStorage.removeItem(this.tokenKey);
+        this.currentUserSignal.set(null);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Check if the auth token exists
+   */
+  isLoggedIn(): boolean {
+    const loggedIn = !!localStorage.getItem(this.tokenKey);
+    this.debug(`isLoggedIn called, result: ${loggedIn}`);
+    return loggedIn;
   }
 
   /**
    * Get token from localStorage
-   * @returns The authentication token or null if not available
    */
   getToken(): string | null {
     const token = localStorage.getItem(this.tokenKey);
     this.debug(`getToken called, token present: ${!!token}`);
     return token;
-  }
-
-  /**
-   * Check if the auth token exists
-   * @returns True if token exists in localStorage
-   */
-  hasToken(): boolean {
-    return !!this.getToken();
-  }
-
-  /**
-   * Create authorization headers for HTTP requests
-   * @returns Headers object with Authorization header if token exists
-   */
-  getAuthHeaders(): { Authorization?: string } {
-    const token = this.getToken();
-    return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   /**

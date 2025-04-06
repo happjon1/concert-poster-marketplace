@@ -7,6 +7,7 @@ export default defineConfig({
     alias: {
       '@angular/animations/browser':
         './node_modules/@angular/animations/fesm2022/browser.mjs',
+      '@backend': '../backend/src',
     },
   },
   build: {

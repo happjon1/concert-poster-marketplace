@@ -20,7 +20,7 @@
           <div
             class="rounded-circle border border-4 border-white shadow-sm bg-primary text-white d-flex align-items-center justify-content-center"
             style="width: 96px; height: 96px; font-size: 2rem">
-            {{ getInitials(user) }}
+            {{ getInitials(user.name) }}
           </div>
         </div>
 
@@ -48,7 +48,7 @@
             </div>
             <div class="d-flex align-items-center gap-2 text-secondary">
               <i class="bi bi-calendar"></i>
-              <span>Member since {{ formatDate(user.createdAt) }}</span>
+              <span>Member since {{ user.createdAt | date }}</span>
             </div>
           </div>
 
@@ -103,7 +103,7 @@
                 <div class="col-4 col-md-3 fw-medium text-secondary">
                   Created
                 </div>
-                <div>{{ formatDate(user.createdAt) }}</div>
+                <div>{{ user.createdAt | date }}</div>
               </div>
 
               @if (user.updatedAt) {
@@ -111,7 +111,7 @@
                   <div class="col-4 col-md-3 fw-medium text-secondary">
                     Last Updated
                   </div>
-                  <div>{{ formatDate(user.updatedAt) }}</div>
+                  <div>{{ user.updatedAt | date }}</div>
                 </div>
               }
             </div>

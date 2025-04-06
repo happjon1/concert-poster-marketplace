@@ -6,10 +6,10 @@ import {
   ReactiveFormsModule,
   FormsModule,
 } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
-import { LoginRequest } from '../../models/login-request.model';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -27,7 +27,8 @@ export class LoginComponent {
 
   constructor(
     private fb: FormBuilder,
-    public authService: AuthService
+    public authService: AuthService,
+    private router: Router
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -44,22 +45,54 @@ export class LoginComponent {
     this.submitting = true;
     this.errorMessage = '';
 
-    // Create login request with correct field name for backend
-    const loginData: LoginRequest = {
-      email: this.loginForm.get('email')?.value,
-      passwordHash: this.loginForm.get('password')?.value, // Changed from password to passwordHash
-    };
+    const email = this.loginForm.get('email')?.value;
+    const passwordHash = this.loginForm.get('password')?.value; // In a real app, you'd hash this on the client side
 
     try {
-      await this.authService.login(loginData);
+      // Using the updated login method that now returns an Observable
+      await firstValueFrom(this.authService.login(email, passwordHash));
+
       this.submitting = false;
-    } catch (error: any) {
+      // Navigate to home or dashboard after successful login
+      this.router.navigate(['/']);
+    } catch (error: unknown) {
       this.submitting = false;
-      if (error?.error?.message) {
-        this.errorMessage = error.error.message;
+
+      // Fixed error handling for tRPC errors
+      if (typeof error === 'object' && error !== null) {
+        // Handle tRPC error format (shape property)
+        if (
+          'shape' in error &&
+          typeof error.shape === 'object' &&
+          error.shape &&
+          'message' in error.shape
+        ) {
+          this.errorMessage = String(error.shape.message);
+        }
+        // Handle standard Error objects
+        else if (error instanceof Error) {
+          this.errorMessage = error.message;
+        }
+        // Handle objects with message property
+        else if ('message' in error && typeof error.message === 'string') {
+          this.errorMessage = error.message;
+        }
+        // Handle objects with data.message path (common in some APIs)
+        else if (
+          'data' in error &&
+          typeof error.data === 'object' &&
+          error.data &&
+          'message' in error.data
+        ) {
+          this.errorMessage = String(error.data.message);
+        } else {
+          this.errorMessage = 'Login failed. Please check your credentials.';
+        }
       } else {
         this.errorMessage = 'Login failed. Please check your credentials.';
       }
+
+      console.error('Login error:', error);
     }
   }
 }
