@@ -390,7 +390,7 @@ export class CreatePosterComponent implements OnInit, AfterViewInit {
   }
 
   // Add this helper method to get the current step index
-  private getCurrentStepIndex(): number {
+  public getCurrentStepIndex(): number {
     // If stepper is not initialized, return 0
     if (!this.stepper) return 0;
 

@@ -77,15 +77,6 @@
             <div id="basic-info" class="content p-4 fade" role="tabpanel">
               <app-basic-info-form
                 [parentForm]="posterForm"></app-basic-info-form>
-
-              <div class="d-flex justify-content-end pt-4">
-                <button
-                  type="button"
-                  class="btn btn-primary text-white px-4"
-                  (click)="next()">
-                  Next <i class="bi bi-chevron-right ms-1"></i>
-                </button>
-              </div>
             </div>
 
             <!-- Step 2 content -->
@@ -98,21 +89,6 @@
                 (addArtist)="addArtist($event)"
                 (removeArtist)="removeArtist($event)">
               </app-artist-selector>
-
-              <div class="d-flex justify-content-between pt-4">
-                <button
-                  type="button"
-                  class="btn btn-outline-primary px-4 border-2"
-                  (click)="previous()">
-                  <i class="bi bi-chevron-left me-1"></i> Back
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-primary text-white px-4"
-                  (click)="next()">
-                  Next <i class="bi bi-chevron-right ms-1"></i>
-                </button>
-              </div>
             </div>
 
             <!-- Step 3 content -->
@@ -125,21 +101,6 @@
                 (addEvent)="addEvent($event)"
                 (removeEvent)="removeEvent($event)">
               </app-event-selector>
-
-              <div class="d-flex justify-content-between pt-4">
-                <button
-                  type="button"
-                  class="btn btn-outline-primary px-4 border-2"
-                  (click)="previous()">
-                  <i class="bi bi-chevron-left me-1"></i> Back
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-primary text-white px-4"
-                  (click)="next()">
-                  Next <i class="bi bi-chevron-right ms-1"></i>
-                </button>
-              </div>
             </div>
 
             <!-- Step 4 content -->
@@ -154,21 +115,6 @@
                 (setActiveImage)="setActiveImage($event)"
                 (removeImage)="removeImage($event)">
               </app-image-uploader>
-
-              <div class="d-flex justify-content-between pt-4">
-                <button
-                  type="button"
-                  class="btn btn-outline-primary px-4 border-2"
-                  (click)="previous()">
-                  <i class="bi bi-chevron-left me-1"></i> Back
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-primary text-white px-4"
-                  (click)="next()">
-                  Next <i class="bi bi-chevron-right ms-1"></i>
-                </button>
-              </div>
             </div>
 
             <!-- Step 5 content -->
@@ -177,26 +123,46 @@
                 [parentForm]="posterForm"
                 [listingType]="listingType">
               </app-listing-details-form>
+            </div>
+          </div>
+        </div>
 
-              <div class="d-flex justify-content-between pt-4">
-                <button
-                  type="button"
-                  class="btn btn-outline-primary px-4 border-2"
-                  (click)="previous()">
-                  <i class="bi bi-chevron-left me-1"></i> Back
-                </button>
-                <button
-                  type="submit"
-                  class="btn btn-success text-white px-4"
-                  [disabled]="posterForm.invalid || isSubmitting">
-                  <span
-                    *ngIf="isSubmitting"
-                    class="spinner-border spinner-border-sm me-2"
-                    role="status"
-                    aria-hidden="true"></span>
-                  Create Listing
-                </button>
-              </div>
+        <!-- Sticky Navigation Buttons -->
+        <div class="sticky-nav-buttons">
+          <div class="container">
+            <div class="d-flex justify-content-between">
+              <!-- Back button (hidden on first step) -->
+              <button
+                *ngIf="getCurrentStepIndex() > 0"
+                type="button"
+                class="btn btn-outline-primary px-4 border-2"
+                (click)="previous()">
+                <i class="bi bi-chevron-left me-1"></i> Back
+              </button>
+              <div *ngIf="getCurrentStepIndex() === 0"></div>
+
+              <!-- Next button (not on last step) -->
+              <button
+                *ngIf="getCurrentStepIndex() < 4"
+                type="button"
+                class="btn btn-primary text-white px-4"
+                (click)="next()">
+                Next <i class="bi bi-chevron-right ms-1"></i>
+              </button>
+
+              <!-- Submit button (only on last step) -->
+              <button
+                *ngIf="getCurrentStepIndex() === 4"
+                type="submit"
+                class="btn btn-success text-white px-4"
+                [disabled]="posterForm.invalid || isSubmitting">
+                <span
+                  *ngIf="isSubmitting"
+                  class="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true"></span>
+                Create Listing
+              </button>
             </div>
           </div>
         </div>
