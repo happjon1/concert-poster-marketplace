@@ -44,12 +44,9 @@ export class LoginComponent {
     this.submitting = true;
     this.errorMessage = '';
 
-    const email = this.loginForm.get('email')?.value;
-    const passwordHash = this.loginForm.get('password')?.value; // In a real app, you'd hash this on the client side
-
     try {
       // Using the updated login method that now returns an Observable
-      await this.authService.login(email, passwordHash);
+      await this.authService.login(this.loginForm.value);
 
       this.submitting = false;
       // Navigate to home or dashboard after successful login
