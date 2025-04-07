@@ -18,12 +18,12 @@ export class ArtistSelectorComponent {
   @Input() parentForm!: FormGroup;
   @Input() artists: RouterTypes.Artists.Artist[] = [];
   @Input() filteredArtists: RouterTypes.Artists.Artist[] = [];
+  @Input() artistSearchTerm = '';
+  @Input() isSearchingArtists = false;
 
   @Output() artistSearch = new EventEmitter<string>();
   @Output() addArtist = new EventEmitter<RouterTypes.Artists.Artist>();
   @Output() removeArtist = new EventEmitter<number>();
-
-  artistSearchTerm = '';
 
   get artistIdsArray(): FormArray {
     return this.parentForm.get('artistIds') as FormArray;
@@ -41,8 +41,24 @@ export class ArtistSelectorComponent {
     this.removeArtist.emit(index);
   }
 
-  getArtistName(id: string): string {
-    const artist = this.artists.find(a => a.id === id);
-    return artist ? artist.name : '';
+  /**
+   * Returns the name of the artist with the given ID
+   */
+  getArtistName(artistId: string): string {
+    // Find the artist in the full artists array
+    const artist = this.artists.find(a => a.id === artistId);
+
+    // If found, return name, otherwise show a fallback
+    if (artist) {
+      return artist.name;
+    }
+
+    // Optional: Try to find in filtered list if not in main list
+    const filteredArtist = this.filteredArtists.find(a => a.id === artistId);
+    if (filteredArtist) {
+      return filteredArtist.name;
+    }
+
+    return 'Unknown artist';
   }
 }

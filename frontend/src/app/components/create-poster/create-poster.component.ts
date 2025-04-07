@@ -21,6 +21,15 @@ import { Router, RouterModule } from '@angular/router';
 import { TrpcService } from '../../services/trpc.service';
 import { RouterTypes } from '@concert-poster-marketplace/shared';
 import Stepper from 'bs-stepper';
+import {
+  Subject,
+  debounceTime,
+  distinctUntilChanged,
+  switchMap,
+  catchError,
+  from,
+} from 'rxjs';
+import { of } from 'rxjs';
 
 // Component imports
 import { BasicInfoFormComponent } from './basic-info-form/basic-info-form.component';
@@ -68,6 +77,8 @@ export class CreatePosterComponent
   // Search fields
   artistSearch = '';
   eventSearch = '';
+  private artistSearchSubject = new Subject<string>();
+  isSearchingArtists = false;
 
   // ============= IMAGE PROPERTIES =============
   uploadedImages: string[] = [];
@@ -92,8 +103,38 @@ export class CreatePosterComponent
   ngOnInit(): void {
     this.initForm();
     this.formInitialized = true;
-    this.loadArtists();
+    this.loadArtists(); // Initial load for popular/featured artists
     this.loadEvents();
+
+    // Setup the search observable with debounce
+    this.artistSearchSubject
+      .pipe(
+        debounceTime(300), // Wait for 300ms pause in events
+        distinctUntilChanged(), // Only emit if value changed
+        switchMap(term => {
+          if (!term || term.length < 2) {
+            // Don't search for very short terms, show initial artists instead
+            return of({ items: this.artists });
+          }
+
+          this.isSearchingArtists = true;
+          return from(
+            this.trpcService.getAllArtists({
+              search: term,
+              limit: 10,
+            })
+          ).pipe(
+            catchError(error => {
+              console.error('Error searching artists:', error);
+              return of({ items: [] });
+            })
+          );
+        })
+      )
+      .subscribe(result => {
+        this.filteredArtists = result.items;
+        this.isSearchingArtists = false;
+      });
   }
 
   ngAfterViewInit(): void {
@@ -228,9 +269,15 @@ export class CreatePosterComponent
   // ============= FILTERING METHODS =============
   filterArtists(searchTerm: string = this.artistSearch): void {
     this.artistSearch = searchTerm;
-    this.filteredArtists = this.artists.filter(artist =>
-      artist.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+
+    if (!searchTerm || searchTerm.length < 2) {
+      // For empty or very short search, revert to initial artists
+      this.filteredArtists = [...this.artists];
+      return;
+    }
+
+    // Push the search term to the subject for debounced processing
+    this.artistSearchSubject.next(searchTerm);
   }
 
   filterEvents(searchTerm: string = this.eventSearch): void {

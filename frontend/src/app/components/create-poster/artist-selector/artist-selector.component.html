@@ -35,11 +35,19 @@
           <span>{{ artist.name }}</span>
           <i class="bi bi-plus-circle"></i>
         </button>
+        <!-- Add this loading indicator inside your search results area -->
         <div
-          *ngIf="filteredArtists.length === 0"
-          class="list-group-item text-center py-3">
-          <i class="bi bi-search d-block mb-2 fs-4"></i>
-          <span class="text-muted">No artists found</span>
+          *ngIf="isSearchingArtists"
+          class="d-flex justify-content-center my-3">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+        <!-- No results message should consider loading state -->
+        <div
+          *ngIf="filteredArtists.length === 0 && !isSearchingArtists"
+          class="text-center text-muted my-3">
+          No artists found matching "{{ artistSearch }}"
         </div>
       </div>
     </div>
