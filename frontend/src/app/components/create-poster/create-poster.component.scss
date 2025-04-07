@@ -131,7 +131,7 @@
     }
 
     // Add padding to the bottom of the stepper content to account for sticky buttons
-    padding-bottom: 5rem !important;
+    padding-bottom: 8rem !important;
   }
 }
 
@@ -218,6 +218,16 @@
       height: 2.2rem;
     }
   }
+
+  // Add spacing between mobile wizard header and content
+  .wizard-header {
+    margin-bottom: 1.5rem;
+  }
+
+  // Ensure proper spacing for mobile
+  .stepper-content-container {
+    padding: 0 0 8rem;
+  }
 }
 
 // For extremely small screens (iPhone SE, etc.)
@@ -243,5 +253,154 @@
       font-size: 0.8rem;
       max-width: 70px;
     }
+  }
+}
+
+// For desktop displays
+@media (min-width: 768px) {
+  // Ensure proper spacing for desktop
+  .stepper-content-container {
+    padding: 0 0 5rem;
+  }
+}
+
+// Add these styles to fix stepper header on medium screens
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .bs-stepper-header {
+    padding: 0.75rem !important; // Reduce padding
+
+    .step-trigger {
+      padding: 0.5rem 0.25rem; // Reduce button padding
+    }
+
+    .bs-stepper-circle {
+      width: 2rem;
+      height: 2rem;
+      margin-bottom: 0.25rem;
+      font-size: 0.875rem;
+    }
+
+    .bs-stepper-label {
+      font-size: 0.75rem;
+      max-width: 70px; // Limit width on medium screens
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+      text-align: center;
+    }
+
+    .line {
+      min-width: 1rem; // Reduce line width
+      margin: 0 0.25rem;
+    }
+  }
+}
+
+// Wizard header styling
+.wizard-header {
+  text-align: center;
+
+  .current-step-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+
+    .step-counter {
+      margin-right: 0.75rem;
+
+      .current {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #0d6efd;
+      }
+
+      .total {
+        color: #6c757d;
+      }
+    }
+
+    .step-title {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+  }
+
+  .progress {
+    height: 0.5rem;
+    margin-bottom: 1rem;
+    border-radius: 1rem;
+  }
+
+  .step-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+
+    .dot {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+      background-color: #dee2e6;
+      cursor: pointer;
+
+      &.active {
+        background-color: #0d6efd;
+        transform: scale(1.25);
+      }
+
+      &.completed {
+        background-color: #198754;
+      }
+    }
+  }
+}
+
+// Mobile stepper tabs
+.stepper-mobile-tabs {
+  display: flex;
+  position: fixed;
+  bottom: 4rem; // Above the nav buttons
+  left: 0;
+  right: 0;
+  background-color: white;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 1020;
+
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem 0;
+    font-size: 0.75rem;
+
+    i {
+      display: block;
+      font-size: 1.25rem;
+      margin-bottom: 0.25rem;
+    }
+
+    &.active {
+      color: #0d6efd;
+      font-weight: 500;
+    }
+  }
+}
+
+// Add styles for the unified content container
+.unified-content-container {
+  padding-bottom: 5rem; // Space for sticky buttons
+  background-color: white;
+
+  .content {
+    transition: opacity 0.3s ease;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    padding-bottom: 8rem; // Extra space on mobile for tabs + buttons
   }
 }

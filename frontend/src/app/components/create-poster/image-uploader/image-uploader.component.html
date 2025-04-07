@@ -13,11 +13,20 @@
   <div class="card-body p-4">
     <!-- Upload Area -->
     <div class="text-center p-4 bg-light rounded mb-4">
-      <i class="bi bi-cloud-upload fs-1 text-primary mb-3"></i>
-      <h5>Drag and drop your images here</h5>
-      <p class="text-muted mb-3">or</p>
+      <!-- Desktop-only elements -->
+      <div class="d-none d-md-block">
+        <i class="bi bi-cloud-upload fs-1 text-primary mb-3"></i>
+        <h5>Drag and drop your images here</h5>
+        <p class="text-muted mb-3">or</p>
+      </div>
 
-      <!-- Direct approach without label -->
+      <!-- Mobile-only heading -->
+      <div class="d-md-none">
+        <i class="bi bi-images fs-1 text-primary mb-3"></i>
+        <h5 class="mb-3">Add your poster images</h5>
+      </div>
+
+      <!-- Button visible on all devices -->
       <button
         type="button"
         class="btn btn-primary mb-3"
@@ -88,11 +97,20 @@
           </button>
         </div>
 
-        <!-- Image Counter -->
+        <!-- Image Counter and Mobile Actions -->
         <div class="position-absolute bottom-0 start-0 end-0 pb-2 text-center">
-          <span class="badge bg-dark px-3 py-2">
-            {{ activeImageIndex + 1 }} / {{ uploadedImages.length }}
-          </span>
+          <div class="d-flex justify-content-center align-items-center gap-2">
+            <span class="badge bg-dark px-3 py-2">
+              {{ activeImageIndex + 1 }} / {{ uploadedImages.length }}
+            </span>
+            <!-- Mobile-friendly remove button -->
+            <button
+              type="button"
+              class="btn btn-danger btn-sm d-md-none"
+              (click)="onRemoveImage(activeImageIndex)">
+              <i class="bi bi-trash me-1"></i> Remove
+            </button>
+          </div>
         </div>
       </div>
 
@@ -118,9 +136,10 @@
             (keydown.space)="onSetActiveImage(i); $event.preventDefault()"
             role="button"
             [attr.aria-label]="'View image ' + (i + 1)" />
+          <!-- Keep desktop remove button but make it larger on mobile -->
           <button
             type="button"
-            class="btn-close position-absolute top-0 end-0 bg-danger text-white p-1 rounded-circle"
+            class="btn-close position-absolute top-0 end-0 bg-danger text-white p-1 p-sm-2 rounded-circle"
             style="transform: translate(25%, -25%)"
             (click)="onRemoveImage(i)"
             (keydown.enter)="onRemoveImage(i)"

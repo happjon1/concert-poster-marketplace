@@ -1,4 +1,11 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  AfterViewInit,
+  HostListener,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormsModule,
@@ -36,6 +43,8 @@ import Stepper from 'bs-stepper';
   ],
 })
 export class CreatePosterComponent implements OnInit, AfterViewInit {
+  @ViewChild('desktopStepper') stepperElement!: ElementRef;
+
   posterForm!: FormGroup;
   isSubmitting = false;
   errorMessage = '';
@@ -63,6 +72,11 @@ export class CreatePosterComponent implements OnInit, AfterViewInit {
   // Add this property to control whether to enforce linear progression
   enforceLinearStepper = true; // Set to false if you want to allow jumping to any step
 
+  // Make sure you have a class property
+  private _currentStepIndex = 0;
+
+  private previousIsMobile = false;
+
   constructor(
     private fb: FormBuilder,
     private trpcService: TrpcService,
@@ -76,15 +90,59 @@ export class CreatePosterComponent implements OnInit, AfterViewInit {
     this.loadEvents();
   }
 
+  @HostListener('window:resize', ['$event'])
+  onResize() {
+    // Check if we've crossed the breakpoint
+    this.checkViewportChange();
+  }
+
+  private checkViewportChange(): void {
+    const currentIsMobile = window.innerWidth < 768; // Bootstrap md breakpoint
+
+    // Only take action if we've crossed the breakpoint
+    if (this.previousIsMobile !== currentIsMobile) {
+      console.log(
+        `View changed from ${
+          this.previousIsMobile ? 'mobile' : 'desktop'
+        } to ${currentIsMobile ? 'mobile' : 'desktop'}`
+      );
+
+      this.previousIsMobile = currentIsMobile;
+
+      // Give the DOM time to update
+      setTimeout(() => {
+        if (!currentIsMobile) {
+          // We switched to desktop - reinitialize stepper
+          this.initDesktopStepper();
+        }
+      }, 150);
+    }
+  }
+
   ngAfterViewInit() {
-    const stepperElement = document.querySelector('.bs-stepper');
-    if (stepperElement) {
-      this.stepper = new Stepper(stepperElement, {
-        linear: true,
-        animation: true,
-      });
-    } else {
-      console.error('Stepper element not found');
+    this.previousIsMobile = window.innerWidth < 768;
+
+    // ViewChild is available in ngAfterViewInit
+    if (this.stepperElement && window.innerWidth >= 768) {
+      this.initDesktopStepper();
+    }
+  }
+
+  private initDesktopStepper(): void {
+    try {
+      if (this.stepperElement?.nativeElement) {
+        this.stepper = new Stepper(this.stepperElement.nativeElement, {
+          linear: false,
+          animation: true,
+        });
+
+        // Go to current step
+        if (this._currentStepIndex > 0) {
+          this.stepper.to(this._currentStepIndex);
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing stepper:', error);
     }
   }
 
@@ -339,18 +397,25 @@ export class CreatePosterComponent implements OnInit, AfterViewInit {
 
   // Add helper methods
   next() {
-    this.stepper.next();
+    const currentIndex = this.getCurrentStepIndex();
+    this.goToStep(currentIndex + 1);
   }
 
   previous() {
-    this.stepper.previous();
+    const currentIndex = this.getCurrentStepIndex();
+    this.goToStep(currentIndex - 1);
   }
 
   goToStep(stepIndex: number): void {
+    // Ensure stepIndex is within bounds
+    if (stepIndex < 0 || stepIndex > 4) {
+      return;
+    }
+
     // Validate current step if enforcing linear progression
     if (this.enforceLinearStepper) {
-      // Get the current step index properly
-      const currentIndex = this.getCurrentStepIndex();
+      // Get the current step index
+      const currentIndex = this._currentStepIndex;
 
       // Only allow moving forward if previous steps are valid
       if (stepIndex > currentIndex) {
@@ -375,35 +440,31 @@ export class CreatePosterComponent implements OnInit, AfterViewInit {
       }
     }
 
-    // Mark previous steps as visited
-    for (let i = 0; i <= stepIndex; i++) {
-      const stepElement = document.querySelector(
-        `.step[data-target="#${this.getStepTargetId(i)}"]`
-      );
-      if (stepElement && !stepElement.classList.contains('visited')) {
-        stepElement.classList.add('visited');
-      }
-    }
+    // Update current step index
+    this._currentStepIndex = stepIndex;
+    console.log('Set current step index to:', this._currentStepIndex);
 
-    // Navigate to the step
-    this.stepper.to(stepIndex);
+    // Try to update the BS-Stepper if it exists
+    try {
+      if (this.stepper) {
+        this.stepper.to(stepIndex);
+      }
+    } catch (error) {
+      console.error('Error updating BS-Stepper:', error);
+    }
   }
 
   // Add this helper method to get the current step index
   public getCurrentStepIndex(): number {
-    // If stepper is not initialized, return 0
-    if (!this.stepper) return 0;
+    // Ensure we always have a valid index
+    if (
+      this._currentStepIndex === undefined ||
+      this._currentStepIndex === null
+    ) {
+      this._currentStepIndex = 0;
+    }
 
-    // Find which step is currently active
-    const stepperElement = document.querySelector('.bs-stepper');
-    if (!stepperElement) return 0;
-
-    const steps = Array.from(stepperElement.querySelectorAll('.step'));
-    const activeStep = steps.findIndex(step =>
-      step.classList.contains('active')
-    );
-
-    return activeStep !== -1 ? activeStep : 0;
+    return this._currentStepIndex;
   }
 
   // Add this method if you don't already have it
@@ -444,5 +505,26 @@ export class CreatePosterComponent implements OnInit, AfterViewInit {
       'listing-details',
     ];
     return targets[stepIndex] || '';
+  }
+
+  getCurrentStepTitle(): string {
+    const titles = [
+      'Basic Info',
+      'Artists',
+      'Events',
+      'Images',
+      'Listing Details',
+    ];
+    const index = this.getCurrentStepIndex();
+    return index >= 0 && index < titles.length ? titles[index] : '';
+  }
+
+  // Add this method to your component
+  onStepperChange(event: Event) {
+    const stepperEvent = event as unknown as {
+      detail: { indexStep: number };
+    };
+    console.log('BS-Stepper changed to step:', stepperEvent.detail.indexStep);
+    this._currentStepIndex = stepperEvent.detail.indexStep;
   }
 }

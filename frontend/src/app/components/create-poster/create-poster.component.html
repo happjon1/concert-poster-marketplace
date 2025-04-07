@@ -1,10 +1,10 @@
 <div class="container py-5">
   <div class="row justify-content-center">
     <div class="col-lg-10">
-      <!-- Header -->
-      <div class="mb-5 text-center">
-        <h1 class="display-5 fw-bold">Create Poster Listing</h1>
-        <p class="text-muted lead">
+      <!-- Header - Smaller on Mobile -->
+      <div class="mb-3 mb-md-5 text-center">
+        <h1 class="fs-3 fs-md-4 display-md-5 fw-bold">Create Poster Listing</h1>
+        <p class="text-muted small mb-2 mb-md-3">
           Share your concert art with potential buyers
         </p>
       </div>
@@ -19,115 +19,210 @@
 
       <!-- Form -->
       <form [formGroup]="posterForm" *ngIf="posterForm" (ngSubmit)="onSubmit()">
-        <div class="bs-stepper shadow-sm rounded">
-          <!-- Stepper header -->
-          <div class="bs-stepper-header p-3 bg-light border-bottom">
-            <!-- Step 1 -->
-            <div class="step" data-target="#basic-info">
-              <button type="button" class="step-trigger" (click)="goToStep(0)">
-                <span class="bs-stepper-circle bg-primary text-white">1</span>
-                <span class="bs-stepper-label">Basic Info</span>
-              </button>
-            </div>
+        <!-- Desktop navigation - only visible on md and larger screens -->
+        <div class="d-none d-md-block">
+          <div
+            #desktopStepper
+            class="bs-stepper shadow-sm rounded"
+            (bsStepperChange)="onStepperChange($event)">
+            <!-- Stepper header -->
+            <div class="bs-stepper-header p-3 bg-light border-bottom">
+              <!-- Step 1 -->
+              <div class="step" data-target="#unified-basic-info">
+                <button
+                  type="button"
+                  class="step-trigger"
+                  (click)="goToStep(0)">
+                  <span class="bs-stepper-circle bg-primary text-white">1</span>
+                  <span class="bs-stepper-label">Basic Info</span>
+                </button>
+              </div>
 
-            <div class="line"></div>
+              <div class="line"></div>
 
-            <!-- Step 2 -->
-            <div class="step" data-target="#artists">
-              <button type="button" class="step-trigger" (click)="goToStep(1)">
-                <span class="bs-stepper-circle bg-primary text-white">2</span>
-                <span class="bs-stepper-label">Artists</span>
-              </button>
-            </div>
+              <!-- Step 2 -->
+              <div class="step" data-target="#unified-artists">
+                <button
+                  type="button"
+                  class="step-trigger"
+                  (click)="goToStep(1)">
+                  <span class="bs-stepper-circle bg-primary text-white">2</span>
+                  <span class="bs-stepper-label">Artists</span>
+                </button>
+              </div>
 
-            <div class="line"></div>
+              <div class="line"></div>
 
-            <!-- Step 3 -->
-            <div class="step" data-target="#events">
-              <button type="button" class="step-trigger" (click)="goToStep(2)">
-                <span class="bs-stepper-circle bg-primary text-white">3</span>
-                <span class="bs-stepper-label">Events</span>
-              </button>
-            </div>
+              <!-- Step 3 -->
+              <div class="step" data-target="#unified-events">
+                <button
+                  type="button"
+                  class="step-trigger"
+                  (click)="goToStep(2)">
+                  <span class="bs-stepper-circle bg-primary text-white">3</span>
+                  <span class="bs-stepper-label">Events</span>
+                </button>
+              </div>
 
-            <div class="line"></div>
+              <div class="line"></div>
 
-            <!-- Step 4 -->
-            <div class="step" data-target="#images">
-              <button type="button" class="step-trigger" (click)="goToStep(3)">
-                <span class="bs-stepper-circle bg-primary text-white">4</span>
-                <span class="bs-stepper-label">Images</span>
-              </button>
-            </div>
+              <!-- Step 4 -->
+              <div class="step" data-target="#unified-images">
+                <button
+                  type="button"
+                  class="step-trigger"
+                  (click)="goToStep(3)">
+                  <span class="bs-stepper-circle bg-primary text-white">4</span>
+                  <span class="bs-stepper-label">Images</span>
+                </button>
+              </div>
 
-            <div class="line"></div>
+              <div class="line"></div>
 
-            <!-- Step 5 -->
-            <div class="step" data-target="#listing-details">
-              <button type="button" class="step-trigger" (click)="goToStep(4)">
-                <span class="bs-stepper-circle bg-primary text-white">5</span>
-                <span class="bs-stepper-label">Listing Details</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Stepper content -->
-          <div class="bs-stepper-content p-0">
-            <!-- Step 1 content -->
-            <div id="basic-info" class="content p-4 fade" role="tabpanel">
-              <app-basic-info-form
-                [parentForm]="posterForm"></app-basic-info-form>
-            </div>
-
-            <!-- Step 2 content -->
-            <div id="artists" class="content p-4 fade" role="tabpanel">
-              <app-artist-selector
-                [parentForm]="posterForm"
-                [artists]="artists"
-                [filteredArtists]="filteredArtists"
-                (artistSearch)="filterArtists($event)"
-                (addArtist)="addArtist($event)"
-                (removeArtist)="removeArtist($event)">
-              </app-artist-selector>
-            </div>
-
-            <!-- Step 3 content -->
-            <div id="events" class="content p-4 fade" role="tabpanel">
-              <app-event-selector
-                [parentForm]="posterForm"
-                [events]="events"
-                [filteredEvents]="filteredEvents"
-                (eventSearch)="filterEvents($event)"
-                (addEvent)="addEvent($event)"
-                (removeEvent)="removeEvent($event)">
-              </app-event-selector>
-            </div>
-
-            <!-- Step 4 content -->
-            <div id="images" class="content p-4 fade" role="tabpanel">
-              <app-image-uploader
-                [parentForm]="posterForm"
-                [uploadedImages]="uploadedImages"
-                [maxImages]="maxImages"
-                [isUploading]="isUploading"
-                [activeImageIndex]="activeImageIndex"
-                (fileSelected)="onFileSelected($event)"
-                (setActiveImage)="setActiveImage($event)"
-                (removeImage)="removeImage($event)">
-              </app-image-uploader>
-            </div>
-
-            <!-- Step 5 content -->
-            <div id="listing-details" class="content p-4 fade" role="tabpanel">
-              <app-listing-details-form
-                [parentForm]="posterForm"
-                [listingType]="listingType">
-              </app-listing-details-form>
+              <!-- Step 5 -->
+              <div class="step" data-target="#unified-listing-details">
+                <button
+                  type="button"
+                  class="step-trigger"
+                  (click)="goToStep(4)">
+                  <span class="bs-stepper-circle bg-primary text-white">5</span>
+                  <span class="bs-stepper-label">Listing Details</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Sticky Navigation Buttons -->
+        <!-- Mobile navigation - only visible on small screens -->
+        <div class="d-md-none">
+          <!-- Mobile tabs - Make sure all 5 steps are included -->
+          <div class="stepper-mobile-tabs">
+            <div
+              class="tab"
+              [class.active]="getCurrentStepIndex() === 0"
+              (click)="goToStep(0)"
+              (keydown.enter)="goToStep(0)"
+              (keydown.space)="goToStep(0)"
+              tabindex="0">
+              <i class="bi bi-card-heading"></i>
+              <span>Basic</span>
+            </div>
+            <div
+              class="tab"
+              [class.active]="getCurrentStepIndex() === 1"
+              (click)="goToStep(1)"
+              (keydown.enter)="goToStep(1)"
+              (keydown.space)="goToStep(1)"
+              tabindex="0">
+              <i class="bi bi-people"></i>
+              <span>Artists</span>
+            </div>
+            <div
+              class="tab"
+              [class.active]="getCurrentStepIndex() === 2"
+              (click)="goToStep(2)"
+              (keydown.enter)="goToStep(2)"
+              (keydown.space)="goToStep(2)"
+              tabindex="0">
+              <i class="bi bi-calendar-event"></i>
+              <span>Events</span>
+            </div>
+            <div
+              class="tab"
+              [class.active]="getCurrentStepIndex() === 3"
+              (click)="goToStep(3)"
+              (keydown.enter)="goToStep(3)"
+              (keydown.space)="goToStep(3)"
+              tabindex="0">
+              <i class="bi bi-images"></i>
+              <span>Images</span>
+            </div>
+            <div
+              class="tab"
+              [class.active]="getCurrentStepIndex() === 4"
+              (click)="goToStep(4)"
+              (keydown.enter)="goToStep(4)"
+              (keydown.space)="goToStep(4)"
+              tabindex="0">
+              <i class="bi bi-tag"></i>
+              <span>Listing</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- UNIFIED CONTENT AREA - Used by both desktop and mobile -->
+        <div class="unified-content-container mb-5">
+          <!-- Content sections are now using [hidden] instead of style.display -->
+
+          <!-- Step 1 content -->
+          <div
+            id="unified-basic-info"
+            class="content p-4"
+            [hidden]="getCurrentStepIndex() !== 0">
+            <app-basic-info-form
+              [parentForm]="posterForm"></app-basic-info-form>
+          </div>
+
+          <!-- Step 2 content -->
+          <div
+            id="unified-artists"
+            class="content p-4"
+            [hidden]="getCurrentStepIndex() !== 1">
+            <app-artist-selector
+              [parentForm]="posterForm"
+              [artists]="artists"
+              [filteredArtists]="filteredArtists"
+              (artistSearch)="filterArtists($event)"
+              (addArtist)="addArtist($event)"
+              (removeArtist)="removeArtist($event)">
+            </app-artist-selector>
+          </div>
+
+          <!-- Step 3 content -->
+          <div
+            id="unified-events"
+            class="content p-4"
+            [hidden]="getCurrentStepIndex() !== 2">
+            <app-event-selector
+              [parentForm]="posterForm"
+              [events]="events"
+              [filteredEvents]="filteredEvents"
+              (eventSearch)="filterEvents($event)"
+              (addEvent)="addEvent($event)"
+              (removeEvent)="removeEvent($event)">
+            </app-event-selector>
+          </div>
+
+          <!-- Step 4 content -->
+          <div
+            id="unified-images"
+            class="content p-4"
+            [hidden]="getCurrentStepIndex() !== 3">
+            <app-image-uploader
+              [parentForm]="posterForm"
+              [uploadedImages]="uploadedImages"
+              [maxImages]="maxImages"
+              [isUploading]="isUploading"
+              [activeImageIndex]="activeImageIndex"
+              (fileSelected)="onFileSelected($event)"
+              (setActiveImage)="setActiveImage($event)"
+              (removeImage)="removeImage($event)">
+            </app-image-uploader>
+          </div>
+
+          <!-- Step 5 content -->
+          <div
+            id="unified-listing-details"
+            class="content p-4"
+            [hidden]="getCurrentStepIndex() !== 4">
+            <app-listing-details-form
+              [parentForm]="posterForm"
+              [listingType]="listingType">
+            </app-listing-details-form>
+          </div>
+        </div>
+
+        <!-- Sticky Navigation Buttons - Same as before -->
         <div class="sticky-nav-buttons">
           <div class="container">
             <div class="d-flex justify-content-between">
