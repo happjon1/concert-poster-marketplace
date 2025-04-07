@@ -61,6 +61,7 @@ export const artistRouter = router({
         });
       }
 
+      // Return just the artist object directly
       return artist;
     }),
 });

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, publicProcedure } from "../trpc.js";
 import { TRPCError } from "@trpc/server";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -10,102 +10,168 @@ export const eventRouter = router({
     .input(
       z
         .object({
-          limit: z.number().min(1).max(100).optional(),
+          limit: z.number().min(1).max(100).optional().default(50),
           cursor: z.string().optional(),
           search: z.string().optional(),
           artistId: z.string().optional(),
           fromDate: z.string().optional(),
           toDate: z.string().optional(),
+          venueId: z.string().optional(),
+          sortBy: z.enum(["date", "name", "venue"]).optional().default("date"),
+          sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
         })
         .optional()
     )
     .query(async ({ input }) => {
-      const limit = input?.limit ?? 50;
-      const cursor = input?.cursor;
-      const search = input?.search;
-      const artistId = input?.artistId;
-      const fromDate = input?.fromDate;
-      const toDate = input?.toDate;
+      try {
+        const {
+          limit = 50,
+          cursor,
+          search,
+          artistId,
+          fromDate,
+          toDate,
+          venueId,
+          sortBy = "date",
+          sortOrder = "asc",
+        } = input || {};
 
-      const query: any = {
-        take: limit,
-        orderBy: { date: "asc" },
-        include: {
-          venue: true,
-          artists: true,
-        },
-      };
+        // Build where conditions properly typed
+        const whereConditions: Prisma.EventWhereInput = {};
+        const conditions: Prisma.EventWhereInput[] = [];
 
-      if (cursor) {
-        query.cursor = { id: cursor };
-        query.skip = 1;
-      }
+        if (search) {
+          conditions.push({
+            OR: [
+              { name: { contains: search, mode: "insensitive" } },
+              { venue: { name: { contains: search, mode: "insensitive" } } },
+              {
+                artists: {
+                  some: {
+                    artist: {
+                      name: { contains: search, mode: "insensitive" },
+                    },
+                  },
+                },
+              },
+            ],
+          });
+        }
 
-      const whereConditions: any[] = [];
+        if (artistId) {
+          conditions.push({
+            artists: {
+              some: {
+                artistId,
+              },
+            },
+          });
+        }
 
-      if (search) {
-        whereConditions.push({
-          OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { venue: { name: { contains: search, mode: "insensitive" } } },
-          ],
-        });
-      }
+        if (venueId) {
+          conditions.push({ venueId });
+        }
 
-      if (artistId) {
-        whereConditions.push({
-          artists: {
-            some: {
-              id: artistId,
+        if (fromDate) {
+          conditions.push({
+            date: { gte: new Date(fromDate) },
+          });
+        }
+
+        if (toDate) {
+          conditions.push({
+            date: { lte: new Date(toDate) },
+          });
+        }
+
+        // Only add AND if we have conditions
+        if (conditions.length > 0) {
+          whereConditions.AND = conditions;
+        }
+
+        // Dynamic sort order
+        const orderBy: Prisma.EventOrderByWithRelationInput = {};
+        if (sortBy === "venue") {
+          orderBy.venue = { name: sortOrder };
+        } else {
+          orderBy[sortBy as "date" | "name"] = sortOrder;
+        }
+
+        // Execute query with proper typing
+        const events = await prisma.event.findMany({
+          take: limit,
+          skip: cursor ? 1 : 0,
+          cursor: cursor ? { id: cursor } : undefined,
+          orderBy,
+          where: whereConditions,
+          include: {
+            venue: true,
+            artists: {
+              include: {
+                artist: true,
+              },
             },
           },
         });
-      }
 
-      if (fromDate) {
-        whereConditions.push({
-          date: { gte: fromDate },
+        // Get the next cursor
+        const nextCursor =
+          events.length === limit ? events[events.length - 1].id : null;
+
+        // Format the response
+        return {
+          items: events.map((event) => ({
+            ...event,
+            artists: event.artists.map((ea) => ea.artist),
+          })),
+          nextCursor,
+          total: await prisma.event.count({ where: whereConditions }),
+        };
+      } catch (error) {
+        console.error("Error fetching events:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch events",
+          cause: error,
         });
       }
-
-      if (toDate) {
-        whereConditions.push({
-          date: { lte: toDate },
-        });
-      }
-
-      if (whereConditions.length > 0) {
-        query.where = { AND: whereConditions };
-      }
-
-      const events = await prisma.event.findMany(query);
-      const nextCursor =
-        events.length > 0 ? events[events.length - 1].id : null;
-
-      return {
-        items: events,
-        nextCursor,
-      };
     }),
 
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
-      const event = await prisma.event.findUnique({
-        where: { id: input.id },
-        include: {
-          venue: true,
-          artists: true,
-        },
-      });
+      try {
+        const event = await prisma.event.findUnique({
+          where: { id: input.id },
+          include: {
+            venue: true,
+            artists: {
+              include: {
+                artist: true,
+              },
+            },
+          },
+        });
 
-      if (!event) {
+        if (!event) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Event not found",
+          });
+        }
+
+        // Return the transformed event directly without pagination wrapper
+        return {
+          ...event,
+          artists: event.artists.map((ea) => ea.artist),
+        };
+      } catch (error) {
+        console.error("Error fetching event:", error);
         throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Event not found",
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch event",
+          cause: error,
         });
       }
-
-      return event;
     }),
 });

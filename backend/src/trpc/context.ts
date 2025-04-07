@@ -2,7 +2,7 @@ import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import jwt from "jsonwebtoken";
 
 // JWT secret should be the same one used in auth.router.ts
-const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
+const JWT_SECRET = process.env["JWT_SECRET"] || "default_secret";
 
 /**
  * Verify JWT token and return user ID if valid

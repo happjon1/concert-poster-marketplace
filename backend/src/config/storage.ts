@@ -9,10 +9,10 @@ dotenv.config();
 
 // Create S3 client (works with DigitalOcean Spaces)
 const s3Client = new S3Client({
-  endpoint: process.env.DO_SPACES_ENDPOINT,
+  endpoint: process.env["DO_SPACES_ENDPOINT"],
   credentials: {
-    accessKeyId: process.env.DO_SPACES_KEY || "",
-    secretAccessKey: process.env.DO_SPACES_SECRET || "",
+    accessKeyId: process.env["DO_SPACES_KEY"] || "",
+    secretAccessKey: process.env["DO_SPACES_SECRET"] || "",
   },
   region: "us-east-1", // DigitalOcean uses this regardless of actual region
 });
@@ -21,7 +21,7 @@ const s3Client = new S3Client({
 export const upload = multer({
   storage: multerS3({
     s3: s3Client,
-    bucket: process.env.DO_SPACES_BUCKET || "",
+    bucket: process.env["DO_SPACES_BUCKET"] || "",
     acl: "public-read",
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: (req, file, cb) => {
@@ -46,7 +46,7 @@ export const getSignedUrl = async (
   const key = `posters/${Date.now()}-${fileName.replace(/\s+/g, "-")}`;
 
   const command = new PutObjectCommand({
-    Bucket: process.env.DO_SPACES_BUCKET || "",
+    Bucket: process.env["DO_SPACES_BUCKET"] || "",
     Key: key,
     ContentType: fileType,
   });
@@ -55,7 +55,7 @@ export const getSignedUrl = async (
   const uploadUrl = await awsGetSignedUrl(s3Client, command, {
     expiresIn: 300,
   }); // 5 minutes
-  const publicUrl = `${process.env.DO_SPACES_CDN_URL}/${key}`;
+  const publicUrl = `${process.env["DO_SPACES_CDN_URL"]}/${key}`;
 
   return { uploadUrl, publicUrl };
 };

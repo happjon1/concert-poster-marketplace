@@ -1,12 +1,12 @@
 import { Injectable, signal, inject, effect } from '@angular/core';
 import { Router } from '@angular/router';
-import { RegisterRequest } from '../models/register-request.model';
-import { TrpcService } from './trpc.service';
-import { RouterTypes } from '@concert-poster-marketplace/shared';
-
-// Use type imports from shared package
-type User = RouterTypes.Auth.MeOutput;
-type LoginOutput = RouterTypes.Auth.LoginOutput;
+import {
+  LoginOutput,
+  User,
+  RegisterInput,
+  TrpcService,
+  LoginInput,
+} from './trpc.service';
 
 @Injectable({
   providedIn: 'root',
@@ -130,13 +130,12 @@ export class AuthService {
   /**
    * Login user with tRPC
    */
-  async login(email: string, passwordHash: string): Promise<LoginOutput> {
-    this.debug('Login attempt with tRPC', email);
+  async login(loginInput: LoginInput): Promise<LoginOutput> {
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
 
     try {
-      const response = await this.trpcService.login(email, passwordHash);
+      const response = await this.trpcService.login(loginInput);
       this.debug('Login successful', response);
       this.setSession(response);
       this.loadingSignal.set(false);
@@ -157,24 +156,24 @@ export class AuthService {
    * Register a new user (using tRPC if available on backend)
    * @returns Promise that resolves to user when registration is successful
    */
-  async register(userData: RegisterRequest): Promise<LoginOutput> {
+  async register(userData: RegisterInput): Promise<LoginOutput> {
     this.debug('Registration attempt', userData.email);
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
 
     try {
-      const response = await this.trpcService.register(
-        userData.email,
-        userData.passwordHash,
-        userData.name || undefined
-      );
+      const response = await this.trpcService.register(userData);
       this.debug('Registration successful', response);
       this.setSession(response);
       this.loadingSignal.set(false);
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.debug('Registration error', error);
-      this.errorSignal.set(error.message || 'Registration failed');
+      if (error instanceof Error) {
+        this.errorSignal.set(error.message || 'Registration failed');
+      } else {
+        this.errorSignal.set('An unknown error occurred');
+      }
       this.loadingSignal.set(false);
       throw error;
     }
@@ -188,7 +187,7 @@ export class AuthService {
 
     const token = localStorage.getItem(this.tokenKey) || '';
     try {
-      await this.trpcService.logout(token);
+      await this.trpcService.logout({ token });
       localStorage.removeItem(this.tokenKey);
       this.currentUserSignal.set(null);
       this.debug('Token removed from localStorage');

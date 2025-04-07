@@ -6,7 +6,7 @@ import {
   FormGroup,
   FormArray,
 } from '@angular/forms';
-import { RouterTypes } from '@concert-poster-marketplace/shared';
+import { Artist } from '../../../services/trpc.service';
 
 @Component({
   selector: 'app-artist-selector',
@@ -16,13 +16,13 @@ import { RouterTypes } from '@concert-poster-marketplace/shared';
 })
 export class ArtistSelectorComponent {
   @Input() parentForm!: FormGroup;
-  @Input() artists: RouterTypes.Artists.Artist[] = [];
-  @Input() filteredArtists: RouterTypes.Artists.Artist[] = [];
+  @Input() artists: Artist[] = [];
+  @Input() filteredArtists: Artist[] = [];
   @Input() artistSearchTerm = '';
   @Input() isSearchingArtists = false;
 
   @Output() artistSearch = new EventEmitter<string>();
-  @Output() addArtist = new EventEmitter<RouterTypes.Artists.Artist>();
+  @Output() addArtist = new EventEmitter<Artist>();
   @Output() removeArtist = new EventEmitter<number>();
 
   get artistIdsArray(): FormArray {
@@ -33,7 +33,7 @@ export class ArtistSelectorComponent {
     this.artistSearch.emit(this.artistSearchTerm);
   }
 
-  onAddArtist(artist: RouterTypes.Artists.Artist): void {
+  onAddArtist(artist: Artist): void {
     this.addArtist.emit(artist);
   }
 

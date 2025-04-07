@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, Inject, inject, OnInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -9,6 +9,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
+import { TrpcService } from '../../services/trpc.service';
 
 @Component({
   selector: 'app-register',
@@ -18,6 +19,7 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./register.component.scss'],
 })
 export class RegisterComponent implements OnInit {
+  trpc = inject(TrpcService);
   registerForm!: FormGroup; // Ensure the form is initialized
   acceptTerms = false; // For the terms and conditions checkbox
   hidePassword = true;
@@ -53,7 +55,8 @@ export class RegisterComponent implements OnInit {
 
   onSubmit(): void {
     if (this.registerForm.valid && this.acceptTerms) {
-      console.log('Form submitted:', this.registerForm.value);
+      this.trpc.register(this.registerForm.value);
+
       this.router.navigate(['/']);
     } else {
       console.error('Form is invalid or terms not accepted');

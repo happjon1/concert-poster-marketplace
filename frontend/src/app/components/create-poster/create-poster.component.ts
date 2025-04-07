@@ -18,8 +18,12 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { TrpcService } from '../../services/trpc.service';
-import { RouterTypes } from '@concert-poster-marketplace/shared';
+import {
+  Artist,
+  CreatePosterInput,
+  ConcertEvent,
+  TrpcService,
+} from '../../services/trpc.service';
 import Stepper from 'bs-stepper';
 import {
   Subject,
@@ -69,10 +73,10 @@ export class CreatePosterComponent
 
   // ============= DATA COLLECTIONS =============
   // Artists and events
-  artists: RouterTypes.Artists.Artist[] = [];
-  events: RouterTypes.Events.Event[] = [];
-  filteredArtists: RouterTypes.Artists.Artist[] = [];
-  filteredEvents: RouterTypes.Events.Event[] = [];
+  artists: Artist[] = [];
+  events: ConcertEvent[] = [];
+  filteredArtists: Artist[] = [];
+  filteredEvents: ConcertEvent[] = [];
 
   // Search fields
   artistSearch = '';
@@ -288,9 +292,9 @@ export class CreatePosterComponent
   }
 
   // ============= ARTIST & EVENT MANAGEMENT =============
-  addArtist(artist: RouterTypes.Artists.Artist): void {
+  addArtist(artist: Artist): void {
     const exists = this.artistIdsArray.controls.some(
-      control => control.value === artist.id
+      control => control.value === artist
     );
 
     if (!exists) {
@@ -302,7 +306,7 @@ export class CreatePosterComponent
     this.artistIdsArray.removeAt(index);
   }
 
-  addEvent(event: RouterTypes.Events.Event): void {
+  addEvent(event: ConcertEvent): void {
     const exists = this.eventIdsArray.controls.some(
       control => control.value === event.id
     );
@@ -426,7 +430,7 @@ export class CreatePosterComponent
     });
   }
 
-  private preparePosterData(): RouterTypes.Posters.CreateInput {
+  private preparePosterData(): CreatePosterInput {
     const formValue = this.posterForm.value;
     return {
       title: formValue.title,
@@ -479,7 +483,7 @@ export class CreatePosterComponent
     );
   }
 
-  getEvent(id: string): RouterTypes.Events.Event | undefined {
+  getEvent(id: string): ConcertEvent | undefined {
     return this.events.find(event => event.id === id);
   }
 

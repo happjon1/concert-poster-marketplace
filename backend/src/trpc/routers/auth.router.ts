@@ -9,8 +9,8 @@ import jwt from "jsonwebtoken";
 const prisma = new PrismaClient();
 
 // Config constants
-const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
-const REFRESH_SECRET = process.env.REFRESH_SECRET || "refresh_secret";
+const JWT_SECRET = process.env["JWT_SECRET"] || "default_secret";
+const REFRESH_SECRET = process.env["REFRESH_SECRET"] || "refresh_secret";
 const tokenBlacklist = new Set<string>();
 
 // ------------------- Helper Functions -------------------

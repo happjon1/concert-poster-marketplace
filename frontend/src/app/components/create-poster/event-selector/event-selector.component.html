@@ -35,7 +35,7 @@
           <div>
             <div>{{ event.name }}</div>
             <small class="text-muted">
-              {{ formatVenue(event.venue) }} •
+              {{ event.venue.name }} •
               {{ event.date | date: 'mediumDate' }}
             </small>
           </div>
@@ -60,7 +60,7 @@
           <div>
             <div>{{ getEvent(eventIdControl.value)?.name }}</div>
             <small class="text-muted">
-              {{ formatVenue(getEvent(eventIdControl.value)?.venue) }} •
+              {{ getEvent(eventIdControl.value)?.name }} •
               {{ getEvent(eventIdControl.value)?.date | date: 'mediumDate' }}
             </small>
           </div>

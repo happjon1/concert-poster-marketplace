@@ -6,13 +6,13 @@ import crypto from "crypto";
 
 // Configure S3 client for Digital Ocean Spaces
 const s3Client = new S3Client({
-  region: process.env.DO_SPACE_REGION || "nyc3", // DO Spaces region
+  region: process.env["DO_SPACE_REGION"] || "nyc3", // DO Spaces region
   endpoint: `https://${
-    process.env.DO_SPACE_REGION || "nyc3"
+    process.env["DO_SPACE_REGION"] || "nyc3"
   }.digitaloceanspaces.com`, // Correct endpoint format
   credentials: {
-    accessKeyId: process.env.DO_SPACES_KEY || "",
-    secretAccessKey: process.env.DO_SPACES_SECRET || "",
+    accessKeyId: process.env["DO_SPACES_KEY"] || "",
+    secretAccessKey: process.env["DO_SPACES_SECRET"] || "",
   },
   forcePathStyle: false, // DO Spaces uses virtual-hosted-style URLs
 });
@@ -34,7 +34,7 @@ export const uploadRouter = router({
         const randomId = crypto.randomUUID();
         const key = `posters/${randomId}-${sanitizedName}`;
 
-        const spaceName = process.env.DO_SPACES_BUCKET || "your-space-name";
+        const spaceName = process.env["DO_SPACES_BUCKET"] || "your-space-name";
 
         // Create the command to put an object
         const putObjectCommand = new PutObjectCommand({
@@ -53,7 +53,7 @@ export const uploadRouter = router({
 
         // Construct the public URL for Digital Ocean Spaces
         const publicUrl = `https://${spaceName}.${
-          process.env.DO_SPACE_REGION || "nyc3"
+          process.env["DO_SPACE_REGION"] || "nyc3"
         }.digitaloceanspaces.com/${key}`;
 
         console.log("Generated DO Spaces upload URL successfully");
