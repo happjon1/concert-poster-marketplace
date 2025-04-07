@@ -12,6 +12,455 @@ import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
+// Add these helper functions before your main function
+function generateRandomDate(start, end) {
+  return new Date(
+    start.getTime() + Math.random() * (end.getTime() - start.getTime())
+  );
+}
+
+function pickRandom(array) {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+function getRandomSubset(array, min = 1, max = 3) {
+  const count = Math.floor(Math.random() * (max - min + 1)) + min;
+  const shuffled = [...array].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, Math.min(count, array.length));
+}
+
+async function seedBulkData() {
+  console.log("Starting bulk data seeding...");
+
+  // Data for generating realistic entities
+  const artistNames = [
+    // Classic Rock & Alternative
+    "Phish",
+    "Grateful Dead",
+    "Pink Floyd",
+    "Led Zeppelin",
+    "The Rolling Stones",
+    "The Beatles",
+    "Queen",
+    "The Who",
+    "The Doors",
+    "Jimi Hendrix Experience",
+    "Nirvana",
+    "Pearl Jam",
+    "Soundgarden",
+    "Alice In Chains",
+    "Stone Temple Pilots",
+    "Red Hot Chili Peppers",
+    "Metallica",
+    "Black Sabbath",
+    "Iron Maiden",
+    "AC/DC",
+
+    // Indie & Modern Rock
+    "Arctic Monkeys",
+    "Tame Impala",
+    "The Strokes",
+    "Radiohead",
+    "LCD Soundsystem",
+    "The War on Drugs",
+    "The National",
+    "Vampire Weekend",
+    "Fleet Foxes",
+    "Arcade Fire",
+    "Bon Iver",
+    "Wilco",
+    "The Black Keys",
+    "Jack White",
+    "Queens of the Stone Age",
+    "The Flaming Lips",
+    "Modest Mouse",
+    "Spoon",
+    "TV on the Radio",
+    "Yeah Yeah Yeahs",
+
+    // Electronic & Dance
+    "Daft Punk",
+    "Disclosure",
+    "Deadmau5",
+    "The Chemical Brothers",
+    "Justice",
+    "Aphex Twin",
+    "Bonobo",
+    "Four Tet",
+    "Flying Lotus",
+    "Floating Points",
+    "Underworld",
+    "Massive Attack",
+    "Portishead",
+    "Björk",
+    "Gorillaz",
+    "The Prodigy",
+    "Orbital",
+    "Fatboy Slim",
+    "The Avalanches",
+    "SBTRKT",
+
+    // Hip-Hop & R&B
+    "Kendrick Lamar",
+    "Tyler, The Creator",
+    "Frank Ocean",
+    "Anderson .Paak",
+    "Thundercat",
+    "A Tribe Called Quest",
+    "The Roots",
+    "Wu-Tang Clan",
+    "MF DOOM",
+    "J Dilla",
+    "Erykah Badu",
+    "D'Angelo",
+    "Janelle Monáe",
+    "SZA",
+    "Solange",
+    "Outkast",
+    "Run The Jewels",
+    "Madlib",
+    "Flying Lotus",
+    "Kaytranada",
+
+    // Jam Bands & Psychedelic
+    "The String Cheese Incident",
+    "Widespread Panic",
+    "moe.",
+    "Umphrey's McGee",
+    "Goose",
+    "Billy Strings",
+    "King Gizzard & The Lizard Wizard",
+    "Khruangbin",
+    "TAUK",
+    "Pigeons Playing Ping Pong",
+    "The Disco Biscuits",
+    "STS9",
+    "Lotus",
+    "Dopapod",
+    "The Motet",
+    "Ghost Light",
+    "Spafford",
+    "Turkuaz",
+    "Lettuce",
+    "Medeski Martin & Wood",
+
+    // Folk & Americana
+    "The Avett Brothers",
+    "Mumford & Sons",
+    "Old Crow Medicine Show",
+    "The Lumineers",
+    "Lord Huron",
+    "First Aid Kit",
+    "The Tallest Man on Earth",
+    "Iron & Wine",
+    "The Head and the Heart",
+    "The Civil Wars",
+    "Gregory Alan Isakov",
+    "Ray LaMontagne",
+    "The Decemberists",
+    "Brandi Carlile",
+    "Jason Isbell",
+    "Mandolin Orange",
+    "Trampled by Turtles",
+    "The Wood Brothers",
+    "Shakey Graves",
+    "Mipso",
+
+    // World & Fusion
+    "Tinariwen",
+    "Bombino",
+    "Rodrigo y Gabriela",
+    "Femi Kuti",
+    "Buena Vista Social Club",
+    "Toots & The Maytals",
+    "Antibalas",
+    "Dakhabrakha",
+    "Gogol Bordello",
+    "The Cat Empire",
+
+    // Generated Names - The [X] [Y] Pattern
+    "The Electric Bears",
+    "The Cosmic Wolves",
+    "The Midnight Tigers",
+    "The Royal Ghosts",
+    "The Black Waves",
+    "The Silver Dreams",
+    "The Golden Stars",
+    "The Crystal Mountains",
+    "The Midnight Rivers",
+    "The Lunar Tides",
+    "The Neon Forest",
+    "The Desert Owls",
+    "The Diamond Dust",
+    "The Velvet Echo",
+    "The Sonic Frontier",
+
+    // Solo Artists with Band Format
+    "James Smith & The Bears",
+    "Sarah Johnson & The Wolves",
+    "David Williams & The Tigers",
+    "Emma Brown & The Ghosts",
+    "Michael Jones & The Waves",
+    "Lucy Miller & The Dreams",
+    "Alex Davis & The Stars",
+    "Jake Wilson & The Mountains",
+    "Sophia Taylor & The Rivers",
+    "Oliver Thomas & The Tides",
+
+    // Solo Artists
+    "James Smith",
+    "Sarah Johnson",
+    "David Williams",
+    "Emma Brown",
+    "Michael Jones",
+    "Lucy Miller",
+    "Alex Davis",
+    "Jake Wilson",
+    "Sophia Taylor",
+    "Oliver Thomas",
+    "Eleanor Moore",
+    "Benjamin Harris",
+    "Charlotte Clark",
+    "Samuel Lewis",
+    "Grace Hall",
+    "Daniel King",
+    "Amelia Green",
+    "Matthew Baker",
+    "Olivia Turner",
+    "William Evans",
+
+    // More Creative Band Names
+    "Cosmic Dust Bunnies",
+    "Strange Weather",
+    "Liquid Sunshine",
+    "Forest for the Trees",
+    "Penny Revolution",
+    "Velvet Thunder",
+    "Phantom Limb",
+    "Electric Octopus",
+    "Quantum Mechanics",
+    "Future Folk",
+    "Analog Heart",
+    "Memory Palace",
+    "Hologram Jukebox",
+    "Paper Lions",
+    "Silent Partner",
+    "Morning Teleportation",
+    "Talking Machines",
+    "Satellite Hearts",
+    "Neon Coyote",
+    "Dream Harvest",
+  ];
+
+  // Venue data
+  const cities = [
+    { city: "New York", state: "NY", country: "US" },
+    { city: "Los Angeles", state: "CA", country: "US" },
+    { city: "Chicago", state: "IL", country: "US" },
+    { city: "Denver", state: "CO", country: "US" },
+    { city: "Seattle", state: "WA", country: "US" },
+    { city: "Austin", state: "TX", country: "US" },
+    { city: "Nashville", state: "TN", country: "US" },
+    { city: "New Orleans", state: "LA", country: "US" },
+    { city: "Portland", state: "OR", country: "US" },
+    { city: "San Francisco", state: "CA", country: "US" },
+    { city: "Boston", state: "MA", country: "US" },
+    { city: "Philadelphia", state: "PA", country: "US" },
+  ];
+
+  const venueTypes = [
+    "Arena",
+    "Hall",
+    "Amphitheater",
+    "Theater",
+    "Stadium",
+    "Club",
+    "Lounge",
+    "Garden",
+  ];
+
+  // Step 1: Create 200 artists with genres
+  const genres = await prisma.genre.findMany();
+  if (genres.length < 3) {
+    console.log("Creating additional genres...");
+    // Create more genres if needed
+    const genreNames = [
+      "Alternative",
+      "Indie",
+      "Metal",
+      "Folk",
+      "Electronic",
+      "Hip-Hop",
+      "Pop",
+      "Blues",
+      "Jazz",
+    ];
+    for (const name of genreNames) {
+      await prisma.genre.create({
+        data: {
+          name,
+          jambaseId: `genre-${name.toLowerCase().replace(/\s+/g, "-")}`,
+        },
+      });
+    }
+  }
+
+  // Get all genres after potentially creating new ones
+  const allGenres = await prisma.genre.findMany();
+
+  console.log("Creating 200 artists...");
+  const artistsToCreate = artistNames.slice(0, 200).map((name, index) => ({
+    name,
+    jambaseId: `artist-${name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[&.]/g, "")}-${index}`,
+  }));
+
+  await prisma.artist.createMany({
+    data: artistsToCreate,
+    skipDuplicates: true,
+  });
+
+  // Connect artists with genres
+  const createdArtists = await prisma.artist.findMany();
+
+  console.log(
+    `Created ${createdArtists.length} artists. Assigning genres to artists...`
+  );
+
+  // Add genres to artists
+  for (const artist of createdArtists) {
+    const artistGenres = getRandomSubset(allGenres, 1, 3);
+    for (const genre of artistGenres) {
+      try {
+        await prisma.artistGenre.create({
+          data: {
+            artistId: artist.id,
+            genreId: genre.id,
+          },
+        });
+      } catch (error) {
+        // Skip if relationship already exists
+        console.log(`Skipping duplicate genre for ${artist.name}`);
+      }
+    }
+  }
+
+  // Step 2: Create 60 venues
+  console.log("Creating 60 venues...");
+  const venueNames = [];
+  for (const city of cities) {
+    for (const type of venueTypes) {
+      venueNames.push({
+        name: `${city.city} ${type}`,
+        city: city.city,
+        state: city.state,
+        country: city.country,
+      });
+    }
+  }
+
+  // Add some special venues with unique names
+  const specialVenues = [
+    {
+      name: "Madison Square Garden",
+      city: "New York",
+      state: "NY",
+      country: "US",
+    },
+    { name: "Hollywood Bowl", city: "Los Angeles", state: "CA", country: "US" },
+    { name: "Ryman Auditorium", city: "Nashville", state: "TN", country: "US" },
+    {
+      name: "Red Rocks Amphitheatre",
+      city: "Morrison",
+      state: "CO",
+      country: "US",
+    },
+    {
+      name: "The Gorge Amphitheatre",
+      city: "George",
+      state: "WA",
+      country: "US",
+    },
+    { name: "The Fillmore", city: "San Francisco", state: "CA", country: "US" },
+    { name: "9:30 Club", city: "Washington", state: "DC", country: "US" },
+    { name: "House of Blues", city: "Chicago", state: "IL", country: "US" },
+    { name: "Beacon Theatre", city: "New York", state: "NY", country: "US" },
+    { name: "The Forum", city: "Inglewood", state: "CA", country: "US" },
+    { name: "Cain's Ballroom", city: "Tulsa", state: "OK", country: "US" },
+    { name: "First Avenue", city: "Minneapolis", state: "MN", country: "US" },
+  ];
+
+  venueNames.push(...specialVenues);
+
+  const venuesToCreate = venueNames.slice(0, 60).map((venue, index) => ({
+    name: venue.name,
+    city: venue.city,
+    state: venue.state,
+    country: venue.country,
+    jambaseId: `venue-${venue.name
+      .toLowerCase()
+      .replace(/\s+/g, "-")}-${index}`,
+  }));
+
+  await prisma.venue.createMany({
+    data: venuesToCreate,
+    skipDuplicates: true,
+  });
+
+  const createdVenues = await prisma.venue.findMany();
+  console.log(`Created ${createdVenues.length} venues`);
+
+  // Step 3: Create 500 events
+  console.log("Creating 500 events...");
+  const startDate = new Date(2023, 0, 1); // Jan 1, 2023
+  const endDate = new Date(2025, 11, 31); // Dec 31, 2025
+
+  const events = [];
+  for (let i = 0; i < 500; i++) {
+    const eventDate = generateRandomDate(startDate, endDate);
+    const venue = pickRandom(createdVenues);
+    const headliner = pickRandom(createdArtists);
+
+    events.push({
+      name: `${headliner.name} at ${venue.name}`,
+      date: eventDate,
+      venueId: venue.id,
+      jambaseId: `event-${i + 1000}`,
+    });
+  }
+
+  // Create events in chunks to avoid timeout
+  const chunkSize = 50;
+  for (let i = 0; i < events.length; i += chunkSize) {
+    const chunk = events.slice(i, i + chunkSize);
+    console.log(`Creating events ${i + 1} to ${i + chunk.length}...`);
+
+    // Create each event and its artist relationships
+    for (const eventData of chunk) {
+      const newEvent = await prisma.event.create({
+        data: eventData,
+      });
+
+      // Add 1-3 artists to each event
+      const eventArtists = getRandomSubset(createdArtists, 1, 3);
+
+      for (const artist of eventArtists) {
+        await prisma.eventArtist.create({
+          data: {
+            eventId: newEvent.id,
+            artistId: artist.id,
+          },
+        });
+      }
+    }
+  }
+
+  console.log(`Created 500 events with artists`);
+  console.log("✅ Bulk data seeding completed!");
+}
+
 async function resetDatabase() {
   try {
     // Disable foreign key checks
@@ -380,6 +829,9 @@ async function main() {
   console.log(
     "✅ Fully seeded including admin, verifier, users, posters, and full flow."
   );
+
+  // Seed bulk data
+  await seedBulkData();
 }
 
 main()
