@@ -16,6 +16,7 @@ import {
   FormGroup,
   FormArray,
   Validators,
+  FormControl,
 } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import {
@@ -25,15 +26,6 @@ import {
   TrpcService,
 } from '../../services/trpc.service';
 import Stepper from 'bs-stepper';
-import {
-  Subject,
-  debounceTime,
-  distinctUntilChanged,
-  switchMap,
-  catchError,
-  from,
-} from 'rxjs';
-import { of } from 'rxjs';
 
 // Component imports
 import { BasicInfoFormComponent } from './basic-info-form/basic-info-form.component';
@@ -41,6 +33,21 @@ import { ArtistSelectorComponent } from './artist-selector/artist-selector.compo
 import { EventSelectorComponent } from './event-selector/event-selector.component';
 import { ImageUploaderComponent } from './image-uploader/image-uploader.component';
 import { ListingDetailsFormComponent } from './listing-details-form/listing-details-form.component';
+
+// Add these interfaces at the top of your file or in a separate models file
+interface PosterForm {
+  title: FormControl<string | null>;
+  description: FormControl<string | null>;
+  condition: FormControl<string | null>;
+  dimensions: FormControl<string | null>;
+  artistIds: FormArray<FormControl<string | null>>;
+  eventIds: FormArray<FormControl<string | null>>;
+  images: FormArray<FormControl<string | null>>;
+  listingType: FormControl<'buyNow' | 'auction' | null>;
+  buyNowPrice: FormControl<number | null>;
+  auctionMinPrice: FormControl<number | null>;
+  auctionEndDate: FormControl<string | null>;
+}
 
 @Component({
   selector: 'app-create-poster',
@@ -65,7 +72,7 @@ export class CreatePosterComponent
   @ViewChild('desktopStepper') stepperElement!: ElementRef;
 
   // ============= FORM PROPERTIES =============
-  posterForm!: FormGroup;
+  posterForm!: FormGroup<PosterForm>;
   formInitialized = false;
   isSubmitting = false;
   errorMessage = '';
@@ -73,16 +80,11 @@ export class CreatePosterComponent
 
   // ============= DATA COLLECTIONS =============
   // Artists and events
-  artists: Artist[] = [];
   events: ConcertEvent[] = [];
-  filteredArtists: Artist[] = [];
   filteredEvents: ConcertEvent[] = [];
 
   // Search fields
-  artistSearch = '';
   eventSearch = '';
-  private artistSearchSubject = new Subject<string>();
-  isSearchingArtists = false;
 
   // ============= IMAGE PROPERTIES =============
   uploadedImages: string[] = [];
@@ -107,38 +109,7 @@ export class CreatePosterComponent
   ngOnInit(): void {
     this.initForm();
     this.formInitialized = true;
-    this.loadArtists(); // Initial load for popular/featured artists
     this.loadEvents();
-
-    // Setup the search observable with debounce
-    this.artistSearchSubject
-      .pipe(
-        debounceTime(300), // Wait for 300ms pause in events
-        distinctUntilChanged(), // Only emit if value changed
-        switchMap(term => {
-          if (!term || term.length < 2) {
-            // Don't search for very short terms, show initial artists instead
-            return of({ items: this.artists });
-          }
-
-          this.isSearchingArtists = true;
-          return from(
-            this.trpcService.getAllArtists({
-              search: term,
-              limit: 10,
-            })
-          ).pipe(
-            catchError(error => {
-              console.error('Error searching artists:', error);
-              return of({ items: [] });
-            })
-          );
-        })
-      )
-      .subscribe(result => {
-        this.filteredArtists = result.items;
-        this.isSearchingArtists = false;
-      });
   }
 
   ngAfterViewInit(): void {
@@ -159,50 +130,70 @@ export class CreatePosterComponent
 
   // ============= FORM INITIALIZATION =============
   private initForm(): void {
-    this.posterForm = this.fb.group({
-      title: ['', [Validators.required, Validators.minLength(3)]],
-      description: ['', Validators.required],
-      condition: ['', Validators.required],
-      dimensions: ['', Validators.required],
-      artistIds: this.fb.array(
+    this.posterForm = this.fb.group<PosterForm>({
+      title: this.fb.control('', {
+        validators: [Validators.required, Validators.minLength(3)],
+        nonNullable: false,
+      }),
+      description: this.fb.control('', {
+        validators: [Validators.required],
+        nonNullable: false,
+      }),
+      condition: this.fb.control('', {
+        validators: [Validators.required],
+        nonNullable: false,
+      }),
+      dimensions: this.fb.control('', {
+        validators: [Validators.required],
+        nonNullable: false,
+      }),
+      artistIds: this.fb.array<FormControl<string | null>>(
         [],
         [Validators.required, Validators.minLength(1)]
       ),
-      eventIds: this.fb.array(
+      eventIds: this.fb.array<FormControl<string | null>>(
         [],
         [Validators.required, Validators.minLength(1)]
       ),
-      images: this.fb.array([], [Validators.required, Validators.minLength(1)]),
-      listingType: ['buyNow', Validators.required],
-      buyNowPrice: [null],
-      auctionMinPrice: [null],
-      auctionEndDate: [null],
+      images: this.fb.array<FormControl<string | null>>(
+        [],
+        [Validators.required, Validators.minLength(1)]
+      ),
+      listingType: this.fb.control('buyNow' as const, {
+        validators: [Validators.required],
+        nonNullable: false,
+      }),
+      buyNowPrice: this.fb.control<number | null>(null),
+      auctionMinPrice: this.fb.control<number | null>(null),
+      auctionEndDate: this.fb.control<string | null>(null),
     });
 
     this.setupConditionalValidation();
   }
 
   private setupConditionalValidation(): void {
-    this.posterForm.get('listingType')?.valueChanges.subscribe(value => {
+    this.posterForm.controls.listingType.valueChanges.subscribe(value => {
       if (value === 'buyNow') {
-        this.posterForm
-          .get('buyNowPrice')
-          ?.setValidators([Validators.required, Validators.min(1)]);
-        this.posterForm.get('auctionMinPrice')?.clearValidators();
-        this.posterForm.get('auctionEndDate')?.clearValidators();
+        this.posterForm.controls.buyNowPrice.setValidators([
+          Validators.required,
+          Validators.min(1),
+        ]);
+        this.posterForm.controls.auctionMinPrice.clearValidators();
+        this.posterForm.controls.auctionEndDate.clearValidators();
       } else {
-        this.posterForm.get('buyNowPrice')?.clearValidators();
-        this.posterForm
-          .get('auctionMinPrice')
-          ?.setValidators([Validators.required, Validators.min(1)]);
-        this.posterForm
-          .get('auctionEndDate')
-          ?.setValidators([Validators.required]);
+        this.posterForm.controls.buyNowPrice.clearValidators();
+        this.posterForm.controls.auctionMinPrice.setValidators([
+          Validators.required,
+          Validators.min(1),
+        ]);
+        this.posterForm.controls.auctionEndDate.setValidators([
+          Validators.required,
+        ]);
       }
 
-      this.posterForm.get('buyNowPrice')?.updateValueAndValidity();
-      this.posterForm.get('auctionMinPrice')?.updateValueAndValidity();
-      this.posterForm.get('auctionEndDate')?.updateValueAndValidity();
+      this.posterForm.controls.buyNowPrice.updateValueAndValidity();
+      this.posterForm.controls.auctionMinPrice.updateValueAndValidity();
+      this.posterForm.controls.auctionEndDate.updateValueAndValidity();
     });
   }
 
@@ -252,14 +243,6 @@ export class CreatePosterComponent
   }
 
   // ============= DATA LOADING =============
-  private async loadArtists(): Promise<void> {
-    try {
-      this.artists = (await this.trpcService.getAllArtists()).items;
-      this.filteredArtists = [...this.artists];
-    } catch (error: unknown) {
-      console.error('Error loading artists:', error);
-    }
-  }
 
   private async loadEvents(): Promise<void> {
     try {
@@ -271,19 +254,6 @@ export class CreatePosterComponent
   }
 
   // ============= FILTERING METHODS =============
-  filterArtists(searchTerm: string = this.artistSearch): void {
-    this.artistSearch = searchTerm;
-
-    if (!searchTerm || searchTerm.length < 2) {
-      // For empty or very short search, revert to initial artists
-      this.filteredArtists = [...this.artists];
-      return;
-    }
-
-    // Push the search term to the subject for debounced processing
-    this.artistSearchSubject.next(searchTerm);
-  }
-
   filterEvents(searchTerm: string = this.eventSearch): void {
     this.eventSearch = searchTerm;
     this.filteredEvents = this.events.filter(event =>
@@ -294,7 +264,7 @@ export class CreatePosterComponent
   // ============= ARTIST & EVENT MANAGEMENT =============
   addArtist(artist: Artist): void {
     const exists = this.artistIdsArray.controls.some(
-      control => control.value === artist
+      control => control.value === artist.id
     );
 
     if (!exists) {
@@ -431,24 +401,29 @@ export class CreatePosterComponent
   }
 
   private preparePosterData(): CreatePosterInput {
-    const formValue = this.posterForm.value;
+    // With typed forms, we get proper type inference here
+    const formValue = this.posterForm.getRawValue();
+
     return {
-      title: formValue.title,
-      description: formValue.description,
-      condition: formValue.condition,
-      dimensions: formValue.dimensions,
-      artistIds: formValue.artistIds || [],
-      eventIds: formValue.eventIds || [],
-      listingType: formValue.listingType,
+      title: formValue.title || '',
+      description: formValue.description || '',
+      condition: formValue.condition || '',
+      dimensions: formValue.dimensions || '',
+      artistIds:
+        (formValue.artistIds?.filter(id => id !== null) as string[]) || [],
+      eventIds:
+        (formValue.eventIds?.filter(id => id !== null) as string[]) || [],
+      listingType: formValue.listingType || 'buyNow',
       price:
         formValue.listingType === 'buyNow'
-          ? formValue.buyNowPrice
-          : formValue.auctionMinPrice,
+          ? formValue.buyNowPrice || 0
+          : formValue.auctionMinPrice || 0,
       auctionEndDate:
         formValue.listingType === 'auction' && formValue.auctionEndDate
           ? new Date(formValue.auctionEndDate)
           : null,
-      imageUrls: formValue.images || [],
+      imageUrls:
+        (formValue.images?.filter(url => url !== null) as string[]) || [],
     };
   }
 
@@ -461,26 +436,20 @@ export class CreatePosterComponent
   }
 
   // ============= FORM GETTERS & HELPERS =============
-  get artistIdsArray(): FormArray {
-    return this.posterForm.get('artistIds') as FormArray;
+  get artistIdsArray(): FormArray<FormControl<string | null>> {
+    return this.posterForm.controls.artistIds;
   }
 
-  get eventIdsArray(): FormArray {
-    return this.posterForm.get('eventIds') as FormArray;
+  get eventIdsArray(): FormArray<FormControl<string | null>> {
+    return this.posterForm.controls.eventIds;
   }
 
-  get imagesArray(): FormArray {
-    return this.posterForm.get('images') as FormArray;
+  get imagesArray(): FormArray<FormControl<string | null>> {
+    return this.posterForm.controls.images;
   }
 
   get listingType(): 'buyNow' | 'auction' {
-    return this.posterForm.get('listingType')?.value;
-  }
-
-  getArtistName(id: string): string {
-    return (
-      this.artists.find(artist => artist.id === id)?.name || 'Unknown artist'
-    );
+    return this.posterForm.controls.listingType.value as 'buyNow' | 'auction';
   }
 
   getEvent(id: string): ConcertEvent | undefined {
@@ -502,23 +471,26 @@ export class CreatePosterComponent
     switch (stepIndex) {
       case 0: // Basic info
         return (
-          (this.posterForm.get('title')?.valid ?? false) &&
-          (this.posterForm.get('description')?.valid ?? false) &&
-          (this.posterForm.get('condition')?.valid ?? false) &&
-          (this.posterForm.get('dimensions')?.valid ?? false)
+          this.posterForm.controls.title.valid &&
+          this.posterForm.controls.description.valid &&
+          this.posterForm.controls.condition.valid &&
+          this.posterForm.controls.dimensions.valid
         );
       case 1: // Artists
-        return (this.posterForm.get('artistIds') as FormArray).length > 0;
+        return this.posterForm.controls.artistIds.controls.length > 0;
       case 2: // Events
-        return (this.posterForm.get('eventIds') as FormArray).length > 0;
+        return this.posterForm.controls.eventIds.controls.length > 0;
       case 3: // Images
-        return (this.posterForm.get('images') as FormArray).length > 0;
+        return this.posterForm.controls.images.controls.length > 0;
       case 4: // Listing details
-        return (
-          (this.posterForm.get('price')?.valid ?? false) ||
-          ((this.posterForm.get('startingBid')?.valid ?? false) &&
-            (this.posterForm.get('endDate')?.valid ?? false))
-        );
+        if (this.posterForm.controls.listingType.value === 'buyNow') {
+          return this.posterForm.controls.buyNowPrice.valid;
+        } else {
+          return (
+            this.posterForm.controls.auctionMinPrice.valid &&
+            this.posterForm.controls.auctionEndDate.valid
+          );
+        }
       default:
         return true;
     }

@@ -1,4 +1,4 @@
-import { Component, Inject, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -55,7 +55,11 @@ export class RegisterComponent implements OnInit {
 
   onSubmit(): void {
     if (this.registerForm.valid && this.acceptTerms) {
-      this.trpc.register(this.registerForm.value);
+      this.trpc.register({
+        email: this.registerForm.value.email,
+        name: this.registerForm.value.name,
+        passwordHash: this.registerForm.value.password,
+      });
 
       this.router.navigate(['/']);
     } else {

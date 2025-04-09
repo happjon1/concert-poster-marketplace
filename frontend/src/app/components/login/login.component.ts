@@ -46,7 +46,10 @@ export class LoginComponent {
 
     try {
       // Using the updated login method that now returns an Observable
-      await this.authService.login(this.loginForm.value);
+      await this.authService.login({
+        email: this.loginForm.value.email,
+        passwordHash: this.loginForm.value.password,
+      });
 
       this.submitting = false;
       // Navigate to home or dashboard after successful login
