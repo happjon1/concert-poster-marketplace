@@ -4,6 +4,7 @@ import { httpBatchLink } from '@trpc/client/links/httpBatchLink';
 import superjson from 'superjson';
 import type { AppRouter } from '../../../../../concert-poster-marketplace/backend/src/trpc/routers/_app';
 import { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
+import { environment } from '../../environments/environment';
 
 // @ts-expect-error AppRouter types are imported from the backend and may not be fully resolved in the frontend
 export type RouterInput = inferRouterInputs<AppRouter>;
@@ -59,7 +60,7 @@ export class TrpcService {
   private client = createTRPCClient<AppRouter>({
     links: [
       httpBatchLink({
-        url: 'http://localhost:3000/trpc',
+        url: `${environment.apiUrl}/trpc`,
         headers: () => {
           const token = localStorage.getItem('token');
           return token ? { Authorization: `Bearer ${token}` } : {};
