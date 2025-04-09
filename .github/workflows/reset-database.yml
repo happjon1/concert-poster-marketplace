@@ -22,16 +22,56 @@ jobs:
           cd backend
           npm ci
 
-      - name: Reset database
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Setup SSH tunnel to database
+        run: |
+          # Add server to known hosts to avoid prompts
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+          # Start SSH tunnel in the background
+          # This maps the remote db port 25060 to local port 5432
+          ssh -N -L 5432:db-postgresql-nyc3-29963-do-user-20539433-0.l.db.ondigitalocean.com:25060 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} &
+
+          # Save the process ID so we can kill it later
+          echo "SSH_TUNNEL_PID=$!" >> $GITHUB_ENV
+
+          # Wait for tunnel to establish
+          sleep 5
+
+      - name: Reset database via SSH tunnel
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Use the local tunnel for database connection
+          DATABASE_URL: ${{ secrets.LOCAL_DATABASE_URL }}
         run: |
           cd backend
+
+          # Test the connection
+          echo "Testing database connection..."
+          npx prisma db pull
 
           # Run database reset script
           echo "Resetting database..."
           npx prisma migrate reset --force
 
-      - name: Notify on completion
+      - name: Close SSH tunnel
+        if: always() # Ensure this runs even if previous steps fail
         run: |
-          echo "✅ Database has been reset and seeded successfully"
+          if [ ! -z "${{ env.SSH_TUNNEL_PID }}" ]; then
+            echo "Closing SSH tunnel (PID: ${{ env.SSH_TUNNEL_PID }})..."
+            kill ${{ env.SSH_TUNNEL_PID }} || true
+          fi
+
+      - name: Notify on completion
+        if: success()
+        run: |
+          echo "✅ Database has been reset successfully"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Database reset failed"
