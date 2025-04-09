@@ -1,0 +1,37 @@
+name: Reset Database
+
+on:
+  workflow_dispatch: # Simple manual trigger without inputs
+
+jobs:
+  reset-database:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Reset database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          cd backend
+
+          # Run database reset script
+          echo "Resetting database..."
+          npx prisma migrate reset --force
+
+      - name: Notify on completion
+        run: |
+          echo "✅ Database has been reset and seeded successfully"
