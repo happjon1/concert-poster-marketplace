@@ -25,7 +25,7 @@
   },
   "scripts": {
     "start": "node dist/server.js",
-    "dev": "nodemon --watch src --ext ts --exec \"node --import ./custom-loader.mjs src/server.ts\"",
+    "dev": "nodemon --watch src --ext ts --exec \"node --inspect --import ./custom-loader.mjs src/server.ts\"",
     "build": "tsc",
     "test": "jest",
     "lint": "eslint --ext .ts src/",
