@@ -1,9 +1,11 @@
 <nav
-  class="navbar navbar-expand-lg navbar-dark navbar-gradient py-0 navbar-edge-logo">
+  class="navbar navbar-expand-lg navbar-dark navbar-gradient py-2 navbar-edge-logo">
   <div class="container-fluid px-0">
     <!-- Logo and Brand -->
     <div class="d-flex align-items-center ms-0">
-      <a class="navbar-brand d-flex align-items-center logo-container" href="#">
+      <a
+        class="navbar-brand d-flex align-items-center logo-container"
+        routerLink="/">
         <img
           src="assets/images/logo.svg"
           alt="Tube Bazaar Logo"
@@ -12,35 +14,104 @@
       </a>
     </div>
 
-    <!-- IMPORTANT: Changed this button to toggle the sidebar instead of collapsed content -->
-    <button
-      class="navbar-toggler"
-      type="button"
-      data-bs-toggle="offcanvas"
-      data-bs-target="#sidebarMenu"
-      aria-controls="sidebarMenu"
-      aria-expanded="false"
-      aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+    <!-- Spacer to push buttons to the right -->
+    <div class="flex-grow-1"></div>
 
-    <!-- Show this only on desktop -->
-    <div class="collapse navbar-collapse d-none d-lg-block" id="navbarContent">
-      <!-- Changed from me-auto to ms-auto to right-align -->
-      <ul class="navbar-nav ms-auto mb-0">
-        <li class="nav-item">
-          <a class="nav-link active" href="#">Home</a>
+    <!-- Filter button - visible only on home page, icon only -->
+    @if (isHomePage()) {
+      <button
+        class="btn btn-outline-light me-2"
+        type="button"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#filterSidebar"
+        aria-controls="filterSidebar">
+        <i class="bi bi-funnel"></i>
+      </button>
+    }
+
+    <!-- User Menu Dropdown - icon only -->
+    <div class="dropdown">
+      <button
+        class="btn btn-outline-light"
+        type="button"
+        id="userMenuDropdown"
+        data-bs-toggle="dropdown"
+        aria-expanded="false">
+        <i class="bi bi-person-circle"></i>
+      </button>
+      <ul
+        class="dropdown-menu dropdown-menu-end"
+        aria-labelledby="userMenuDropdown">
+        <li>
+          <a class="dropdown-item" routerLink="/profile">
+            <i class="bi bi-person me-2"></i> Profile
+          </a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#">Posters</a>
+        <li>
+          <a class="dropdown-item" routerLink="/my-posters">
+            <i class="bi bi-collection me-2"></i> Listings
+          </a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#">Artists</a>
+        <li><hr class="dropdown-divider" /></li>
+        <li>
+          @if (isLoggedIn()) {
+            <button
+              class="dropdown-item"
+              (click)="logout()"
+              (keydown.enter)="logout()"
+              (keydown.space)="logout()">
+              <i class="bi bi-box-arrow-right me-2"></i> Logout
+            </button>
+          } @else {
+            <button
+              class="dropdown-item"
+              (click)="login()"
+              (keydown.enter)="login()"
+              (keydown.space)="login()">
+              <i class="bi bi-box-arrow-in-right me-2"></i> Login
+            </button>
+          }
         </li>
       </ul>
     </div>
   </div>
 </nav>
+
+<!-- Filter Sidebar -->
+<div
+  class="offcanvas offcanvas-start"
+  tabindex="-1"
+  id="filterSidebar"
+  aria-labelledby="filterSidebarLabel">
+  <div class="offcanvas-header offcanvas-header-gradient">
+    <h5 class="offcanvas-title" id="filterSidebarLabel">Filter Options</h5>
+    <button
+      type="button"
+      class="btn-close text-reset"
+      data-bs-dismiss="offcanvas"
+      aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <!-- Add your filter controls here -->
+    <div class="mb-3">
+      <label for="priceRange" class="form-label">Price Range</label>
+      <input type="range" class="form-range" id="priceRange" />
+    </div>
+    <div class="mb-3">
+      <label for="conditionNew" class="form-label">Condition</label>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="conditionNew" />
+        <label class="form-check-label" for="conditionNew">New</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="conditionUsed" />
+        <label class="form-check-label" for="conditionUsed">Used</label>
+      </div>
+    </div>
+    <!-- Add more filter options as needed -->
+    <button class="btn btn-primary w-100 mt-3">Apply Filters</button>
+  </div>
+</div>
 
 <!-- Improve the sidebar for mobile nav -->
 <div

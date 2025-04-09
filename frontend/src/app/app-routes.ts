@@ -19,6 +19,9 @@ export const routes: Routes = [
         path: 'create',
         component: CreatePosterComponent,
         canActivate: [authGuard],
+        data: {
+          fullscreen: true,
+        },
       },
     ],
   },
