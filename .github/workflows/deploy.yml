@@ -98,47 +98,5 @@ jobs:
           # Transfer frontend files
           rsync -avz --delete frontend-build/ $SSH_USER@$SSH_HOST:/var/www/concert-poster-marketplace/frontend/dist/
 
-          # Create ecosystem.config.cjs and start PM2
-          ssh $SSH_USER@$SSH_HOST '
-            mkdir -p /var/www/concert-poster-marketplace/backend/logs
-            cd /var/www/concert-poster-marketplace/backend
-            
-            # Create ecosystem.config.cjs directly on the server
-            cat > ecosystem.config.cjs << EOF
-module.exports = {
-  apps: [{
-    name: "poster-m",
-    script: "./dist/server.js",
-    instances: 1,
-    exec_mode: "fork",
-    env: {
-      NODE_ENV: "production",
-      PORT: 4000
-    },
-    error_file: "./logs/pm2-error.log",
-    out_file: "./logs/pm2-out.log",
-    merge_logs: true,
-    log_date_format: "YYYY-MM-DD HH:mm:ss Z"
-  }]
-};
-EOF
-            
-            # Start the application with PM2
-            pm2 delete poster-m || true
-            pm2 start ecosystem.config.cjs
-            pm2 save
-            
-            # Verify the application is running
-            echo "=== PM2 Status ==="
-            pm2 list
-            
-            # Check if the server is listening on port 4000
-            echo "=== Checking Port 4000 ==="
-            if command -v ss &> /dev/null; then
-              ss -tlnp | grep 4000 || echo "No process found on port 4000"
-            elif command -v netstat &> /dev/null; then
-              netstat -tlnp | grep 4000 || echo "No process found on port 4000"
-            else
-              echo "No port checking tools available"
-            fi
-          '
+          # Run deployment script
+          ssh $SSH_USER@$SSH_HOST 'cd /var/www/concert-poster-marketplace && ./deploy.sh'
