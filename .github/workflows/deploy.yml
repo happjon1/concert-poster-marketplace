@@ -95,8 +95,17 @@ jobs:
           # Transfer backend files
           rsync -avz --delete backend-build/ $SSH_USER@$SSH_HOST:/var/www/concert-poster-marketplace/backend/dist/
 
+          # Transfer ecosystem config
+          rsync -avz backend/ecosystem.config.cjs $SSH_USER@$SSH_HOST:/var/www/concert-poster-marketplace/backend/
+
           # Transfer frontend files
           rsync -avz --delete frontend-build/ $SSH_USER@$SSH_HOST:/var/www/concert-poster-marketplace/frontend/dist/
 
-          # Run deployment script
-          ssh $SSH_USER@$SSH_HOST 'cd /var/www/concert-poster-marketplace && ./deploy.sh'
+          # Create logs directory and start PM2
+          ssh $SSH_USER@$SSH_HOST '
+            mkdir -p /var/www/concert-poster-marketplace/backend/logs
+            cd /var/www/concert-poster-marketplace/backend
+            pm2 delete poster-m || true
+            pm2 start ecosystem.config.cjs
+            pm2 save
+          '
