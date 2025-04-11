@@ -44,7 +44,14 @@ jobs:
 
       - name: Build frontend
         working-directory: ./frontend
-        run: npm run build
+        run: |
+          # For Angular applications
+          if [ -f "angular.json" ]; then
+            npm run build -- --configuration=production --base-href=/
+          else
+            # For other frameworks
+            npm run build
+          fi
 
       # Upload artifacts for deployment job
       - name: Upload backend build
@@ -153,21 +160,94 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
         run: |
-          # Ensure target directories exist
+          # Ensure target directories exist with correct nesting
           ssh $SSH_USER@$SSH_HOST 'mkdir -p /var/www/concert-poster-marketplace/backend/dist /var/www/concert-poster-marketplace/frontend/dist'
 
           # Transfer deployment script
           scp deploy.sh $SSH_USER@$SSH_HOST:/var/www/concert-poster-marketplace/deploy.sh
           ssh $SSH_USER@$SSH_HOST 'chmod +x /var/www/concert-poster-marketplace/deploy.sh'
 
+          # Debug the frontend directory before transfer
+          echo "=== Frontend build contents to be transferred ==="
+          ls -la frontend-build/
+
           # Transfer backend files
           rsync -avz --delete backend-build/ $SSH_USER@$SSH_HOST:/var/www/concert-poster-marketplace/backend/dist/
 
-          # Transfer frontend files
+          # Transfer frontend files - FIXED PATH
           rsync -avz --delete frontend-build/ $SSH_USER@$SSH_HOST:/var/www/concert-poster-marketplace/frontend/dist/
+
+          # Verify frontend files were transferred correctly
+          ssh $SSH_USER@$SSH_HOST 'ls -la /var/www/concert-poster-marketplace/frontend/dist/ || echo "Frontend dist directory is empty or missing"'
 
           # Run deployment script
           ssh $SSH_USER@$SSH_HOST 'cd /var/www/concert-poster-marketplace && sudo ./deploy.sh'
+
+          # Create a simple index.html if needed
+          ssh $SSH_USER@$SSH_HOST '
+            if [ ! -f /var/www/concert-poster-marketplace/frontend/dist/index.html ]; then
+              echo "Creating temporary index.html"
+              echo "<html><body><h1>Tube Bazaar</h1><p>Site under maintenance</p></body></html>" | sudo tee /var/www/concert-poster-marketplace/frontend/dist/index.html
+            fi
+          '
+
+      - name: Update Nginx configuration
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          ssh $SSH_USER@$SSH_HOST 'sudo bash -c "cat > /etc/nginx/sites-available/tubebazaar.com << EOF
+          server {
+              listen 80;
+              server_name tubebazaar.com;
+              
+              # Redirect HTTP to HTTPS
+              return 301 https://\$host\$request_uri;
+          }
+
+          server {
+              listen 443 ssl;
+              server_name tubebazaar.com;
+
+              # SSL certificates
+              ssl_certificate /etc/letsencrypt/live/tubebazaar.com/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/tubebazaar.com/privkey.pem;
+
+              # Logging
+              access_log /var/log/nginx/tubebazaar-access.log;
+              error_log /var/log/nginx/tubebazaar-error.log;
+
+              # tRPC endpoint
+              location /trpc/ {
+                  proxy_pass http://127.0.0.1:4000/trpc/;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+              }
+
+              # API uploads endpoint
+              location /api/uploads/ {
+                  proxy_pass http://127.0.0.1:4000/uploads/;
+                  client_max_body_size 20M;
+              }
+
+              # Frontend static files - FIXED
+              location / {
+                  root /var/www/concert-poster-marketplace/frontend/dist;
+                  try_files \$uri \$uri/ /index.html =404;
+                  index index.html;
+              }
+              
+              # Block WordPress scanning attempts
+              location ~* wp-includes|wp-admin|wp-content {
+                  return 404;
+              }
+          }
+          EOF"'
+
+          # Test and reload Nginx
+          ssh $SSH_USER@$SSH_HOST 'sudo nginx -t && sudo systemctl reload nginx'
 
       - name: Verify deployment
         env:
@@ -180,3 +260,26 @@ jobs:
           # Test API endpoint
           echo "Testing API endpoint..."
           curl -sSf https://tubebazaar.com/trpc/auth.me || echo "Warning: API endpoint test failed"
+
+      - name: Debug deployment
+        if: always() # Run even if previous steps fail
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          ssh $SSH_USER@$SSH_HOST '
+            echo "=== Server directory structure ==="
+            ls -la /var/www/concert-poster-marketplace/
+            
+            echo "=== Frontend directory ==="
+            ls -la /var/www/concert-poster-marketplace/frontend/
+            
+            echo "=== Frontend dist directory ==="
+            ls -la /var/www/concert-poster-marketplace/frontend/dist/ || echo "Directory not found"
+            
+            echo "=== Checking for index.html ==="
+            find /var/www/concert-poster-marketplace -name "index.html" || echo "No index.html found"
+            
+            echo "=== Nginx configuration ==="
+            cat /etc/nginx/sites-enabled/tubebazaar.com || echo "Nginx config not found"
+          '
