@@ -241,10 +241,10 @@ jobs:
                   client_max_body_size 20M;
               }
 
-              # Frontend static files - FIXED
+              # Frontend static files - FIXED PATH for Angular 17+
               location / {
-                  root /var/www/concert-poster-marketplace/frontend/dist;
-                  try_files $uri $uri/ /index.html =404;
+                  root /var/www/concert-poster-marketplace/frontend/dist/frontend/browser;
+                  try_files $uri $uri/ /index.html;
                   index index.html;
               }
               
