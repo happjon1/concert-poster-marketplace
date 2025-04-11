@@ -53,6 +53,14 @@ jobs:
             npm run build
           fi
 
+      - name: Debug frontend build
+        working-directory: ./frontend
+        run: |
+          echo "=== Frontend build output files ==="
+          ls -la dist/
+          echo "=== Contents of index.html ==="
+          cat dist/index.html | head -20
+
       # Upload artifacts for deployment job
       - name: Upload backend build
         uses: actions/upload-artifact@v4
