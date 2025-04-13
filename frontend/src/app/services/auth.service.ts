@@ -121,6 +121,37 @@ export class AuthService {
   }
 
   /**
+   * Verify token validity with the server
+   * @returns Promise<boolean> indicating if token is valid according to the server
+   */
+  async verifyToken(): Promise<boolean> {
+    const token = localStorage.getItem(this.tokenKey);
+
+    if (!token) {
+      this.debug('No token to verify');
+      return false;
+    }
+
+    try {
+      // First do a local check for obvious expiry
+      if (!this.isLoggedIn()) {
+        return false;
+      }
+
+      // Then verify with the server by getting current user
+      const user = await this.trpcService.getCurrentUser();
+      this.currentUserSignal.set(user);
+      this.debug('Token verified with server', user);
+      return true;
+    } catch (error) {
+      this.debug('Token verification failed', error);
+      localStorage.removeItem(this.tokenKey);
+      this.currentUserSignal.set(null);
+      return false;
+    }
+  }
+
+  /**
    * Set session data after login
    */
   private setSession(authResult: LoginOutput): void {
@@ -205,12 +236,44 @@ export class AuthService {
   }
 
   /**
-   * Check if the auth token exists
+   * Check if the user is logged in with a valid token
+   * @returns boolean indicating if the user has a valid token
    */
   isLoggedIn(): boolean {
-    const loggedIn = !!localStorage.getItem(this.tokenKey);
-    this.debug(`isLoggedIn called, result: ${loggedIn}`);
-    return loggedIn;
+    const token = localStorage.getItem(this.tokenKey);
+
+    // First check if token exists
+    if (!token) {
+      this.debug(`isLoggedIn called, no token found`);
+      return false;
+    }
+
+    try {
+      // Check if token is expired by examining JWT payload
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expiry = payload.exp * 1000; // Convert to milliseconds
+      const now = Date.now();
+
+      const isValid = now < expiry;
+      this.debug(
+        `isLoggedIn called, token valid: ${isValid}, expires in: ${Math.floor((expiry - now) / 1000)}s`
+      );
+
+      // If token is expired, clean up
+      if (!isValid) {
+        this.debug('Token expired, cleaning up');
+        localStorage.removeItem(this.tokenKey);
+        this.currentUserSignal.set(null);
+      }
+
+      return isValid;
+    } catch (error) {
+      // If we can't parse the token, it's invalid
+      this.debug('Error validating token, considering as invalid', error);
+      localStorage.removeItem(this.tokenKey);
+      this.currentUserSignal.set(null);
+      return false;
+    }
   }
 
   /**

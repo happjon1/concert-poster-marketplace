@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -6,7 +6,7 @@ import {
   ReactiveFormsModule,
   FormsModule,
 } from '@angular/forms';
-import { RouterLink, Router } from '@angular/router';
+import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 
@@ -17,21 +17,33 @@ import { CommonModule } from '@angular/common';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   loginForm: FormGroup;
   hidePassword = true;
   rememberMe = false;
   errorMessage = '';
   submitting = false;
+  returnUrl = '/'; // Default redirect URL
 
   constructor(
     private fb: FormBuilder,
     public authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
+    });
+  }
+
+  ngOnInit(): void {
+    // Get return URL from route parameters or default to '/'
+    this.route.queryParams.subscribe(params => {
+      this.returnUrl = params['returnUrl'] || '/';
+      console.log(
+        `Login component initialized with returnUrl: ${this.returnUrl}`
+      );
     });
   }
 
@@ -52,8 +64,10 @@ export class LoginComponent {
       });
 
       this.submitting = false;
-      // Navigate to home or dashboard after successful login
-      this.router.navigate(['/']);
+
+      // Navigate to the return URL after successful login
+      console.log(`Login successful, redirecting to: ${this.returnUrl}`);
+      this.router.navigateByUrl(this.returnUrl);
     } catch (error: unknown) {
       this.submitting = false;
 
