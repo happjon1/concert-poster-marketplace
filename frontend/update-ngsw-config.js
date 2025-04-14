@@ -2,7 +2,13 @@ const fs = require('fs');
 const path = require('path');
 
 // Path to the generated ngsw.json file
-const ngswPath = path.join(__dirname, 'dist', 'frontend', 'ngsw.json');
+const ngswPath = path.join(
+  __dirname,
+  'dist',
+  'frontend',
+  'browser',
+  'ngsw.json'
+);
 
 // Check if the file exists
 if (!fs.existsSync(ngswPath)) {
