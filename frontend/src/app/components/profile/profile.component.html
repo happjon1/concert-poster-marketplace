@@ -27,7 +27,8 @@
               [user]="user"
               [saving]="saving"
               (saveProfile)="saveProfile($event)"
-              (cancelEdit)="cancelEdit()">
+              (cancelEdit)="cancelEdit()"
+              (deleteAddress)="deleteAddress($event)">
             </app-profile-edit-form>
           }
         </div>

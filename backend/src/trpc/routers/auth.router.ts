@@ -32,6 +32,8 @@ async function findUserById(id: string) {
       lastLogin: true,
       createdAt: true,
       updatedAt: true,
+      addresses: true, // Include user addresses
+      defaultAddress: true, // Include default address relationship
     },
   });
 }

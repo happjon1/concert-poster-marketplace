@@ -54,6 +54,35 @@ export type Venue = ConcertEvent['venue'];
 export type UpdateUserInput = RouterInput['users']['update'];
 export type UpdateUserOutput = RouterOutput['users']['update'];
 
+// New address-related types
+export type GetAddressesInput = RouterInput['users']['getAddresses'];
+export type GetAddressesOutput = RouterOutput['users']['getAddresses'];
+export type CreateAddressInput = RouterInput['users']['createAddress'];
+export type CreateAddressOutput = RouterOutput['users']['createAddress'];
+export type UpdateAddressInput = RouterInput['users']['updateAddress'];
+export type UpdateAddressOutput = RouterOutput['users']['updateAddress'];
+export type DeleteAddressInput = RouterInput['users']['deleteAddress'];
+export type DeleteAddressOutput = RouterOutput['users']['deleteAddress'];
+export type SetDefaultAddressInput = RouterInput['users']['setDefaultAddress'];
+export type SetDefaultAddressOutput =
+  RouterOutput['users']['setDefaultAddress'];
+
+// Define an Address type for use in the application
+export interface Address {
+  id: string;
+  userId: string;
+  label?: string | null;
+  address1: string;
+  address2?: string | null;
+  city: string;
+  state?: string | null;
+  province?: string | null;
+  zip?: string | null;
+  country: string;
+  isValidated: boolean;
+  createdAt: Date;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -137,5 +166,26 @@ export class TrpcService {
   // User methods
   updateUser(params: UpdateUserInput): Promise<UpdateUserOutput> {
     return this.client.users.update.mutate(params);
+  }
+
+  // New address methods
+  getUserAddresses(userId: string): Promise<Address[]> {
+    return this.client.users.getAddresses.query({ userId });
+  }
+
+  createAddress(addressData: CreateAddressInput): Promise<Address> {
+    return this.client.users.createAddress.mutate(addressData);
+  }
+
+  updateAddress(addressData: UpdateAddressInput): Promise<Address> {
+    return this.client.users.updateAddress.mutate(addressData);
+  }
+
+  deleteAddress(addressId: string): Promise<Address> {
+    return this.client.users.deleteAddress.mutate({ id: addressId });
+  }
+
+  setDefaultAddress(addressId: string): Promise<UpdateUserOutput> {
+    return this.client.users.setDefaultAddress.mutate({ addressId });
   }
 }
