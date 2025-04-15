@@ -51,6 +51,9 @@ export type ConcertEvent = RouterOutput['events']['getById'];
 
 export type Venue = ConcertEvent['venue'];
 
+export type UpdateUserInput = RouterInput['users']['update'];
+export type UpdateUserOutput = RouterOutput['users']['update'];
+
 @Injectable({
   providedIn: 'root',
 })
@@ -129,5 +132,10 @@ export class TrpcService {
 
   getEventById(params: GetEventByIdInput): Promise<ConcertEvent> {
     return this.client.events.getById.query(params);
+  }
+
+  // User methods
+  updateUser(params: UpdateUserInput): Promise<UpdateUserOutput> {
+    return this.client.users.update.mutate(params);
   }
 }

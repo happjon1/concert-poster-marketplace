@@ -1,45 +1,42 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  ReactiveFormsModule,
-  FormBuilder,
-  FormGroup,
-  Validators,
-} from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
-import { NgbToastModule } from '@ng-bootstrap/ng-bootstrap';
+import { TrpcService } from '../../services/trpc.service';
+
+// Import our subcomponents
+import { ProfileHeaderComponent } from './profile-header/profile-header.component';
+import { ProfileDetailsComponent } from './profile-details/profile-details.component';
+import { ProfileEditFormComponent } from './profile-edit-form/profile-edit-form.component';
+import { ToastNotificationComponent } from './toast-notification/toast-notification.component';
+
+// Import the profile form data interface
+interface ProfileFormData {
+  name: string;
+  email: string;
+  bio?: string;
+}
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, NgbToastModule],
+  imports: [
+    CommonModule,
+    ProfileHeaderComponent,
+    ProfileDetailsComponent,
+    ProfileEditFormComponent,
+    ToastNotificationComponent,
+  ],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent {
   public authService = inject(AuthService);
-  private fb = inject(FormBuilder);
+  private trpcService = inject(TrpcService);
 
   editMode = false;
   saving = false;
   showToast = false;
   toastMessage = '';
-
-  profileForm: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(2)]],
-    email: ['', [Validators.required, Validators.email]],
-    bio: ['', [Validators.maxLength(300)]],
-  });
-
-  ngOnInit() {
-    const user = this.authService.currentUser();
-    if (user) {
-      this.profileForm.patchValue({
-        name: user.name || '',
-        email: user.email,
-      });
-    }
-  }
 
   enableEditMode() {
     this.editMode = true;
@@ -47,59 +44,46 @@ export class ProfileComponent implements OnInit {
 
   cancelEdit() {
     this.editMode = false;
-    // Reset form to original values
-    const user = this.authService.currentUser();
-    if (user) {
-      this.profileForm.patchValue({
-        name: user.name || '',
-        email: user.email,
-      });
-    }
   }
 
-  saveProfile() {
-    if (this.profileForm.invalid) {
+  async saveProfile(formData: ProfileFormData) {
+    this.saving = true;
+    const currentUser = this.authService.currentUser();
+
+    if (!currentUser || !currentUser.id) {
+      this.toastMessage = 'Error: User not authenticated';
+      this.showToast = true;
+      this.saving = false;
       return;
     }
 
-    this.saving = true;
+    try {
+      // Call the tRPC service to update the user profile
+      await this.trpcService.updateUser({
+        id: currentUser.id,
+        name: formData.name,
+        email: formData.email,
+      });
 
-    // Simulate API call for updating profile
-    setTimeout(() => {
-      this.saving = false;
-      this.editMode = false;
+      // Update the authService user data by fetching the current user
+      await this.authService.fetchCurrentUser();
 
-      // Show Bootstrap toast instead of MatSnackBar
       this.toastMessage = 'Profile updated successfully';
       this.showToast = true;
-
-      // Auto-hide toast after 3 seconds
-      setTimeout(() => {
-        this.showToast = false;
-      }, 3000);
-    }, 1500);
-
-    // In a real implementation, you would:
-    // 1. Call your backend API to update the user profile
-    // 2. Update the user information in the authService
-    // 3. Handle any errors and show appropriate messages
+      this.editMode = false;
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      this.toastMessage =
+        error instanceof Error
+          ? `Error: ${error.message}`
+          : 'An unknown error occurred while updating your profile';
+      this.showToast = true;
+    } finally {
+      this.saving = false;
+    }
   }
 
-  getInitials(name: string | null): string {
-    if (!name) return '';
-
-    if (name) {
-      // Split the name and get initials from first and last parts
-      const nameParts = name.split(' ');
-      if (nameParts.length > 1) {
-        return (
-          nameParts[0][0] + nameParts[nameParts.length - 1][0]
-        ).toUpperCase();
-      } else {
-        // If only one name, just use the first letter
-        return nameParts[0][0].toUpperCase();
-      }
-    }
-    return '';
+  hideToast() {
+    this.showToast = false;
   }
 }

@@ -1,0 +1,53 @@
+<!-- Profile Header Card -->
+<div class="card position-relative overflow-hidden">
+  <!-- Banner -->
+  <div class="bg-primary position-relative" style="height: 140px"></div>
+
+  <!-- Avatar -->
+  <div class="position-relative mt-n5 mb-2 d-flex justify-content-center">
+    <div
+      class="rounded-circle border border-4 border-white shadow-sm bg-primary text-white d-flex align-items-center justify-content-center"
+      style="width: 96px; height: 96px; font-size: 2rem">
+      {{ getInitials(user.name) }}
+    </div>
+  </div>
+
+  <div class="card-body text-center">
+    <!-- Name Section -->
+    <div class="mb-4 d-flex flex-column align-items-center">
+      <h1 class="fs-4 fw-medium">
+        {{ user.name || 'Anonymous User' }}
+      </h1>
+      <p class="text-secondary">{{ user.email }}</p>
+
+      @if (user.isAdmin) {
+        <div
+          class="mt-2 px-3 py-1 badge rounded-pill text-uppercase bg-primary">
+          ADMIN
+        </div>
+      }
+    </div>
+
+    <!-- User Meta -->
+    <div class="d-flex flex-column align-items-center gap-2 mb-4">
+      <div class="d-flex align-items-center gap-2 text-secondary">
+        <i class="bi bi-envelope"></i>
+        <span>{{ user.email }}</span>
+      </div>
+      <div class="d-flex align-items-center gap-2 text-secondary">
+        <i class="bi bi-calendar"></i>
+        <span>Member since {{ user.createdAt | date }}</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="mt-4">
+      <button
+        class="btn btn-primary"
+        (click)="enableEditMode()"
+        *ngIf="!editMode">
+        <i class="bi bi-pencil me-2"></i> Edit Profile
+      </button>
+    </div>
+  </div>
+</div>

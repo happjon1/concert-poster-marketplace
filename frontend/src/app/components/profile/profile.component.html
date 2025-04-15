@@ -10,211 +10,25 @@
     </div>
   } @else if (user) {
     <div class="d-flex flex-column gap-4">
-      <!-- Profile Header Card -->
-      <div class="card position-relative overflow-hidden">
-        <!-- Banner -->
-        <div class="bg-primary position-relative" style="height: 140px"></div>
-
-        <!-- Avatar -->
-        <div class="position-relative mt-n5 mb-2 d-flex justify-content-center">
-          <div
-            class="rounded-circle border border-4 border-white shadow-sm bg-primary text-white d-flex align-items-center justify-content-center"
-            style="width: 96px; height: 96px; font-size: 2rem">
-            {{ getInitials(user.name) }}
-          </div>
-        </div>
-
-        <div class="card-body text-center">
-          <!-- Name Section -->
-          <div class="mb-4 d-flex flex-column align-items-center">
-            <h1 class="fs-4 fw-medium">
-              {{ user.name || 'Anonymous User' }}
-            </h1>
-            <p class="text-secondary">{{ user.email }}</p>
-
-            @if (user.isAdmin) {
-              <div
-                class="mt-2 px-3 py-1 badge rounded-pill text-uppercase bg-primary">
-                ADMIN
-              </div>
-            }
-          </div>
-
-          <!-- User Meta -->
-          <div class="d-flex flex-column align-items-center gap-2 mb-4">
-            <div class="d-flex align-items-center gap-2 text-secondary">
-              <i class="bi bi-envelope"></i>
-              <span>{{ user.email }}</span>
-            </div>
-            <div class="d-flex align-items-center gap-2 text-secondary">
-              <i class="bi bi-calendar"></i>
-              <span>Member since {{ user.createdAt | date }}</span>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="mt-4">
-            <button
-              class="btn btn-primary"
-              (click)="enableEditMode()"
-              *ngIf="!editMode">
-              <i class="bi bi-pencil me-2"></i> Edit Profile
-            </button>
-          </div>
-        </div>
-      </div>
+      <!-- Profile Header -->
+      <app-profile-header
+        [user]="user"
+        [editMode]="editMode"
+        [enableEditMode]="enableEditMode.bind(this)">
+      </app-profile-header>
 
       <!-- Profile Details Card -->
       <div class="card">
         <div class="card-body">
           @if (!editMode) {
-            <!-- View Mode -->
-            <div class="mb-4">
-              <h2 class="fs-5 fw-medium mb-4">Personal Information</h2>
-
-              <div class="py-3 border-bottom d-flex">
-                <div class="col-4 col-md-3 fw-medium text-secondary">Email</div>
-                <div>{{ user.email }}</div>
-              </div>
-
-              @if (user.name) {
-                <div class="py-3 border-bottom d-flex">
-                  <div class="col-4 col-md-3 fw-medium text-secondary">
-                    Name
-                  </div>
-                  <div>{{ user.name }}</div>
-                </div>
-              }
-            </div>
-
-            <hr class="my-4" />
-
-            <div>
-              <h2 class="fs-5 fw-medium mb-4">Account Information</h2>
-
-              <div class="py-3 border-bottom d-flex">
-                <div class="col-4 col-md-3 fw-medium text-secondary">
-                  Account Type
-                </div>
-                <div>{{ user.isAdmin ? 'Administrator' : 'Regular User' }}</div>
-              </div>
-
-              <div class="py-3 border-bottom d-flex">
-                <div class="col-4 col-md-3 fw-medium text-secondary">
-                  Created
-                </div>
-                <div>{{ user.createdAt | date }}</div>
-              </div>
-
-              @if (user.updatedAt) {
-                <div class="py-3 border-bottom d-flex">
-                  <div class="col-4 col-md-3 fw-medium text-secondary">
-                    Last Updated
-                  </div>
-                  <div>{{ user.updatedAt | date }}</div>
-                </div>
-              }
-            </div>
+            <app-profile-details [user]="user"></app-profile-details>
           } @else {
-            <!-- Edit Mode -->
-            <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
-              <h2 class="fs-5 fw-medium mb-4">Edit Profile</h2>
-
-              <div class="mb-4">
-                <div class="form-floating">
-                  <input
-                    type="text"
-                    id="name"
-                    class="form-control"
-                    formControlName="name"
-                    placeholder="Full name"
-                    [ngClass]="{
-                      'is-invalid':
-                        profileForm.get('name')?.invalid &&
-                        profileForm.get('name')?.touched,
-                    }" />
-                  <label for="name">
-                    <i class="bi bi-person me-2"></i>Name
-                  </label>
-                  <div
-                    class="invalid-feedback"
-                    *ngIf="
-                      profileForm.get('name')?.invalid &&
-                      profileForm.get('name')?.touched
-                    ">
-                    Name is required (min. 2 characters)
-                  </div>
-                </div>
-              </div>
-
-              <div class="mb-4">
-                <div class="form-floating">
-                  <input
-                    type="email"
-                    id="email"
-                    class="form-control"
-                    formControlName="email"
-                    placeholder="Email address"
-                    [ngClass]="{
-                      'is-invalid':
-                        profileForm.get('email')?.invalid &&
-                        profileForm.get('email')?.touched,
-                    }" />
-                  <label for="email">
-                    <i class="bi bi-envelope me-2"></i>Email
-                  </label>
-                  <div
-                    class="invalid-feedback"
-                    *ngIf="
-                      profileForm.get('email')?.invalid &&
-                      profileForm.get('email')?.touched
-                    ">
-                    Valid email is required
-                  </div>
-                </div>
-              </div>
-
-              <div class="mb-4">
-                <div class="form-floating">
-                  <textarea
-                    id="bio"
-                    class="form-control"
-                    formControlName="bio"
-                    placeholder="Tell us about yourself"
-                    style="height: 120px">
-                  </textarea>
-                  <label for="bio">
-                    <i class="bi bi-card-text me-2"></i>Bio
-                  </label>
-                  <div class="form-text text-end">
-                    {{ profileForm.get('bio')?.value?.length || 0 }}/300
-                  </div>
-                </div>
-              </div>
-
-              <div class="d-flex justify-content-end gap-3 mt-4">
-                <button
-                  type="button"
-                  class="btn btn-outline-danger"
-                  (click)="cancelEdit()"
-                  [disabled]="saving">
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  class="btn btn-primary"
-                  [disabled]="profileForm.invalid || saving">
-                  @if (saving) {
-                    <span
-                      class="spinner-border spinner-border-sm me-2"
-                      role="status"></span>
-                    Saving...
-                  } @else {
-                    Save Changes
-                  }
-                </button>
-              </div>
-            </form>
+            <app-profile-edit-form
+              [user]="user"
+              [saving]="saving"
+              (saveProfile)="saveProfile($event)"
+              (cancelEdit)="cancelEdit()">
+            </app-profile-edit-form>
           }
         </div>
       </div>
@@ -236,24 +50,9 @@
   }
 </div>
 
-<!-- Bootstrap Toast notification -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-  <div
-    class="toast show"
-    role="alert"
-    aria-live="assertive"
-    aria-atomic="true"
-    *ngIf="showToast">
-    <div class="toast-header">
-      <strong class="me-auto">Notification</strong>
-      <button
-        type="button"
-        class="btn-close"
-        aria-label="Close"
-        (click)="showToast = false"></button>
-    </div>
-    <div class="toast-body">
-      {{ toastMessage }}
-    </div>
-  </div>
-</div>
+<!-- Toast Notification -->
+<app-toast-notification
+  [message]="toastMessage"
+  [show]="showToast"
+  (hideToast)="hideToast()">
+</app-toast-notification>
