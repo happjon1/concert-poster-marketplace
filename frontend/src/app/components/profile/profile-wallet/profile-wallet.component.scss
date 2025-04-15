@@ -1,0 +1,37 @@
+.wallet-container {
+  width: 100%;
+}
+
+.card-brand {
+  font-weight: 500;
+}
+
+.card-last4 {
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+.stripe-element {
+  height: 40px;
+  padding: 10px 12px;
+}
+
+:host ::ng-deep {
+  .StripeElement {
+    width: 100%;
+  }
+
+  .StripeElement--focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+
+  .StripeElement--invalid {
+    border-color: #dc3545;
+  }
+
+  .StripeElement--webkit-autofill {
+    background-color: #fefde5 !important;
+  }
+}

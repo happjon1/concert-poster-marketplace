@@ -17,19 +17,47 @@
         [enableEditMode]="enableEditMode.bind(this)">
       </app-profile-header>
 
-      <!-- Profile Details Card -->
+      <!-- Profile Tabs -->
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <a
+            class="nav-link"
+            [class.active]="activeTab === 'profile'"
+            (click)="setActiveTab('profile')"
+            >Profile</a
+          >
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link"
+            [class.active]="activeTab === 'wallet'"
+            (click)="setActiveTab('wallet')"
+            >Wallet</a
+          >
+        </li>
+      </ul>
+
+      <!-- Profile Content -->
       <div class="card">
         <div class="card-body">
-          @if (!editMode) {
-            <app-profile-details [user]="user"></app-profile-details>
-          } @else {
-            <app-profile-edit-form
-              [user]="user"
-              [saving]="saving"
-              (saveProfile)="saveProfile($event)"
-              (cancelEdit)="cancelEdit()"
-              (deleteAddress)="deleteAddress($event)">
-            </app-profile-edit-form>
+          <!-- Profile Tab Content -->
+          @if (activeTab === 'profile') {
+            @if (!editMode) {
+              <app-profile-details [user]="user"></app-profile-details>
+            } @else {
+              <app-profile-edit-form
+                [user]="user"
+                [saving]="saving"
+                (saveProfile)="saveProfile($event)"
+                (cancelEdit)="cancelEdit()"
+                (deleteAddress)="deleteAddress($event)">
+              </app-profile-edit-form>
+            }
+          }
+
+          <!-- Wallet Tab Content -->
+          @if (activeTab === 'wallet') {
+            <app-profile-wallet></app-profile-wallet>
           }
         </div>
       </div>

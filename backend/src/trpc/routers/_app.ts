@@ -5,6 +5,7 @@ import { posterRouter } from "./poster.router.js";
 import { uploadRouter } from "./upload.router.js";
 import { artistRouter } from "./artist.router.js";
 import { eventRouter } from "./event.router.js";
+import { stripeRouter } from "./stripe.router.js";
 
 export const appRouter = router({
   auth: authRouter,
@@ -13,6 +14,7 @@ export const appRouter = router({
   upload: uploadRouter,
   artists: artistRouter, // Register with 'artists' namespace
   events: eventRouter, // Register with 'events' namespace
+  stripe: stripeRouter, // Register with 'stripe' namespace
 });
 
 // Export type definition of API

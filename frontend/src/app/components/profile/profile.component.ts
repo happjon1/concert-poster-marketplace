@@ -12,6 +12,7 @@ import {
 import { ProfileHeaderComponent } from './profile-header/profile-header.component';
 import { ProfileDetailsComponent } from './profile-details/profile-details.component';
 import { ProfileEditFormComponent } from './profile-edit-form/profile-edit-form.component';
+import { ProfileWalletComponent } from './profile-wallet/profile-wallet.component';
 import { ToastNotificationComponent } from './toast-notification/toast-notification.component';
 
 // Define a custom form data interface that includes addresses
@@ -42,6 +43,7 @@ interface ProfileFormData {
     ProfileHeaderComponent,
     ProfileDetailsComponent,
     ProfileEditFormComponent,
+    ProfileWalletComponent,
     ToastNotificationComponent,
   ],
   templateUrl: './profile.component.html',
@@ -55,6 +57,15 @@ export class ProfileComponent {
   saving = false;
   showToast = false;
   toastMessage = '';
+  activeTab = 'profile'; // Default active tab
+
+  setActiveTab(tab: string) {
+    this.activeTab = tab;
+    // When switching to another tab, exit edit mode
+    if (tab !== 'profile') {
+      this.editMode = false;
+    }
+  }
 
   enableEditMode() {
     this.editMode = true;

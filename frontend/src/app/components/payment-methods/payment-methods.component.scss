@@ -1,0 +1,33 @@
+.payment-methods-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.card-brand {
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.card-last4 {
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+/* Style for the Stripe Element container */
+::ng-deep .StripeElement {
+  width: 100%;
+  padding: 10px 14px;
+}
+
+::ng-deep .StripeElement--focus {
+  box-shadow: 0 1px 3px 0 #cfd7df;
+}
+
+::ng-deep .StripeElement--invalid {
+  border-color: #fa755a;
+}
+
+::ng-deep .StripeElement--webkit-autofill {
+  background-color: #fefde5 !important;
+}

@@ -5,6 +5,13 @@ import superjson from 'superjson';
 import type { AppRouter } from '../../../../../concert-poster-marketplace/backend/src/trpc/routers/_app';
 import { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import { environment } from '../../environments/environment';
+import {
+  AccountLinkResponse,
+  AccountStatusResponse,
+  ConnectedAccountResponse,
+  LoginLinkResponse,
+  PaymentMethod,
+} from './stripe.service';
 
 // @ts-expect-error AppRouter types are imported from the backend and may not be fully resolved in the frontend
 export type RouterInput = inferRouterInputs<AppRouter>;
@@ -187,5 +194,39 @@ export class TrpcService {
 
   setDefaultAddress(addressId: string): Promise<UpdateUserOutput> {
     return this.client.users.setDefaultAddress.mutate({ addressId });
+  }
+
+  // Stripe methods
+  getPaymentMethods(): Promise<PaymentMethod[]> {
+    return this.client.stripe.getPaymentMethods.query();
+  }
+
+  createPaymentMethod(params: {
+    paymentMethodId: string;
+    makeDefault?: boolean;
+  }): Promise<{ success: boolean; paymentMethod: PaymentMethod }> {
+    return this.client.stripe.createPaymentMethod.mutate(params);
+  }
+
+  deletePaymentMethod(params: {
+    paymentMethodId: string;
+  }): Promise<{ success: boolean }> {
+    return this.client.stripe.deletePaymentMethod.mutate(params);
+  }
+
+  createConnectedAccount(): Promise<ConnectedAccountResponse> {
+    return this.client.stripe.createConnectedAccount.mutate();
+  }
+
+  getConnectedAccountStatus(): Promise<AccountStatusResponse> {
+    return this.client.stripe.getConnectedAccountStatus.query();
+  }
+
+  createAccountLink(): Promise<AccountLinkResponse> {
+    return this.client.stripe.createAccountLink.mutate();
+  }
+
+  createLoginLink(): Promise<LoginLinkResponse> {
+    return this.client.stripe.createLoginLink.mutate();
   }
 }
