@@ -1,327 +1,93 @@
-<!-- Edit Mode with Multiple Sections -->
+<!-- Edit Mode - Basic Profile Form -->
 <form [formGroup]="profileForm" (ngSubmit)="onSaveProfile()">
-  <h2 class="fs-5 fw-medium mb-4">Edit Profile</h2>
+  <h2 class="fs-5 fw-medium mb-4">Edit Basic Details</h2>
 
-  <!-- Section Navigation -->
-  <div class="nav nav-tabs mb-4">
-    <button
-      type="button"
-      class="nav-link"
-      [class.active]="activeSection === 'basic'"
-      (click)="switchSection('basic')">
-      <i class="bi bi-person me-2"></i>Basic Details
-    </button>
-    <button
-      type="button"
-      class="nav-link"
-      [class.active]="activeSection === 'addresses'"
-      (click)="switchSection('addresses')">
-      <i class="bi bi-geo-alt me-2"></i>Addresses
-    </button>
-    <button
-      type="button"
-      class="nav-link"
-      [class.active]="activeSection === 'wallet'"
-      (click)="switchSection('wallet')">
-      <i class="bi bi-wallet2 me-2"></i>Payment Info
-    </button>
-  </div>
-
-  <!-- Basic Details Section -->
-  <div class="section-content" [hidden]="activeSection !== 'basic'">
-    <div class="mb-4">
-      <div class="form-floating">
-        <input
-          type="text"
-          id="name"
-          class="form-control"
-          formControlName="name"
-          placeholder="Full name"
-          [ngClass]="{
-            'is-invalid':
-              profileForm.get('name')?.invalid &&
-              profileForm.get('name')?.touched,
-          }" />
-        <label for="name"> <i class="bi bi-person me-2"></i>Name </label>
-        <div
-          class="invalid-feedback"
-          *ngIf="
-            profileForm.get('name')?.invalid && profileForm.get('name')?.touched
-          ">
-          Name is required (min. 2 characters)
-        </div>
-      </div>
-    </div>
-
-    <div class="mb-4">
-      <div class="form-floating">
-        <input
-          type="email"
-          id="email"
-          class="form-control"
-          formControlName="email"
-          placeholder="Email address"
-          [ngClass]="{
-            'is-invalid':
-              profileForm.get('email')?.invalid &&
-              profileForm.get('email')?.touched,
-          }" />
-        <label for="email"> <i class="bi bi-envelope me-2"></i>Email </label>
-        <div
-          class="invalid-feedback"
-          *ngIf="
-            profileForm.get('email')?.invalid &&
-            profileForm.get('email')?.touched
-          ">
-          Valid email is required
-        </div>
-      </div>
-    </div>
-
-    <div class="mb-4">
-      <div class="form-floating">
-        <textarea
-          id="bio"
-          class="form-control"
-          formControlName="bio"
-          placeholder="Tell us about yourself"
-          style="height: 120px">
-        </textarea>
-        <label for="bio"> <i class="bi bi-card-text me-2"></i>Bio </label>
-        <div class="form-text text-end">
-          {{ profileForm.get('bio')?.value?.length || 0 }}/300
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Addresses Section -->
-  <div class="section-content" [hidden]="activeSection !== 'addresses'">
-    <div *ngIf="addressError" class="alert alert-danger mb-3">
-      {{ addressError }}
-    </div>
-
-    <div formArrayName="addresses">
+  <div class="mb-4">
+    <div class="form-floating">
+      <input
+        type="text"
+        id="name"
+        class="form-control"
+        formControlName="name"
+        placeholder="Full name"
+        [ngClass]="{
+          'is-invalid':
+            profileForm.get('name')?.invalid &&
+            profileForm.get('name')?.touched,
+        }" />
+      <label for="name"> <i class="bi bi-person me-2"></i>Name </label>
       <div
-        *ngFor="let addressGroup of addressesFormArray.controls; let i = index">
-        <div class="card mb-3" [formGroupName]="i">
-          <div
-            class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title fs-6 mb-0">
-              Address {{ i + 1 }}
-              <span
-                *ngIf="addressGroup.get('isDefault')?.value"
-                class="badge bg-primary ms-2"
-                >Default</span
-              >
-            </h5>
-            <div>
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-danger"
-                (click)="removeAddressGroup(i)"
-                *ngIf="addressesFormArray.length > 1">
-                <i class="bi bi-trash"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="card-body">
-            <div class="mb-3">
-              <div class="form-floating">
-                <input
-                  type="text"
-                  class="form-control"
-                  id="label-{{ i }}"
-                  formControlName="label"
-                  placeholder="Address Label (e.g. Home, Work)" />
-                <label for="label-{{ i }}"
-                  ><i class="bi bi-tag me-2"></i>Label (optional)</label
-                >
-              </div>
-            </div>
-
-            <!-- Address Autocomplete Component -->
-            <app-address-autocomplete
-              [initialAddress]="{
-                address1: addressGroup.get('address1')?.value,
-                address2: addressGroup.get('address2')?.value,
-                city: addressGroup.get('city')?.value,
-                state: addressGroup.get('state')?.value,
-                zip: addressGroup.get('zip')?.value,
-                country: addressGroup.get('country')?.value,
-              }"
-              (addressSelected)="onAddressSelected(i, $event)"
-              placeholder="Search for your address"></app-address-autocomplete>
-
-            <!-- Hidden input fields that still hold the form values -->
-            <div class="d-none">
-              <input type="text" formControlName="address1" />
-              <input type="text" formControlName="address2" />
-              <input type="text" formControlName="city" />
-              <input type="text" formControlName="state" />
-              <input type="text" formControlName="zip" />
-              <input type="text" formControlName="country" />
-            </div>
-
-            <div class="col-12 mt-3">
-              <div class="form-check">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  id="isDefault-{{ i }}"
-                  formControlName="isDefault"
-                  [disabled]="addressesFormArray.length === 1" />
-                <label class="form-check-label" for="isDefault-{{ i }}">
-                  Use as default address
-                  <span
-                    *ngIf="addressesFormArray.length === 1"
-                    class="text-muted small">
-                    (automatically set as default)
-                  </span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        class="btn btn-outline-secondary w-100 mb-3"
-        (click)="addAddressGroup()">
-        <i class="bi bi-plus-circle me-2"></i>Add Another Address
-      </button>
-    </div>
-  </div>
-
-  <!-- Wallet Section -->
-  <div class="section-content" [hidden]="activeSection !== 'wallet'">
-    <div formGroupName="wallet">
-      <p class="text-muted mb-4">
-        Add your payment information for receiving payments from poster sales.
-      </p>
-
-      <div class="mb-4">
-        <div class="form-floating">
-          <input
-            type="email"
-            id="paypalEmail"
-            class="form-control"
-            formControlName="paypalEmail"
-            placeholder="PayPal Email"
-            [ngClass]="{
-              'is-invalid':
-                profileForm.get('wallet.paypalEmail')?.invalid &&
-                profileForm.get('wallet.paypalEmail')?.touched,
-            }" />
-          <label for="paypalEmail">
-            <i class="bi bi-paypal me-2"></i>PayPal Email
-          </label>
-          <div
-            class="invalid-feedback"
-            *ngIf="
-              profileForm.get('wallet.paypalEmail')?.invalid &&
-              profileForm.get('wallet.paypalEmail')?.touched
-            ">
-            Please enter a valid email address for PayPal
-          </div>
-        </div>
-      </div>
-
-      <div class="mb-4">
-        <div class="form-floating">
-          <input
-            type="text"
-            id="venmoUsername"
-            class="form-control"
-            formControlName="venmoUsername"
-            placeholder="Venmo Username" />
-          <label for="venmoUsername">
-            <i class="bi bi-credit-card me-2"></i>Venmo Username
-          </label>
-        </div>
-      </div>
-
-      <div class="mb-4">
-        <label class="form-label" for="preferredPaymentMethod"
-          >Preferred Payment Method</label
-        >
-        <div class="form-check">
-          <input
-            class="form-check-input"
-            type="radio"
-            id="preferPaypal"
-            value="paypal"
-            formControlName="preferredPaymentMethod" />
-          <label class="form-check-label" for="preferPaypal"> PayPal </label>
-        </div>
-        <div class="form-check">
-          <input
-            class="form-check-input"
-            type="radio"
-            id="preferVenmo"
-            value="venmo"
-            formControlName="preferredPaymentMethod" />
-          <label class="form-check-label" for="preferVenmo"> Venmo </label>
-        </div>
+        class="invalid-feedback"
+        *ngIf="
+          profileForm.get('name')?.invalid && profileForm.get('name')?.touched
+        ">
+        Name is required (min. 2 characters)
       </div>
     </div>
   </div>
 
-  <!-- Form Action Buttons (Always Visible) -->
-  <div class="d-flex justify-content-between mt-4">
-    <div>
-      <!-- Previous/Next Section Navigation -->
-      @if (activeSection !== 'basic') {
-        <button
-          type="button"
-          class="btn btn-outline-secondary me-2"
-          (click)="
-            activeSection === 'addresses'
-              ? switchSection('basic')
-              : switchSection('addresses')
-          ">
-          <i class="bi bi-arrow-left me-2"></i>Previous
-        </button>
-      }
-
-      @if (activeSection !== 'wallet') {
-        <button
-          type="button"
-          class="btn btn-outline-primary"
-          (click)="
-            activeSection === 'basic'
-              ? switchSection('addresses')
-              : switchSection('wallet')
-          ">
-          Next<i class="bi bi-arrow-right ms-2"></i>
-        </button>
-      }
+  <div class="mb-4">
+    <div class="form-floating">
+      <input
+        type="email"
+        id="email"
+        class="form-control"
+        formControlName="email"
+        placeholder="Email address"
+        [ngClass]="{
+          'is-invalid':
+            profileForm.get('email')?.invalid &&
+            profileForm.get('email')?.touched,
+        }" />
+      <label for="email"> <i class="bi bi-envelope me-2"></i>Email </label>
+      <div
+        class="invalid-feedback"
+        *ngIf="
+          profileForm.get('email')?.invalid && profileForm.get('email')?.touched
+        ">
+        Valid email is required
+      </div>
     </div>
+  </div>
 
-    <div>
-      <button
-        type="button"
-        class="btn btn-outline-danger me-2"
-        (click)="onCancelEdit()"
-        [disabled]="saving">
-        Cancel
-      </button>
-
-      <button
-        type="submit"
-        class="btn btn-primary"
-        [disabled]="profileForm.invalid || saving">
-        @if (saving) {
-          <span
-            class="spinner-border spinner-border-sm me-2"
-            role="status"></span>
-          Saving...
-        } @else {
-          Save Changes
-        }
-      </button>
+  <div class="mb-4">
+    <div class="form-floating">
+      <textarea
+        id="bio"
+        class="form-control"
+        formControlName="bio"
+        placeholder="Tell us about yourself"
+        style="height: 120px">
+      </textarea>
+      <label for="bio"> <i class="bi bi-card-text me-2"></i>Bio </label>
+      <div class="form-text text-end">
+        {{ profileForm.get('bio')?.value?.length || 0 }}/300
+      </div>
     </div>
+  </div>
+
+  <!-- Form Action Buttons -->
+  <div class="d-flex justify-content-end mt-4">
+    <button
+      type="button"
+      class="btn btn-outline-danger me-2"
+      (click)="onCancelEdit()"
+      [disabled]="saving">
+      Cancel
+    </button>
+
+    <button
+      type="submit"
+      class="btn btn-primary"
+      [disabled]="profileForm.invalid || saving">
+      @if (saving) {
+        <span
+          class="spinner-border spinner-border-sm me-2"
+          role="status"></span>
+        Saving...
+      } @else {
+        Save Changes
+      }
+    </button>
   </div>
 </form>

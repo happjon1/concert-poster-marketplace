@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { createTRPCClient } from '@trpc/client';
 import { httpBatchLink } from '@trpc/client/links/httpBatchLink';
 import superjson from 'superjson';
-import type { AppRouter } from '../../../../../concert-poster-marketplace/backend/src/trpc/routers/_app';
+import type { AppRouter } from '../../../../backend/src/trpc/routers/_app';
 import { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import { environment } from '../../environments/environment';
 import {
@@ -22,6 +22,7 @@ export type RouterOutput = inferRouterOutputs<AppRouter>;
 type ArrayElement<ArrayType extends readonly unknown[]> =
   ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
 
+// Auth types
 export type RegisterInput = RouterInput['auth']['register'];
 export type RegisterOutput = RouterOutput['auth']['register'];
 export type LoginInput = RouterInput['auth']['login'];
@@ -29,11 +30,12 @@ export type LoginOutput = RouterOutput['auth']['login'];
 export type LogoutInput = RouterInput['auth']['logout'];
 export type LogoutOutput = RouterOutput['auth']['logout'];
 export type User = RouterOutput['auth']['me'];
+export type Address = ArrayElement<User['addresses']>;
 
+// Poster types
 export type GetAllPostersInput = RouterInput['posters']['getAll'];
 export type GetAllPostersOutput = RouterOutput['posters']['getAll'];
-export type PosterSlim = ArrayElement<GetAllArtistsOutput['items']>;
-
+export type PosterSlim = ArrayElement<GetAllPostersOutput['items']>;
 export type GetPosterByIdInput = RouterInput['posters']['getById'];
 export type GetPosterByIdOutput = RouterOutput['posters']['getById'];
 export type CreatePosterInput = RouterInput['posters']['create'];
@@ -43,25 +45,28 @@ export type UpdatePosterOutput = RouterOutput['posters']['update'];
 export type DeletePosterInput = RouterInput['posters']['delete'];
 export type DeletePosterOutput = RouterOutput['posters']['delete'];
 
+// Upload types
 export type GetSignedUrlInput = RouterInput['upload']['getSignedUrl'];
 export type ImageUrl = RouterOutput['upload']['getSignedUrl'];
 
+// Artist types
 export type GetAllArtistsInput = RouterInput['artists']['getAll'];
 export type GetAllArtistsOutput = RouterOutput['artists']['getAll'];
 export type GetArtistByIdInput = RouterInput['artists']['getById'];
 export type Artist = RouterOutput['artists']['getById'];
 
+// Event types
 export type GetAllEventsInput = RouterInput['events']['getAll'];
 export type GetAllEventsOutput = RouterOutput['events']['getAll'];
 export type GetEventByIdInput = RouterInput['events']['getById'];
 export type ConcertEvent = RouterOutput['events']['getById'];
-
 export type Venue = ConcertEvent['venue'];
 
+// User types
 export type UpdateUserInput = RouterInput['users']['update'];
 export type UpdateUserOutput = RouterOutput['users']['update'];
 
-// New address-related types
+// Address types
 export type GetAddressesInput = RouterInput['users']['getAddresses'];
 export type GetAddressesOutput = RouterOutput['users']['getAddresses'];
 export type CreateAddressInput = RouterInput['users']['createAddress'];
@@ -74,27 +79,22 @@ export type SetDefaultAddressInput = RouterInput['users']['setDefaultAddress'];
 export type SetDefaultAddressOutput =
   RouterOutput['users']['setDefaultAddress'];
 
-// Define an Address type for use in the application
-export interface Address {
-  id: string;
-  userId: string;
-  label?: string | null;
-  address1: string;
-  address2?: string | null;
-  city: string;
-  state?: string | null;
-  province?: string | null;
-  zip?: string | null;
-  country: string;
-  isValidated: boolean;
-  createdAt: Date;
-}
+// Payment method types
+export type GetPaymentMethodsOutput =
+  RouterOutput['stripe']['getPaymentMethods'];
+export type CreatePaymentMethodInput =
+  RouterInput['stripe']['createPaymentMethod'];
+export type CreatePaymentMethodOutput =
+  RouterOutput['stripe']['createPaymentMethod'];
+export type DeletePaymentMethodInput =
+  RouterInput['stripe']['deletePaymentMethod'];
+export type DeletePaymentMethodOutput =
+  RouterOutput['stripe']['deletePaymentMethod'];
 
 @Injectable({
   providedIn: 'root',
 })
 export class TrpcService {
-  //ignore typescript error
   // @ts-expect-error: AppRouter types are imported from the backend and may not be fully resolved in the frontend
   private client = createTRPCClient<AppRouter>({
     links: [
@@ -175,42 +175,63 @@ export class TrpcService {
     return this.client.users.update.mutate(params);
   }
 
-  // New address methods
-  getUserAddresses(userId: string): Promise<Address[]> {
+  // Address methods
+  getUserAddresses(userId: string): Promise<GetAddressesOutput> {
     return this.client.users.getAddresses.query({ userId });
   }
 
-  createAddress(addressData: CreateAddressInput): Promise<Address> {
+  createAddress(addressData: CreateAddressInput): Promise<CreateAddressOutput> {
     return this.client.users.createAddress.mutate(addressData);
   }
 
-  updateAddress(addressData: UpdateAddressInput): Promise<Address> {
+  updateAddress(addressData: UpdateAddressInput): Promise<UpdateAddressOutput> {
     return this.client.users.updateAddress.mutate(addressData);
   }
 
-  deleteAddress(addressId: string): Promise<Address> {
+  deleteAddress(addressId: string): Promise<DeleteAddressOutput> {
     return this.client.users.deleteAddress.mutate({ id: addressId });
   }
 
-  setDefaultAddress(addressId: string): Promise<UpdateUserOutput> {
+  setDefaultAddress(addressId: string): Promise<SetDefaultAddressOutput> {
     return this.client.users.setDefaultAddress.mutate({ addressId });
   }
 
   // Stripe methods
-  getPaymentMethods(): Promise<PaymentMethod[]> {
+  getPaymentMethods(): Promise<GetPaymentMethodsOutput> {
     return this.client.stripe.getPaymentMethods.query();
   }
 
-  createPaymentMethod(params: {
-    paymentMethodId: string;
-    makeDefault?: boolean;
-  }): Promise<{ success: boolean; paymentMethod: PaymentMethod }> {
+  createPaymentMethod(
+    params: CreatePaymentMethodInput
+  ): Promise<CreatePaymentMethodOutput> {
     return this.client.stripe.createPaymentMethod.mutate(params);
   }
 
-  deletePaymentMethod(params: {
-    paymentMethodId: string;
-  }): Promise<{ success: boolean }> {
+  // This method uses createPaymentMethod to update a payment method since we don't have
+  // a dedicated updatePaymentMethod endpoint
+  updatePaymentMethod(
+    paymentMethod: PaymentMethod
+  ): Promise<CreatePaymentMethodOutput> {
+    // In Stripe, we use the existing createPaymentMethod endpoint
+    return this.client.stripe.createPaymentMethod.mutate({
+      paymentMethodId: paymentMethod.id,
+      makeDefault: paymentMethod.isDefault,
+    });
+  }
+
+  // Set default payment method - using createPaymentMethod with makeDefault flag
+  setDefaultPaymentMethod(
+    paymentMethodId: string
+  ): Promise<CreatePaymentMethodOutput> {
+    return this.client.stripe.createPaymentMethod.mutate({
+      paymentMethodId,
+      makeDefault: true,
+    });
+  }
+
+  deletePaymentMethod(
+    params: DeletePaymentMethodInput
+  ): Promise<DeletePaymentMethodOutput> {
     return this.client.stripe.deletePaymentMethod.mutate(params);
   }
 

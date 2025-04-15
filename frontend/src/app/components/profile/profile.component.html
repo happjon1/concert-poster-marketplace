@@ -22,17 +22,34 @@
         <li class="nav-item">
           <a
             class="nav-link"
-            [class.active]="activeTab === 'profile'"
-            (click)="setActiveTab('profile')"
-            >Profile</a
+            [class.active]="activeTab === 'basic'"
+            (click)="setActiveTab('basic')"
+            (keydown.enter)="setActiveTab('basic')"
+            tabindex="0"
+            role="tab"
+            >Basic Details</a
           >
         </li>
         <li class="nav-item">
           <a
             class="nav-link"
-            [class.active]="activeTab === 'wallet'"
-            (click)="setActiveTab('wallet')"
-            >Wallet</a
+            [class.active]="activeTab === 'addresses'"
+            (click)="setActiveTab('addresses')"
+            (keydown.enter)="setActiveTab('addresses')"
+            tabindex="0"
+            role="tab"
+            >Addresses</a
+          >
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link"
+            [class.active]="activeTab === 'payment'"
+            (click)="setActiveTab('payment')"
+            (keydown.enter)="setActiveTab('payment')"
+            tabindex="0"
+            role="tab"
+            >Payment Info</a
           >
         </li>
       </ul>
@@ -40,24 +57,76 @@
       <!-- Profile Content -->
       <div class="card">
         <div class="card-body">
-          <!-- Profile Tab Content -->
-          @if (activeTab === 'profile') {
-            @if (!editMode) {
+          <!-- Basic Details Tab Content -->
+          @if (activeTab === 'basic') {
+            @if (!editBasicDetails) {
+              <div class="d-flex justify-content-end mb-3">
+                <button
+                  class="btn btn-outline-primary btn-sm"
+                  (click)="enableBasicDetailsEdit()">
+                  <i class="bi bi-pencil me-1"></i> Edit
+                </button>
+              </div>
               <app-profile-details [user]="user"></app-profile-details>
             } @else {
               <app-profile-edit-form
                 [user]="user"
                 [saving]="saving"
                 (saveProfile)="saveProfile($event)"
-                (cancelEdit)="cancelEdit()"
-                (deleteAddress)="deleteAddress($event)">
+                (cancelEdit)="cancelBasicDetailsEdit()">
               </app-profile-edit-form>
             }
           }
 
-          <!-- Wallet Tab Content -->
-          @if (activeTab === 'wallet') {
-            <app-profile-wallet></app-profile-wallet>
+          <!-- Addresses Tab Content -->
+          @if (activeTab === 'addresses') {
+            @if (!editAddresses) {
+              <div class="d-flex justify-content-end mb-3">
+                <button
+                  class="btn btn-outline-primary btn-sm"
+                  (click)="enableAddressesEdit()">
+                  <i class="bi bi-pencil me-1"></i> Edit
+                </button>
+              </div>
+              <app-profile-address-list
+                [addresses]="user.addresses"
+                [readOnly]="true">
+              </app-profile-address-list>
+            } @else {
+              <app-profile-address-list
+                [addresses]="user.addresses"
+                [readOnly]="false"
+                [saving]="saving"
+                (saveAddresses)="saveAddresses($event)"
+                (cancelEdit)="cancelAddressesEdit()"
+                (deleteAddress)="deleteAddress($event)">
+              </app-profile-address-list>
+            }
+          }
+
+          <!-- Payment Info Tab Content -->
+          @if (activeTab === 'payment') {
+            @if (!editPayment) {
+              <div class="d-flex justify-content-end mb-3">
+                <button
+                  class="btn btn-outline-primary btn-sm"
+                  (click)="enablePaymentEdit()">
+                  <i class="bi bi-pencil me-1"></i> Edit
+                </button>
+              </div>
+              <app-profile-payment
+                [paymentMethods]="paymentMethods"
+                [saving]="false">
+              </app-profile-payment>
+            } @else {
+              <app-profile-payment
+                [paymentMethods]="paymentMethods"
+                [saving]="saving"
+                (savePaymentMethods)="savePaymentMethods($event)"
+                (cancelEdit)="cancelPaymentEdit()"
+                (deletePaymentMethod)="deletePaymentMethod($event)">
+              </app-profile-payment>
+            }
           }
         </div>
       </div>
