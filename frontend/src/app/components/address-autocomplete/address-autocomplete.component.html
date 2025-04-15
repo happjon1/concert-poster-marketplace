@@ -1,0 +1,21 @@
+<div class="address-autocomplete-container">
+  <!-- Main autocomplete input -->
+  <div class="autocomplete-input-wrapper">
+    <input
+      #addressInput
+      type="text"
+      [formControl]="addressControl"
+      [placeholder]="placeholder"
+      class="address-input"
+      (keydown.enter)="handleEnterKey($event)" />
+    <div class="input-actions">
+      <button
+        *ngIf="addressControl.value"
+        type="button"
+        class="clear-btn"
+        (click)="clearAddress()">
+        <span>×</span>
+      </button>
+    </div>
+  </div>
+</div>

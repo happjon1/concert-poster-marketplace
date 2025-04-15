@@ -141,143 +141,45 @@
               </div>
             </div>
 
-            <div class="row g-3">
-              <div class="col-12">
-                <div class="form-floating">
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="address1-{{ i }}"
-                    formControlName="address1"
-                    placeholder="Street Address"
-                    [ngClass]="{
-                      'is-invalid':
-                        addressGroup.get('address1')?.invalid &&
-                        addressGroup.get('address1')?.touched,
-                    }" />
-                  <label for="address1-{{ i }}"
-                    ><i class="bi bi-signpost me-2"></i>Street Address</label
-                  >
-                  <div
-                    class="invalid-feedback"
-                    *ngIf="
-                      addressGroup.get('address1')?.invalid &&
-                      addressGroup.get('address1')?.touched
-                    ">
-                    Street address is required
-                  </div>
-                </div>
-              </div>
+            <!-- Address Autocomplete Component -->
+            <app-address-autocomplete
+              [initialAddress]="{
+                address1: addressGroup.get('address1')?.value,
+                address2: addressGroup.get('address2')?.value,
+                city: addressGroup.get('city')?.value,
+                state: addressGroup.get('state')?.value,
+                zip: addressGroup.get('zip')?.value,
+                country: addressGroup.get('country')?.value,
+              }"
+              (addressSelected)="onAddressSelected(i, $event)"
+              placeholder="Search for your address"></app-address-autocomplete>
 
-              <div class="col-12">
-                <div class="form-floating">
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="address2-{{ i }}"
-                    formControlName="address2"
-                    placeholder="Apartment, suite, etc." />
-                  <label for="address2-{{ i }}"
-                    >Apartment, suite, etc. (optional)</label
-                  >
-                </div>
-              </div>
+            <!-- Hidden input fields that still hold the form values -->
+            <div class="d-none">
+              <input type="text" formControlName="address1" />
+              <input type="text" formControlName="address2" />
+              <input type="text" formControlName="city" />
+              <input type="text" formControlName="state" />
+              <input type="text" formControlName="zip" />
+              <input type="text" formControlName="country" />
+            </div>
 
-              <div class="col-md-6">
-                <div class="form-floating">
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="city-{{ i }}"
-                    formControlName="city"
-                    placeholder="City"
-                    [ngClass]="{
-                      'is-invalid':
-                        addressGroup.get('city')?.invalid &&
-                        addressGroup.get('city')?.touched,
-                    }" />
-                  <label for="city-{{ i }}"
-                    ><i class="bi bi-building me-2"></i>City</label
-                  >
-                  <div
-                    class="invalid-feedback"
-                    *ngIf="
-                      addressGroup.get('city')?.invalid &&
-                      addressGroup.get('city')?.touched
-                    ">
-                    City is required
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-md-6">
-                <div class="form-floating">
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="state-{{ i }}"
-                    formControlName="state"
-                    placeholder="State" />
-                  <label for="state-{{ i }}">State/Province</label>
-                </div>
-              </div>
-
-              <div class="col-md-6">
-                <div class="form-floating">
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="zip-{{ i }}"
-                    formControlName="zip"
-                    placeholder="Zip Code" />
-                  <label for="zip-{{ i }}">Zip/Postal Code</label>
-                </div>
-              </div>
-
-              <div class="col-md-6">
-                <div class="form-floating">
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="country-{{ i }}"
-                    formControlName="country"
-                    placeholder="Country"
-                    [ngClass]="{
-                      'is-invalid':
-                        addressGroup.get('country')?.invalid &&
-                        addressGroup.get('country')?.touched,
-                    }" />
-                  <label for="country-{{ i }}"
-                    ><i class="bi bi-globe me-2"></i>Country</label
-                  >
-                  <div
-                    class="invalid-feedback"
-                    *ngIf="
-                      addressGroup.get('country')?.invalid &&
-                      addressGroup.get('country')?.touched
-                    ">
-                    Country is required
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-12">
-                <div class="form-check">
-                  <input
-                    class="form-check-input"
-                    type="checkbox"
-                    id="isDefault-{{ i }}"
-                    formControlName="isDefault"
-                    [disabled]="addressesFormArray.length === 1" />
-                  <label class="form-check-label" for="isDefault-{{ i }}">
-                    Use as default address
-                    <span
-                      *ngIf="addressesFormArray.length === 1"
-                      class="text-muted small">
-                      (automatically set as default)
-                    </span>
-                  </label>
-                </div>
+            <div class="col-12 mt-3">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="isDefault-{{ i }}"
+                  formControlName="isDefault"
+                  [disabled]="addressesFormArray.length === 1" />
+                <label class="form-check-label" for="isDefault-{{ i }}">
+                  Use as default address
+                  <span
+                    *ngIf="addressesFormArray.length === 1"
+                    class="text-muted small">
+                    (automatically set as default)
+                  </span>
+                </label>
               </div>
             </div>
           </div>

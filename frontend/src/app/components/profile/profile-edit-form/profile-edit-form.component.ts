@@ -8,6 +8,10 @@ import {
   Validators,
 } from '@angular/forms';
 import { User, Address } from '../../../services/trpc.service';
+import {
+  AddressAutocompleteComponent,
+  AutocompleteAddress,
+} from '../../address-autocomplete/address-autocomplete.component';
 
 // Define interface for the form data with multiple sections
 // This needs to match the parent component's ProfileFormData
@@ -35,7 +39,7 @@ type FormSection = 'basic' | 'addresses' | 'wallet';
 @Component({
   selector: 'app-profile-edit-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, AddressAutocompleteComponent],
   templateUrl: './profile-edit-form.component.html',
   styleUrls: ['./profile-edit-form.component.scss'],
 })
@@ -210,5 +214,22 @@ export class ProfileEditFormComponent implements OnInit {
 
   onCancelEdit() {
     this.cancelEdit.emit();
+  }
+
+  // Handle address selection from autocomplete
+  onAddressSelected(index: number, address: AutocompleteAddress | null): void {
+    if (!address) return;
+
+    const addressGroup = this.addressesFormArray.at(index);
+
+    // Update form fields with autocomplete data
+    addressGroup.patchValue({
+      address1: address.address1,
+      address2: address.address2 || '',
+      city: address.city,
+      state: address.state || '',
+      zip: address.zip || '',
+      country: address.country,
+    });
   }
 }
