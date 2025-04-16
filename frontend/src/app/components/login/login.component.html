@@ -1,148 +1,158 @@
 <div
-  class="container d-flex justify-content-center align-items-center min-vh-100 py-4 py-md-5 bg-light">
-  <div class="card shadow w-100" style="max-width: 450px">
-    <!-- Progress bar for loading state -->
-    @if (authService.loading()) {
-      <div class="progress" style="height: 4px">
-        <div
-          class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
+  class="min-vh-100 d-flex align-items-center justify-content-center py-4 py-md-5 bg-light">
+  <div class="container">
+    <div
+      class="card shadow mx-auto"
+      style="max-width: 450px; border-radius: 0.5rem; overflow: hidden">
+      <!-- Progress bar for loading state -->
+      @if (authService.loading()) {
+        <div class="progress" style="height: 4px; border-radius: 0">
+          <div
+            class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
+        </div>
+      }
+
+      <div class="card-header bg-white border-0 pt-4 pb-0">
+        <h4 class="card-title mb-1 fw-medium">Sign In</h4>
+        <p class="card-subtitle text-muted mb-3">
+          Enter your credentials to continue
+        </p>
       </div>
-    }
 
-    <div class="card-header bg-white">
-      <h4 class="card-title mb-1">Sign In</h4>
-      <p class="card-subtitle text-muted">Enter your credentials to continue</p>
-    </div>
-
-    <div class="card-body">
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-        <!-- Email input -->
-        <div class="mb-3">
-          <label for="email" class="form-label">Email</label>
-          <div class="input-group">
-            <span class="input-group-text">
-              <i class="bi bi-envelope"></i>
-            </span>
-            <input
-              type="email"
-              id="email"
-              class="form-control"
-              formControlName="email"
-              placeholder="Your email address"
-              autocomplete="email"
-              [ngClass]="{
-                'is-invalid':
-                  loginForm.get('email')?.touched &&
-                  loginForm.get('email')?.invalid,
-              }" />
-            @if (loginForm.get('email')?.touched) {
-              @if (loginForm.get('email')?.hasError('required')) {
-                <div class="invalid-feedback">Email is required</div>
+      <div class="card-body pt-3">
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+          <!-- Email input -->
+          <div class="mb-3">
+            <label for="email" class="form-label fw-medium">Email</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <input
+                type="email"
+                id="email"
+                class="form-control"
+                formControlName="email"
+                placeholder="Your email address"
+                autocomplete="email"
+                [ngClass]="{
+                  'is-invalid':
+                    loginForm.get('email')?.touched &&
+                    loginForm.get('email')?.invalid,
+                }" />
+              @if (loginForm.get('email')?.touched) {
+                @if (loginForm.get('email')?.hasError('required')) {
+                  <div class="invalid-feedback">Email is required</div>
+                }
+                @if (loginForm.get('email')?.hasError('email')) {
+                  <div class="invalid-feedback">
+                    Please enter a valid email address
+                  </div>
+                }
               }
-              @if (loginForm.get('email')?.hasError('email')) {
-                <div class="invalid-feedback">
-                  Please enter a valid email address
-                </div>
+            </div>
+          </div>
+
+          <!-- Password input -->
+          <div class="mb-3">
+            <label for="password" class="form-label fw-medium">Password</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border">
+                <i class="bi bi-lock"></i>
+              </span>
+              <input
+                [type]="hidePassword ? 'password' : 'text'"
+                class="form-control"
+                id="password"
+                formControlName="password"
+                autocomplete="current-password"
+                [ngClass]="{
+                  'is-invalid':
+                    loginForm.get('password')?.touched &&
+                    loginForm.get('password')?.invalid,
+                }" />
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                (click)="hidePassword = !hidePassword">
+                <i
+                  class="bi"
+                  [ngClass]="hidePassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+              </button>
+              @if (loginForm.get('password')?.touched) {
+                @if (loginForm.get('password')?.hasError('required')) {
+                  <div class="invalid-feedback">Password is required</div>
+                }
+                @if (loginForm.get('password')?.hasError('minlength')) {
+                  <div class="invalid-feedback">
+                    Password must be at least 6 characters
+                  </div>
+                }
               }
-            }
+            </div>
           </div>
-        </div>
 
-        <!-- Password input -->
-        <div class="mb-3">
-          <label for="password" class="form-label">Password</label>
-          <div class="input-group">
-            <span class="input-group-text">
-              <i class="bi bi-lock"></i>
-            </span>
-            <input
-              [type]="hidePassword ? 'password' : 'text'"
-              class="form-control"
-              id="password"
-              formControlName="password"
-              autocomplete="current-password"
-              [ngClass]="{
-                'is-invalid':
-                  loginForm.get('password')?.touched &&
-                  loginForm.get('password')?.invalid,
-              }" />
-            <button
-              class="btn btn-outline-secondary"
-              type="button"
-              (click)="hidePassword = !hidePassword">
-              <i
-                class="bi"
-                [ngClass]="hidePassword ? 'bi-eye-slash' : 'bi-eye'"></i>
-            </button>
-            @if (loginForm.get('password')?.touched) {
-              @if (loginForm.get('password')?.hasError('required')) {
-                <div class="invalid-feedback">Password is required</div>
-              }
-              @if (loginForm.get('password')?.hasError('minlength')) {
-                <div class="invalid-feedback">
-                  Password must be at least 6 characters
-                </div>
-              }
-            }
+          <!-- Remember me and Forgot password -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="form-check">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id="rememberMe"
+                [(ngModel)]="rememberMe"
+                [ngModelOptions]="{ standalone: true }" />
+              <label class="form-check-label text-secondary" for="rememberMe">
+                Remember me
+              </label>
+            </div>
+            <a
+              routerLink="/forgot-password"
+              class="text-decoration-none text-primary">
+              Forgot password?
+            </a>
           </div>
-        </div>
 
-        <!-- Remember me and Forgot password -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="form-check">
-            <input
-              type="checkbox"
-              class="form-check-input"
-              id="rememberMe"
-              [(ngModel)]="rememberMe"
-              [ngModelOptions]="{ standalone: true }" />
-            <label class="form-check-label" for="rememberMe">
-              Remember me
-            </label>
-          </div>
-          <a routerLink="/forgot-password" class="text-decoration-none">
-            Forgot password?
-          </a>
-        </div>
-
-        <!-- Error message from component -->
-        @if (errorMessage()) {
-          <div class="alert alert-danger d-flex align-items-center mb-3">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <span>{{ errorMessage() }}</span>
-          </div>
-        }
-
-        <!-- Error message from service -->
-        @if (authService.error() && !errorMessage()) {
-          <div class="alert alert-danger d-flex align-items-center mb-3">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <span>{{ authService.error() }}</span>
-          </div>
-        }
-
-        <!-- Submit button -->
-        <button
-          type="submit"
-          class="btn btn-primary w-100 mt-2"
-          [disabled]="
-            loginForm.invalid || authService.loading() || submitting()
-          ">
-          @if (submitting()) {
-            <span
-              class="spinner-border spinner-border-sm me-2"
-              role="status"></span>
-            Signing In...
-          } @else {
-            Sign In
+          <!-- Error message from component -->
+          @if (errorMessage()) {
+            <div class="alert alert-danger d-flex align-items-center mb-3">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <span>{{ errorMessage() }}</span>
+            </div>
           }
-        </button>
-      </form>
-    </div>
 
-    <div class="card-footer bg-white text-end">
-      <span class="text-muted me-2">Don't have an account?</span>
-      <a routerLink="/register" class="btn btn-outline-primary">Sign Up</a>
+          <!-- Error message from service -->
+          @if (authService.error() && !errorMessage()) {
+            <div class="alert alert-danger d-flex align-items-center mb-3">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <span>{{ authService.error() }}</span>
+            </div>
+          }
+
+          <!-- Submit button -->
+          <button
+            type="submit"
+            class="btn btn-primary w-100 py-2 mt-2 mb-2"
+            [disabled]="
+              loginForm.invalid || authService.loading() || submitting()
+            ">
+            @if (submitting()) {
+              <span
+                class="spinner-border spinner-border-sm me-2"
+                role="status"></span>
+              Signing In...
+            } @else {
+              Sign In
+            }
+          </button>
+        </form>
+      </div>
+
+      <div class="card-footer bg-white border-0 py-3 text-center">
+        <span class="text-muted me-2">Don't have an account?</span>
+        <a routerLink="/register" class="btn btn-outline-primary ms-2"
+          >Sign Up</a
+        >
+      </div>
     </div>
   </div>
 </div>

@@ -42,12 +42,41 @@ mat-card-header {
 }
 
 .password-strength {
-  margin: -8px 0 16px 0;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
 
   .strength-text {
-    font-size: 12px;
-    margin-bottom: 4px;
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
     color: $body-color-secondary;
+  }
+
+  .strength-meter {
+    height: 4px;
+    border-radius: 2px;
+    background-color: $border-color;
+    overflow: hidden;
+
+    .strength-meter-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+
+      &.weak {
+        background-color: $danger;
+        width: 33.33%;
+      }
+
+      &.medium {
+        background-color: $warning;
+        width: 66.66%;
+      }
+
+      &.strong {
+        background-color: $success;
+        width: 100%;
+      }
+    }
   }
 }
 
@@ -110,5 +139,81 @@ mat-card-actions {
   span {
     margin-right: 8px;
     color: $body-color-secondary;
+  }
+}
+
+.bg-light {
+  background-color: $light !important;
+}
+
+.card {
+  border: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 0.5rem 1.5rem rgba($dark, 0.08) !important;
+}
+
+.card-title {
+  color: $dark;
+  font-size: 1.5rem;
+}
+
+.card-subtitle {
+  color: $body-color-secondary;
+}
+
+.form-label {
+  color: $dark;
+  font-size: 0.875rem;
+}
+
+.input-group-text {
+  color: $body-color-secondary;
+}
+
+.form-control {
+  padding: 0.625rem 0.75rem;
+  border-color: $border-color;
+
+  &:focus {
+    border-color: $primary;
+    box-shadow: 0 0 0 0.2rem rgba($primary, 0.15);
+  }
+}
+
+.form-check-input:checked {
+  background-color: $primary;
+  border-color: $primary;
+}
+
+.form-check-label a:hover {
+  text-decoration: underline !important;
+}
+
+.alert-danger {
+  background-color: rgba($danger, 0.1);
+  border-color: rgba($danger, 0.2);
+  color: darken($danger, 10%);
+}
+
+.btn-primary {
+  font-weight: 500;
+  transition: all 0.3s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.btn-outline-primary {
+  &:hover {
+    color: white;
+  }
+}
+
+// For responsive behavior
+@media (max-width: 576px) {
+  .card {
+    margin-left: 1rem;
+    margin-right: 1rem;
   }
 }
