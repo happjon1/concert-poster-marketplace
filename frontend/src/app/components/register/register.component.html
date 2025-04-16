@@ -3,7 +3,7 @@
   <div class="card shadow-lg border-0 rounded-4 w-100" style="max-width: 500px">
     <!-- Progress bar for loading state -->
     <div
-      *ngIf="authService.loading()"
+      *ngIf="authService.loading() || submitting()"
       class="progress rounded-top"
       style="height: 4px">
       <div
@@ -171,9 +171,17 @@
           </label>
         </div>
 
-        <!-- Error Alert -->
+        <!-- Component Error Alert -->
         <div
-          *ngIf="authService.error()"
+          *ngIf="errorMessage()"
+          class="alert alert-danger d-flex align-items-center mb-4">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <div>{{ errorMessage() }}</div>
+        </div>
+
+        <!-- Service Error Alert -->
+        <div
+          *ngIf="authService.error() && !errorMessage()"
           class="alert alert-danger d-flex align-items-center mb-4">
           <i class="bi bi-exclamation-triangle-fill me-2"></i>
           <div>{{ authService.error() }}</div>
@@ -183,8 +191,15 @@
         <button
           type="submit"
           class="btn btn-primary w-100 py-2 shadow-sm fw-semibold"
-          [disabled]="registerForm.invalid || !acceptTerms">
-          Create Account
+          [disabled]="registerForm.invalid || !acceptTerms || submitting()">
+          @if (submitting()) {
+            <span
+              class="spinner-border spinner-border-sm me-2"
+              role="status"></span>
+            Creating Account...
+          } @else {
+            Create Account
+          }
         </button>
       </form>
     </div>

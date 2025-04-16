@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 
@@ -7,8 +7,9 @@ import { FormGroup, ReactiveFormsModule } from '@angular/forms';
   templateUrl: './listing-details-form.component.html',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ListingDetailsFormComponent {
-  @Input() parentForm!: FormGroup;
-  @Input() listingType: 'buyNow' | 'auction' = 'buyNow';
+  parentForm = input.required<FormGroup>();
+  listingType = input<'buyNow' | 'auction'>('buyNow');
 }

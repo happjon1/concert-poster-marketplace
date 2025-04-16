@@ -1,10 +1,12 @@
 import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
-  OnInit,
-  ViewChild,
   ElementRef,
   OnDestroy,
-  AfterViewInit,
+  OnInit,
+  ViewChild,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -41,6 +43,7 @@ interface PaymentMethod {
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './profile-wallet.component.html',
   styleUrls: ['./profile-wallet.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileWalletComponent
   implements OnInit, OnDestroy, AfterViewInit
@@ -52,10 +55,10 @@ export class ProfileWalletComponent
     makeDefault: new FormControl(false),
   });
 
-  paymentMethods: PaymentMethod[] = [];
-  cardComplete = false;
-  loading = false;
-  error: string | null = null;
+  paymentMethods = signal<PaymentMethod[]>([]);
+  cardComplete = signal<boolean>(false);
+  loading = signal<boolean>(false);
+  error = signal<string | null>(null);
 
   private stripe: Stripe | null = null;
   private card: StripeCardElement | null = null;
@@ -70,7 +73,7 @@ export class ProfileWalletComponent
     this.stripeService.paymentMethods$
       .pipe(takeUntil(this.destroy$))
       .subscribe(methods => {
-        this.paymentMethods = methods;
+        this.paymentMethods.set(methods);
       });
   }
 
@@ -99,44 +102,44 @@ export class ProfileWalletComponent
 
       // Listen for changes
       this.card.on('change', (event: StripeElementChangeEvent) => {
-        this.cardComplete = event.complete;
+        this.cardComplete.set(event.complete);
 
         if (event.error) {
-          this.error = event.error.message;
+          this.error.set(event.error.message);
         } else {
-          this.error = null;
+          this.error.set(null);
         }
       });
     } catch (error) {
       console.error('Error initializing Stripe:', error);
-      this.error = 'Failed to load Stripe payment form';
+      this.error.set('Failed to load Stripe payment form');
     }
   }
 
   loadPaymentMethods(): void {
-    this.loading = true;
+    this.loading.set(true);
     this.stripeService
       .loadPaymentMethods()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.loading = false;
+          this.loading.set(false);
         },
         error: (err: Error) => {
-          this.loading = false;
-          this.error = 'Failed to load payment methods';
+          this.loading.set(false);
+          this.error.set('Failed to load payment methods');
           console.error('Error loading payment methods:', err);
         },
       });
   }
 
   async addPaymentMethod(): Promise<void> {
-    if (!this.cardComplete || this.cardForm.invalid || !this.card) {
+    if (!this.cardComplete() || this.cardForm.invalid || !this.card) {
       return;
     }
 
-    this.loading = true;
-    this.error = null;
+    this.loading.set(true);
+    this.error.set(null);
 
     try {
       // Create the payment method with Stripe
@@ -162,26 +165,27 @@ export class ProfileWalletComponent
       this.card.clear();
     } catch (error) {
       console.error('Error adding payment method:', error);
-      this.error =
-        error instanceof Error ? error.message : 'Failed to add payment method';
+      this.error.set(
+        error instanceof Error ? error.message : 'Failed to add payment method'
+      );
     } finally {
-      this.loading = false;
+      this.loading.set(false);
     }
   }
 
   deletePaymentMethod(id: string): void {
     if (confirm('Are you sure you want to remove this payment method?')) {
-      this.loading = true;
+      this.loading.set(true);
       this.stripeService
         .deletePaymentMethod(id)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: () => {
-            this.loading = false;
+            this.loading.set(false);
           },
           error: (err: Error) => {
-            this.loading = false;
-            this.error = 'Failed to remove payment method';
+            this.loading.set(false);
+            this.error.set('Failed to remove payment method');
             console.error('Error removing payment method:', err);
           },
         });

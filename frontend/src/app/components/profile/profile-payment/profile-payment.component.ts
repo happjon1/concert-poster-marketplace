@@ -1,4 +1,10 @@
-import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  input,
+  output,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormArray,
@@ -21,15 +27,16 @@ import { StripeService } from '../../../services/stripe.service';
       }
     `,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfilePaymentComponent implements OnInit {
-  @Input() paymentMethods: PaymentMethod[] = [];
-  @Input() saving = false;
-  @Output() savePaymentMethods = new EventEmitter<{
+  paymentMethods = input<PaymentMethod[]>([]);
+  saving = input<boolean>(false);
+  savePaymentMethods = output<{
     paymentMethods: PaymentMethod[];
   }>();
-  @Output() cancelEdit = new EventEmitter<void>();
-  @Output() deletePaymentMethod = new EventEmitter<string>();
+  cancelEdit = output<void>();
+  deletePaymentMethod = output<string>();
 
   paymentForm!: FormGroup;
   showAddCardForm = false;
@@ -45,7 +52,7 @@ export class ProfilePaymentComponent implements OnInit {
 
   initializeForm() {
     // Create payment methods array
-    const methodsControls = this.paymentMethods.map(method => {
+    const methodsControls = this.paymentMethods().map(method => {
       return this.fb.group({
         id: [method.id],
         isDefault: [method.isDefault],
@@ -90,7 +97,7 @@ export class ProfilePaymentComponent implements OnInit {
   }
 
   removePaymentMethod(index: number) {
-    const method = this.paymentMethods[index];
+    const method = this.paymentMethods()[index];
     if (method.id) {
       this.deletePaymentMethod.emit(method.id);
     }
@@ -101,7 +108,7 @@ export class ProfilePaymentComponent implements OnInit {
     if (this.paymentForm.valid) {
       // Update the payment methods with form values
       const formValues = this.paymentForm.value.paymentMethods || [];
-      const updatedMethods = this.paymentMethods.map((method, index) => {
+      const updatedMethods = this.paymentMethods().map((method, index) => {
         return {
           ...method,
           isDefault:

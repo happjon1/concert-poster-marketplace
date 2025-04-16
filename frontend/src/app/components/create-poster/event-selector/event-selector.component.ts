@@ -1,4 +1,9 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormGroup,
@@ -12,20 +17,21 @@ import { ConcertEvent } from '../../../services/trpc.service';
   templateUrl: './event-selector.component.html',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EventSelectorComponent {
-  @Input() parentForm!: FormGroup;
-  @Input() events: ConcertEvent[] = [];
-  @Input() filteredEvents: ConcertEvent[] = [];
+  parentForm = input.required<FormGroup>();
+  events = input<ConcertEvent[]>([]);
+  filteredEvents = input<ConcertEvent[]>([]);
 
-  @Output() eventSearch = new EventEmitter<string>();
-  @Output() addEvent = new EventEmitter<ConcertEvent>();
-  @Output() removeEvent = new EventEmitter<number>();
+  eventSearch = output<string>();
+  addEvent = output<ConcertEvent>();
+  removeEvent = output<number>();
 
   eventSearchTerm = '';
 
   get eventIdsArray(): FormArray {
-    return this.parentForm.get('eventIds') as FormArray;
+    return this.parentForm().get('eventIds') as FormArray;
   }
 
   onSearch(): void {
@@ -41,6 +47,6 @@ export class EventSelectorComponent {
   }
 
   getEvent(id: string): ConcertEvent | undefined {
-    return this.events.find(e => e.id === id);
+    return this.events().find(e => e.id === id);
   }
 }

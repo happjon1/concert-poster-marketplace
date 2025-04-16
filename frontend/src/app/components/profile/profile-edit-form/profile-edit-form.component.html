@@ -72,15 +72,15 @@
       type="button"
       class="btn btn-outline-danger me-2"
       (click)="onCancelEdit()"
-      [disabled]="saving">
+      [disabled]="saving()">
       Cancel
     </button>
 
     <button
       type="submit"
       class="btn btn-primary"
-      [disabled]="profileForm.invalid || saving">
-      @if (saving) {
+      [disabled]="profileForm.invalid || saving()">
+      @if (saving()) {
         <span
           class="spinner-border spinner-border-sm me-2"
           role="status"></span>

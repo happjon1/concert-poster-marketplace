@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { User } from '../../../services/trpc.service';
 
@@ -8,11 +8,12 @@ import { User } from '../../../services/trpc.service';
   imports: [CommonModule],
   templateUrl: './profile-header.component.html',
   styleUrls: ['./profile-header.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileHeaderComponent {
-  @Input() user!: User;
-  @Input() enableEditMode!: () => void;
-  @Input() editMode = false;
+  user = input.required<User>();
+  enableEditMode = input.required<() => void>();
+  editMode = input<boolean>(false);
 
   getInitials(name: string | null | undefined): string {
     if (!name) return '';

@@ -80,8 +80,8 @@
     }
 
     @if (
-      parentForm.get('artistIds')?.touched &&
-      parentForm.get('artistIds')?.invalid
+      parentForm().get('artistIds')?.touched &&
+      parentForm().get('artistIds')?.invalid
     ) {
       <div class="invalid-feedback d-block">
         Please select at least one artist

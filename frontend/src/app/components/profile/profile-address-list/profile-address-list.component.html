@@ -1,9 +1,9 @@
 <div class="address-list-container">
-  @if (readOnly) {
+  @if (readOnly()) {
     <!-- Read-only mode -->
     <div class="address-list">
-      @if (addresses && addresses.length > 0) {
-        @for (address of addresses; track address.id) {
+      @if (addresses() && addresses().length > 0) {
+        @for (address of addresses(); track address.id) {
           <div class="card mb-3">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start">
@@ -38,8 +38,8 @@
   } @else {
     <!-- Edit mode -->
     <div class="address-list-edit">
-      @if (addresses && addresses.length > 0) {
-        @for (address of addresses; track address.id; let i = $index) {
+      @if (addresses() && addresses().length > 0) {
+        @for (address of addresses(); track address.id; let i = $index) {
           <div class="card mb-3">
             <div class="card-body">
               <div
@@ -51,7 +51,7 @@
                   type="button"
                   class="btn btn-outline-danger btn-sm"
                   (click)="onDelete(address.id)"
-                  [disabled]="saving">
+                  [disabled]="saving()">
                   <i class="bi bi-trash"></i> Remove
                 </button>
               </div>
@@ -121,7 +121,7 @@
           type="button"
           class="btn btn-outline-primary mb-3"
           (click)="toggleNewAddressForm()"
-          [disabled]="saving">
+          [disabled]="saving()">
           <i class="bi bi-plus-circle me-1"></i> Add New Address
         </button>
       }
@@ -136,7 +136,7 @@
               type="button"
               class="btn-close"
               (click)="toggleNewAddressForm()"
-              [disabled]="saving">
+              [disabled]="saving()">
               <span class="visually-hidden">Close</span>
             </button>
           </div>
@@ -202,15 +202,15 @@
           type="button"
           class="btn btn-secondary me-2"
           (click)="onCancel()"
-          [disabled]="saving">
+          [disabled]="saving()">
           Cancel
         </button>
         <button
           type="button"
           class="btn btn-primary"
           (click)="onSave()"
-          [disabled]="saving">
-          @if (saving) {
+          [disabled]="saving()">
+          @if (saving()) {
             <span
               class="spinner-border spinner-border-sm me-1"
               role="status"

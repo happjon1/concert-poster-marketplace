@@ -6,7 +6,7 @@
         <h5 class="mb-0">Images</h5>
       </div>
       <span class="badge bg-light text-dark"
-        >{{ uploadedImages.length }}/{{ maxImages }}</span
+        >{{ uploadedImages().length }}/{{ maxImages() }}</span
       >
     </div>
   </div>
@@ -39,16 +39,16 @@
         class="d-none"
         accept="image/*"
         multiple
-        [disabled]="uploadedImages.length >= maxImages || isUploading"
+        [disabled]="uploadedImages().length >= maxImages() || isUploading()"
         (change)="onFileSelected($event)" />
 
       <div class="text-muted small">
-        You can upload up to {{ maxImages }} high-quality images
+        You can upload up to {{ maxImages() }} high-quality images
       </div>
     </div>
 
     <!-- Upload Progress -->
-    <div *ngIf="isUploading" class="mb-4">
+    <div *ngIf="isUploading()" class="mb-4">
       <div class="progress mb-2">
         <div
           class="progress-bar progress-bar-striped progress-bar-animated"
@@ -61,28 +61,28 @@
     </div>
 
     <!-- Image Gallery -->
-    <div *ngIf="uploadedImages.length > 0" class="mt-4">
+    <div *ngIf="uploadedImages().length > 0" class="mt-4">
       <!-- Image Preview -->
       <div
         class="position-relative mb-3 bg-light rounded"
         style="height: 400px">
         <img
-          [src]="uploadedImages[activeImageIndex]"
+          [src]="uploadedImages()[activeImageIndex()]"
           class="d-block mx-auto h-100"
           style="object-fit: contain"
-          [alt]="'Poster image ' + (activeImageIndex + 1)" />
+          [alt]="'Poster image ' + (activeImageIndex() + 1)" />
 
         <!-- Navigation Controls -->
         <div
           class="position-absolute top-50 start-0 end-0 d-flex justify-content-between px-3"
-          *ngIf="uploadedImages.length > 1">
+          *ngIf="uploadedImages().length > 1">
           <button
             type="button"
             class="btn btn-light rounded-circle shadow-sm"
             (click)="
               onSetActiveImage(
-                (activeImageIndex - 1 + uploadedImages.length) %
-                  uploadedImages.length
+                (activeImageIndex() - 1 + uploadedImages().length) %
+                  uploadedImages().length
               )
             ">
             <i class="bi bi-chevron-left"></i>
@@ -91,7 +91,9 @@
             type="button"
             class="btn btn-light rounded-circle shadow-sm"
             (click)="
-              onSetActiveImage((activeImageIndex + 1) % uploadedImages.length)
+              onSetActiveImage(
+                (activeImageIndex() + 1) % uploadedImages().length
+              )
             ">
             <i class="bi bi-chevron-right"></i>
           </button>
@@ -101,13 +103,13 @@
         <div class="position-absolute bottom-0 start-0 end-0 pb-2 text-center">
           <div class="d-flex justify-content-center align-items-center gap-2">
             <span class="badge bg-dark px-3 py-2">
-              {{ activeImageIndex + 1 }} / {{ uploadedImages.length }}
+              {{ activeImageIndex() + 1 }} / {{ uploadedImages().length }}
             </span>
             <!-- Mobile-friendly remove button -->
             <button
               type="button"
               class="btn btn-danger btn-sm d-md-none"
-              (click)="onRemoveImage(activeImageIndex)">
+              (click)="onRemoveImage(activeImageIndex())">
               <i class="bi bi-trash me-1"></i> Remove
             </button>
           </div>
@@ -117,12 +119,12 @@
       <!-- Thumbnails -->
       <div class="d-flex flex-wrap gap-2 justify-content-center">
         <div
-          *ngFor="let image of uploadedImages; let i = index"
+          *ngFor="let image of uploadedImages(); let i = index"
           class="position-relative thumbnail-wrapper">
           <img
             [src]="image"
             class="img-thumbnail"
-            [class.border-primary]="i === activeImageIndex"
+            [class.border-primary]="i === activeImageIndex()"
             style="
               width: 80px;
               height: 80px;

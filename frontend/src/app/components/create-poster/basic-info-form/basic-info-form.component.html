@@ -1,4 +1,4 @@
-<div class="card shadow-sm mb-4" *ngIf="parentForm">
+<div class="card shadow-sm mb-4" *ngIf="parentForm()">
   <div class="card-header bg-white py-3">
     <div class="d-flex align-items-center">
       <span class="badge bg-primary rounded-pill me-2">1</span>
@@ -6,9 +6,9 @@
     </div>
   </div>
 
-  <div class="card-body p-4" [formGroup]="parentForm">
+  <div class="card-body p-4" [formGroup]="parentForm()">
     <!-- Always check if parentForm exists and control is accessible -->
-    <div class="mb-3" *ngIf="parentForm.get('title')">
+    <div class="mb-3" *ngIf="parentForm().get('title')">
       <label for="title" class="form-label">Title</label>
       <input
         type="text"
@@ -17,24 +17,24 @@
         class="form-control"
         [ngClass]="{
           'is-invalid':
-            parentForm.get('title')?.touched &&
-            parentForm.get('title')?.invalid,
+            parentForm().get('title')?.touched &&
+            parentForm().get('title')?.invalid,
         }"
         placeholder="Enter a descriptive title" />
       <div
         class="invalid-feedback"
-        *ngIf="parentForm.get('title')?.errors?.['required']">
+        *ngIf="parentForm().get('title')?.errors?.['required']">
         Title is required
       </div>
       <div
         class="invalid-feedback"
-        *ngIf="parentForm.get('title')?.errors?.['minlength']">
+        *ngIf="parentForm().get('title')?.errors?.['minlength']">
         Title must be at least 3 characters
       </div>
     </div>
 
     <!-- Description -->
-    <div class="mb-3" *ngIf="parentForm.get('description')">
+    <div class="mb-3" *ngIf="parentForm().get('description')">
       <label for="description" class="form-label">Description</label>
       <textarea
         id="description"
@@ -42,21 +42,21 @@
         class="form-control"
         [ngClass]="{
           'is-invalid':
-            parentForm.get('description')?.touched &&
-            parentForm.get('description')?.invalid,
+            parentForm().get('description')?.touched &&
+            parentForm().get('description')?.invalid,
         }"
         rows="3"
         placeholder="Describe your poster's unique features and condition"></textarea>
       <div
         class="invalid-feedback"
-        *ngIf="parentForm.get('description')?.errors?.['required']">
+        *ngIf="parentForm().get('description')?.errors?.['required']">
         Description is required
       </div>
     </div>
 
     <div class="row">
       <!-- Condition -->
-      <div class="col-md-6 mb-3" *ngIf="parentForm.get('condition')">
+      <div class="col-md-6 mb-3" *ngIf="parentForm().get('condition')">
         <label for="condition" class="form-label">Condition</label>
         <select
           id="condition"
@@ -64,8 +64,8 @@
           class="form-select"
           [ngClass]="{
             'is-invalid':
-              parentForm.get('condition')?.touched &&
-              parentForm.get('condition')?.invalid,
+              parentForm().get('condition')?.touched &&
+              parentForm().get('condition')?.invalid,
           }">
           <option value="">Select condition</option>
           <option value="mint">Mint - Perfect condition</option>
@@ -79,7 +79,7 @@
       </div>
 
       <!-- Dimensions -->
-      <div class="col-md-6 mb-3" *ngIf="parentForm.get('dimensions')">
+      <div class="col-md-6 mb-3" *ngIf="parentForm().get('dimensions')">
         <label for="dimensions" class="form-label">Dimensions</label>
         <input
           type="text"
@@ -88,8 +88,8 @@
           class="form-control"
           [ngClass]="{
             'is-invalid':
-              parentForm.get('dimensions')?.touched &&
-              parentForm.get('dimensions')?.invalid,
+              parentForm().get('dimensions')?.touched &&
+              parentForm().get('dimensions')?.invalid,
           }"
           placeholder="e.g. 24in x 36in" />
         <div class="invalid-feedback">Please enter dimensions</div>

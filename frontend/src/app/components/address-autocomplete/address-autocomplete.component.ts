@@ -1,12 +1,12 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
-  EventEmitter,
-  Input,
   NgZone,
   OnInit,
-  Output,
   ViewChild,
+  input,
+  output,
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule, NgIf } from '@angular/common';
@@ -75,12 +75,13 @@ type GoogleMapsSessionToken = Record<string, unknown>;
   styleUrls: ['./address-autocomplete.component.scss'],
   standalone: true,
   imports: [ReactiveFormsModule, NgIf, CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AddressAutocompleteComponent implements OnInit {
   @ViewChild('addressInput') addressInput!: ElementRef<HTMLInputElement>;
-  @Input() placeholder = 'Enter your address';
-  @Input() initialAddress: Partial<AutocompleteAddress> = {};
-  @Output() addressSelected = new EventEmitter<AutocompleteAddress | null>();
+  placeholder = input<string>('Enter your address');
+  initialAddress = input<Partial<AutocompleteAddress>>({});
+  addressSelected = output<AutocompleteAddress | null>();
 
   addressControl = new FormControl('');
   autocomplete: GoogleMapsAutocomplete | null = null;
@@ -96,7 +97,10 @@ export class AddressAutocompleteComponent implements OnInit {
     this.loadGoogleMapsScript();
 
     // Initialize with any provided address
-    if (this.initialAddress && Object.keys(this.initialAddress).length > 0) {
+    if (
+      this.initialAddress() &&
+      Object.keys(this.initialAddress()).length > 0
+    ) {
       this.formatAddressForDisplay();
     }
   }
@@ -246,14 +250,16 @@ export class AddressAutocompleteComponent implements OnInit {
   }
 
   formatAddressForDisplay(): void {
-    if (!this.initialAddress) return;
+    if (!this.initialAddress()) return;
 
     const parts = [];
-    if (this.initialAddress.address1) parts.push(this.initialAddress.address1);
-    if (this.initialAddress.city) parts.push(this.initialAddress.city);
-    if (this.initialAddress.state) parts.push(this.initialAddress.state);
-    if (this.initialAddress.zip) parts.push(this.initialAddress.zip);
-    if (this.initialAddress.country) parts.push(this.initialAddress.country);
+    if (this.initialAddress().address1)
+      parts.push(this.initialAddress().address1);
+    if (this.initialAddress().city) parts.push(this.initialAddress().city);
+    if (this.initialAddress().state) parts.push(this.initialAddress().state);
+    if (this.initialAddress().zip) parts.push(this.initialAddress().zip);
+    if (this.initialAddress().country)
+      parts.push(this.initialAddress().country);
 
     this.addressControl.setValue(parts.join(', '));
   }

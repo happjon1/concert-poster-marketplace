@@ -1,20 +1,20 @@
 <div class="wallet-container">
   <!-- Error message display -->
-  <div *ngIf="error" class="alert alert-danger" role="alert">
-    <p>{{ error }}</p>
+  <div *ngIf="error()" class="alert alert-danger" role="alert">
+    <p>{{ error() }}</p>
   </div>
 
   <!-- Loading indicator -->
-  <div *ngIf="loading" class="d-flex justify-content-center my-4">
+  <div *ngIf="loading()" class="d-flex justify-content-center my-4">
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Loading...</span>
     </div>
   </div>
 
   <!-- List of saved payment methods -->
-  <div class="saved-methods mb-4" *ngIf="paymentMethods.length > 0">
+  <div class="saved-methods mb-4" *ngIf="paymentMethods().length > 0">
     <h5 class="mb-3">Your Payment Methods</h5>
-    <div class="card mb-3" *ngFor="let method of paymentMethods">
+    <div class="card mb-3" *ngFor="let method of paymentMethods()">
       <div class="card-body d-flex justify-content-between align-items-center">
         <div class="payment-info">
           <div class="d-flex align-items-center">
@@ -86,7 +86,7 @@
 
       <button
         type="submit"
-        [disabled]="!cardComplete || cardForm.invalid || loading"
+        [disabled]="!cardComplete() || cardForm.invalid || loading()"
         class="btn btn-primary">
         Add Payment Method
       </button>

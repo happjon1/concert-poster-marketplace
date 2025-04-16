@@ -5,7 +5,7 @@
       <h5 class="mb-0">Listing Details</h5>
     </div>
   </div>
-  <div class="card-body p-4" [formGroup]="parentForm">
+  <div class="card-body p-4" [formGroup]="parentForm()">
     <!-- Listing Type -->
     <div class="mb-4">
       <label for="listingType" class="form-label">Listing Type</label>
@@ -36,7 +36,7 @@
     </div>
 
     <!-- Buy Now Fields -->
-    <div *ngIf="listingType === 'buyNow'" class="mb-3">
+    <div *ngIf="listingType() === 'buyNow'" class="mb-3">
       <label for="buyNowPrice" class="form-label">Price</label>
       <div class="input-group mb-2">
         <span class="input-group-text">$</span>
@@ -47,8 +47,8 @@
           class="form-control form-control-lg"
           [ngClass]="{
             'is-invalid':
-              parentForm.get('buyNowPrice')?.touched &&
-              parentForm.get('buyNowPrice')?.invalid,
+              parentForm().get('buyNowPrice')?.touched &&
+              parentForm().get('buyNowPrice')?.invalid,
           }"
           placeholder="0.00"
           min="1"
@@ -58,7 +58,7 @@
     </div>
 
     <!-- Auction Fields -->
-    <div *ngIf="listingType === 'auction'" class="row g-3">
+    <div *ngIf="listingType() === 'auction'" class="row g-3">
       <div class="col-md-6">
         <label for="auctionMinPrice" class="form-label">Starting Price</label>
         <div class="input-group mb-2">
@@ -70,8 +70,8 @@
             class="form-control"
             [ngClass]="{
               'is-invalid':
-                parentForm.get('auctionMinPrice')?.touched &&
-                parentForm.get('auctionMinPrice')?.invalid,
+                parentForm().get('auctionMinPrice')?.touched &&
+                parentForm().get('auctionMinPrice')?.invalid,
             }"
             placeholder="0.00"
             min="1"
@@ -89,8 +89,8 @@
           class="form-control"
           [ngClass]="{
             'is-invalid':
-              parentForm.get('auctionEndDate')?.touched &&
-              parentForm.get('auctionEndDate')?.invalid,
+              parentForm().get('auctionEndDate')?.touched &&
+              parentForm().get('auctionEndDate')?.invalid,
           }" />
         <div class="invalid-feedback">Please select a valid end date</div>
       </div>

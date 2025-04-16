@@ -1,4 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -17,6 +23,7 @@ import { TrpcService } from '../../services/trpc.service';
   imports: [ReactiveFormsModule, FormsModule, RouterLink, CommonModule],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegisterComponent implements OnInit {
   trpc = inject(TrpcService);
@@ -24,6 +31,8 @@ export class RegisterComponent implements OnInit {
   acceptTerms = false; // For the terms and conditions checkbox
   hidePassword = true;
   hideConfirmPassword = true;
+  submitting = signal<boolean>(false);
+  errorMessage = signal<string>('');
 
   authService = inject(AuthService); // Injecting AuthService for authentication
 
@@ -53,17 +62,38 @@ export class RegisterComponent implements OnInit {
     return password === confirmPassword ? null : { passwordMismatch: true };
   }
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (this.registerForm.valid && this.acceptTerms) {
-      this.trpc.register({
-        email: this.registerForm.value.email,
-        name: this.registerForm.value.name,
-        passwordHash: this.registerForm.value.password,
-      });
+      this.submitting.set(true);
+      this.errorMessage.set('');
 
-      this.router.navigate(['/']);
+      try {
+        await this.trpc.register({
+          email: this.registerForm.value.email,
+          name: this.registerForm.value.name,
+          passwordHash: this.registerForm.value.password,
+        });
+
+        this.router.navigate(['/']);
+      } catch (error) {
+        console.error('Registration error:', error);
+        if (error instanceof Error) {
+          this.errorMessage.set(error.message);
+        } else {
+          this.errorMessage.set('Registration failed. Please try again.');
+        }
+      } finally {
+        this.submitting.set(false);
+      }
     } else {
-      console.error('Form is invalid or terms not accepted');
+      // Mark form controls as touched to trigger validation messages
+      this.registerForm.markAllAsTouched();
+
+      if (!this.acceptTerms) {
+        this.errorMessage.set(
+          'Please accept the terms and conditions to continue.'
+        );
+      }
     }
   }
 }

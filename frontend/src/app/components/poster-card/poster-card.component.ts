@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 @Component({
   selector: 'app-poster-card',
@@ -6,5 +6,6 @@ import { Component } from '@angular/core';
   templateUrl: './poster-card.component.html',
   styleUrl: './poster-card.component.scss',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PosterCardComponent {}

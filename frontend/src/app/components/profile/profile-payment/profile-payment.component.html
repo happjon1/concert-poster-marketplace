@@ -2,8 +2,8 @@
   <form [formGroup]="paymentForm" (ngSubmit)="onSubmit()">
     <div formArrayName="paymentMethods">
       <!-- Existing Payment Methods -->
-      @if (paymentMethods && paymentMethods.length > 0) {
-        @for (method of paymentMethods; track method.id; let i = $index) {
+      @if (paymentMethods() && paymentMethods().length > 0) {
+        @for (method of paymentMethods(); track method.id; let i = $index) {
           <div class="card mb-3" [formGroupName]="i">
             <div class="card-body">
               <div
@@ -58,7 +58,7 @@
         type="button"
         class="btn btn-primary"
         (click)="toggleAddCardForm()"
-        [disabled]="saving">
+        [disabled]="saving()">
         <i class="bi bi-plus-circle me-1"></i>
         @if (showAddCardForm) {
           Cancel Adding Payment Method
@@ -93,14 +93,14 @@
         type="button"
         class="btn btn-secondary me-2"
         (click)="onCancel()"
-        [disabled]="saving">
+        [disabled]="saving()">
         Cancel
       </button>
       <button
         type="submit"
         class="btn btn-primary"
-        [disabled]="!paymentForm.valid || saving">
-        @if (saving) {
+        [disabled]="!paymentForm.valid || saving()">
+        @if (saving()) {
           <span
             class="spinner-border spinner-border-sm me-1"
             role="status"

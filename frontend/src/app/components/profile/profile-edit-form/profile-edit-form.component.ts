@@ -1,4 +1,10 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  input,
+  output,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -8,10 +14,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { User, Address } from '../../../services/trpc.service';
-import {
-  AddressAutocompleteComponent,
-  AutocompleteAddress,
-} from '../../address-autocomplete/address-autocomplete.component';
+import { AutocompleteAddress } from '../../address-autocomplete/address-autocomplete.component';
 
 // Define interface for the form data with multiple sections
 // This needs to match the parent component's ProfileFormData
@@ -39,16 +42,17 @@ type FormSection = 'basic' | 'addresses' | 'wallet';
 @Component({
   selector: 'app-profile-edit-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, AddressAutocompleteComponent],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './profile-edit-form.component.html',
   styleUrls: ['./profile-edit-form.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileEditFormComponent implements OnInit {
-  @Input() user!: User;
-  @Input() saving = false;
-  @Output() saveProfile = new EventEmitter<ProfileFormData>();
-  @Output() cancelEdit = new EventEmitter<void>();
-  @Output() deleteAddress = new EventEmitter<string>();
+  user = input.required<User>();
+  saving = input<boolean>(false);
+  saveProfile = output<ProfileFormData>();
+  cancelEdit = output<void>();
+  deleteAddress = output<string>();
 
   profileForm!: FormGroup;
   activeSection: FormSection = 'basic';
@@ -64,10 +68,13 @@ export class ProfileEditFormComponent implements OnInit {
     this.profileForm = this.fb.group({
       // Basic Information
       name: [
-        this.user?.name || '',
+        this.user()?.name || '',
         [Validators.required, Validators.minLength(2)],
       ],
-      email: [this.user?.email || '', [Validators.required, Validators.email]],
+      email: [
+        this.user()?.email || '',
+        [Validators.required, Validators.email],
+      ],
       bio: ['', [Validators.maxLength(300)]],
 
       // Address Information - will be populated from user.addresses
@@ -89,9 +96,9 @@ export class ProfileEditFormComponent implements OnInit {
     // Clear the addresses form array
     this.addressesFormArray.clear();
 
-    if (this.user?.addresses && this.user.addresses.length > 0) {
+    if (this.user()?.addresses && this.user().addresses.length > 0) {
       // Add form groups for each address
-      this.user.addresses.forEach(address => {
+      this.user().addresses.forEach(address => {
         this.addressesFormArray.push(this.createAddressGroup(address));
       });
     } else {
@@ -119,7 +126,7 @@ export class ProfileEditFormComponent implements OnInit {
       state: [address?.state || ''],
       zip: [address?.zip || ''],
       country: [address?.country || '', Validators.required],
-      isDefault: [address?.id === this.user.defaultAddressId],
+      isDefault: [address?.id === this.user().defaultAddressId],
     });
   }
 
@@ -200,7 +207,7 @@ export class ProfileEditFormComponent implements OnInit {
     // Add the user ID to the form data
     // Format the data to match the expected structure on the backend
     const profileData: ProfileFormData = {
-      id: this.user.id,
+      id: this.user().id,
       name: formValues.name,
       email: formValues.email,
       phone: formValues.phone || undefined,

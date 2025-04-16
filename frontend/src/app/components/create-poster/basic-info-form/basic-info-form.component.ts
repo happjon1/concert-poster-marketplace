@@ -1,4 +1,9 @@
-import { Component, Input, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  input,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 
@@ -7,9 +12,10 @@ import { FormGroup, ReactiveFormsModule } from '@angular/forms';
   templateUrl: './basic-info-form.component.html',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BasicInfoFormComponent implements OnInit {
-  @Input() parentForm!: FormGroup;
+  parentForm = input.required<FormGroup>();
 
   // Required form controls for this component
   private requiredControls = [
@@ -22,7 +28,7 @@ export class BasicInfoFormComponent implements OnInit {
   ngOnInit() {
     // Validate that all needed controls exist
     this.requiredControls.forEach(controlName => {
-      if (!this.parentForm.contains(controlName)) {
+      if (!this.parentForm().contains(controlName)) {
         console.error(
           `Control '${controlName}' is missing from the parent form`
         );

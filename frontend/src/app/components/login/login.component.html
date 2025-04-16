@@ -105,8 +105,16 @@
           </a>
         </div>
 
-        <!-- Error message -->
-        @if (authService.error()) {
+        <!-- Error message from component -->
+        @if (errorMessage()) {
+          <div class="alert alert-danger d-flex align-items-center mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <!-- Error message from service -->
+        @if (authService.error() && !errorMessage()) {
           <div class="alert alert-danger d-flex align-items-center mb-3">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             <span>{{ authService.error() }}</span>
@@ -117,8 +125,17 @@
         <button
           type="submit"
           class="btn btn-primary w-100 mt-2"
-          [disabled]="loginForm.invalid || authService.loading()">
-          Sign In
+          [disabled]="
+            loginForm.invalid || authService.loading() || submitting()
+          ">
+          @if (submitting()) {
+            <span
+              class="spinner-border spinner-border-sm me-2"
+              role="status"></span>
+            Signing In...
+          } @else {
+            Sign In
+          }
         </button>
       </form>
     </div>

@@ -4,13 +4,13 @@
 
   <div class="py-3 border-bottom d-flex">
     <div class="col-4 col-md-3 fw-medium text-secondary">Email</div>
-    <div>{{ user.email }}</div>
+    <div>{{ user().email }}</div>
   </div>
 
-  @if (user.name) {
+  @if (user().name) {
     <div class="py-3 border-bottom d-flex">
       <div class="col-4 col-md-3 fw-medium text-secondary">Name</div>
-      <div>{{ user.name }}</div>
+      <div>{{ user().name }}</div>
     </div>
   }
 </div>
@@ -22,18 +22,18 @@
 
   <div class="py-3 border-bottom d-flex">
     <div class="col-4 col-md-3 fw-medium text-secondary">Account Type</div>
-    <div>{{ user.isAdmin ? 'Administrator' : 'Regular User' }}</div>
+    <div>{{ user().isAdmin ? 'Administrator' : 'Regular User' }}</div>
   </div>
 
   <div class="py-3 border-bottom d-flex">
     <div class="col-4 col-md-3 fw-medium text-secondary">Created</div>
-    <div>{{ user.createdAt | date }}</div>
+    <div>{{ user().createdAt | date }}</div>
   </div>
 
-  @if (user.updatedAt) {
+  @if (user().updatedAt) {
     <div class="py-3 border-bottom d-flex">
       <div class="col-4 col-md-3 fw-medium text-secondary">Last Updated</div>
-      <div>{{ user.updatedAt | date }}</div>
+      <div>{{ user().updatedAt | date }}</div>
     </div>
   }
 </div>

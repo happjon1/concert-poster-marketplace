@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { User } from '../../../services/trpc.service';
 
@@ -8,7 +8,8 @@ import { User } from '../../../services/trpc.service';
   imports: [CommonModule],
   templateUrl: './profile-details.component.html',
   styleUrls: ['./profile-details.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileDetailsComponent {
-  @Input() user!: User;
+  user = input.required<User>();
 }

@@ -1,10 +1,10 @@
 import {
+  ChangeDetectionStrategy,
   Component,
-  Input,
-  Output,
-  EventEmitter,
-  ViewChild,
   ElementRef,
+  ViewChild,
+  input,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormGroup, FormArray, ReactiveFormsModule } from '@angular/forms';
@@ -14,22 +14,23 @@ import { FormGroup, FormArray, ReactiveFormsModule } from '@angular/forms';
   templateUrl: './image-uploader.component.html',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ImageUploaderComponent {
-  @Input() parentForm!: FormGroup;
-  @Input() uploadedImages: string[] = [];
-  @Input() maxImages = 5;
-  @Input() isUploading = false;
-  @Input() activeImageIndex = 0;
+  parentForm = input.required<FormGroup>();
+  uploadedImages = input<string[]>([]);
+  maxImages = input<number>(5);
+  isUploading = input<boolean>(false);
+  activeImageIndex = input<number>(0);
 
-  @Output() fileSelected = new EventEmitter<Event>();
-  @Output() setActiveImage = new EventEmitter<number>();
-  @Output() removeImage = new EventEmitter<number>();
+  fileSelected = output<Event>();
+  setActiveImage = output<number>();
+  removeImage = output<number>();
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   get imagesArray(): FormArray {
-    return this.parentForm.get('images') as FormArray;
+    return this.parentForm().get('images') as FormArray;
   }
 
   onFileSelected(event: Event): void {

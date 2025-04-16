@@ -1,12 +1,11 @@
 import {
-  Component,
-  Input,
-  Output,
-  EventEmitter,
-  signal,
   ChangeDetectionStrategy,
-  inject,
+  Component,
   OnInit,
+  input,
+  inject,
+  output,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -35,11 +34,11 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ArtistSelectorComponent implements OnInit {
-  @Input() parentForm!: FormGroup;
-  @Output() addArtist = new EventEmitter<Artist>();
-  @Output() removeArtist = new EventEmitter<number>();
+  parentForm = input.required<FormGroup>();
+  addArtist = output<Artist>();
+  removeArtist = output<number>();
 
-  // Convert to signals for better OnPush compatibility
+  // Signal-based state management
   initialArtists = signal<Artist[]>([]);
   artists = signal<Artist[]>([]);
   artistSearchTerm = '';
@@ -49,7 +48,7 @@ export class ArtistSelectorComponent implements OnInit {
   artistService = inject(ArtistService);
 
   get artistIdsArray(): FormArray {
-    return this.parentForm.get('artistIds') as FormArray;
+    return this.parentForm().get('artistIds') as FormArray;
   }
 
   constructor() {

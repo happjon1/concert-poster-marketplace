@@ -1,4 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  signal,
+} from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -16,13 +21,14 @@ import { CommonModule } from '@angular/common';
   imports: [ReactiveFormsModule, RouterLink, FormsModule, CommonModule],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginComponent implements OnInit {
   loginForm: FormGroup;
   hidePassword = true;
   rememberMe = false;
-  errorMessage = '';
-  submitting = false;
+  errorMessage = signal<string>('');
+  submitting = signal<boolean>(false);
   returnUrl = '/'; // Default redirect URL
 
   constructor(
@@ -53,8 +59,8 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    this.submitting = true;
-    this.errorMessage = '';
+    this.submitting.set(true);
+    this.errorMessage.set('');
 
     try {
       // Using the updated login method that now returns an Observable
@@ -63,13 +69,13 @@ export class LoginComponent implements OnInit {
         passwordHash: this.loginForm.value.password,
       });
 
-      this.submitting = false;
+      this.submitting.set(false);
 
       // Navigate to the return URL after successful login
       console.log(`Login successful, redirecting to: ${this.returnUrl}`);
       this.router.navigateByUrl(this.returnUrl);
     } catch (error: unknown) {
-      this.submitting = false;
+      this.submitting.set(false);
 
       // Fixed error handling for tRPC errors
       if (typeof error === 'object' && error !== null) {
@@ -80,15 +86,15 @@ export class LoginComponent implements OnInit {
           error.shape &&
           'message' in error.shape
         ) {
-          this.errorMessage = String(error.shape.message);
+          this.errorMessage.set(String(error.shape.message));
         }
         // Handle standard Error objects
         else if (error instanceof Error) {
-          this.errorMessage = error.message;
+          this.errorMessage.set(error.message);
         }
         // Handle objects with message property
         else if ('message' in error && typeof error.message === 'string') {
-          this.errorMessage = error.message;
+          this.errorMessage.set(error.message);
         }
         // Handle objects with data.message path (common in some APIs)
         else if (
@@ -97,12 +103,12 @@ export class LoginComponent implements OnInit {
           error.data &&
           'message' in error.data
         ) {
-          this.errorMessage = String(error.data.message);
+          this.errorMessage.set(String(error.data.message));
         } else {
-          this.errorMessage = 'Login failed. Please check your credentials.';
+          this.errorMessage.set('Login failed. Please check your credentials.');
         }
       } else {
-        this.errorMessage = 'Login failed. Please check your credentials.';
+        this.errorMessage.set('Login failed. Please check your credentials.');
       }
 
       console.error('Login error:', error);

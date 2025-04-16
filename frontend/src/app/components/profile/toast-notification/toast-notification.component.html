@@ -5,7 +5,7 @@
     role="alert"
     aria-live="assertive"
     aria-atomic="true"
-    *ngIf="show">
+    *ngIf="show()">
     <div class="toast-header">
       <strong class="me-auto">Notification</strong>
       <button
@@ -15,7 +15,7 @@
         (click)="hide()"></button>
     </div>
     <div class="toast-body">
-      {{ message }}
+      {{ message() }}
     </div>
   </div>
 </div>
