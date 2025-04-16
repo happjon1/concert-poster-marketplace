@@ -23,6 +23,9 @@ export class HomeComponent implements OnInit {
   itemsPerPage = 24;
   nextCursor: string | null = null;
 
+  // Store cursors for each page to handle refreshes properly
+  private pageCursors: Map<number, string> = new Map<number, string>();
+
   // Filtering and sorting
   filter = '';
   sort = 'newest';
@@ -41,15 +44,71 @@ export class HomeComponent implements OnInit {
       // Get filter parameters from URL
       this.filter = params['filter'] || '';
       this.sort = params['sort'] || 'newest';
-      this.artistId = params['artistId']
-        ? Number(params['artistId'])
-        : undefined;
-      this.eventId = params['eventId'] ? Number(params['eventId']) : undefined;
-      this.currentPage = params['page'] ? Number(params['page']) : 1;
+
+      // Properly parse numeric parameters with safeguards
+      if (params['artistId'] && !isNaN(Number(params['artistId']))) {
+        this.artistId = Number(params['artistId']);
+      } else {
+        this.artistId = undefined;
+      }
+
+      if (params['eventId'] && !isNaN(Number(params['eventId']))) {
+        this.eventId = Number(params['eventId']);
+      } else {
+        this.eventId = undefined;
+      }
+
+      if (
+        params['page'] &&
+        !isNaN(Number(params['page'])) &&
+        Number(params['page']) > 0
+      ) {
+        this.currentPage = Number(params['page']);
+      } else {
+        this.currentPage = 1;
+      }
+
+      // Reset cursors if filter/sort parameters change
+      if (
+        params['filter'] !== this.filter ||
+        params['sort'] !== this.sort ||
+        params['artistId'] !== this.artistId?.toString() ||
+        params['eventId'] !== this.eventId?.toString()
+      ) {
+        this.pageCursors.clear();
+      }
+
+      // Log for debugging
+      console.log('Query params loaded:', {
+        filter: this.filter,
+        sort: this.sort,
+        artistId: this.artistId,
+        eventId: this.eventId,
+        page: this.currentPage,
+      });
 
       // Fetch posters with new params
       this.fetchPosters();
     });
+  }
+
+  /**
+   * Get cursor for current page
+   */
+  private getPageCursor(): string | undefined {
+    // First page doesn't need a cursor
+    if (this.currentPage === 1) {
+      return undefined;
+    }
+
+    // Check if we have a stored cursor for this page
+    if (this.pageCursors.has(this.currentPage)) {
+      return this.pageCursors.get(this.currentPage);
+    }
+
+    // If we don't have a cursor for the requested page but need to go beyond page 1
+    // We'll need to fetch pages sequentially to build cursor chain
+    return undefined;
   }
 
   /**
@@ -60,17 +119,37 @@ export class HomeComponent implements OnInit {
     this.error = '';
 
     try {
+      // For pages > 1 without stored cursors, we need to build the cursor chain
+      if (this.currentPage > 1 && !this.pageCursors.has(this.currentPage)) {
+        await this.buildCursorChain();
+      }
+
+      const cursor = this.getPageCursor();
+
       const response = await this.trpcService.getAllPosters({
         limit: this.itemsPerPage,
-        cursor: this.getPageCursor(),
+        cursor: cursor,
         filter: this.filter || undefined,
         artistId: this.artistId,
         eventId: this.eventId,
       });
 
       this.items = response.items;
+
+      // Store the next cursor for future navigation
+      if (response.nextCursor) {
+        this.pageCursors.set(this.currentPage + 1, response.nextCursor);
+      }
+
       this.nextCursor = response.nextCursor;
-      this.totalItems = 120; // Temporary hard-coded value until backend provides total count
+
+      // If the backend provides total count, use it instead of hardcoded value
+      if (response.total) {
+        this.totalItems = response.total;
+      } else {
+        this.totalItems = 120; // Temporary hard-coded value
+      }
+
       this.loading = false;
     } catch (err) {
       this.error = 'Failed to load posters';
@@ -80,15 +159,40 @@ export class HomeComponent implements OnInit {
   }
 
   /**
-   * Get cursor for current page
+   * Build cursor chain by fetching pages sequentially until we reach desired page
+   * This is necessary when directly accessing a page via URL
    */
-  private getPageCursor(): string | undefined {
-    // Implementation will depend on how cursor-based pagination is handled
-    // For now, we'll just handle first page with no cursor
-    if (this.currentPage === 1) {
-      return undefined;
+  private async buildCursorChain(): Promise<void> {
+    let currentCursor: string | undefined = undefined;
+    let pageToFetch = 1;
+
+    // Start from page 1 and build up cursors until we reach the page before our target
+    while (pageToFetch < this.currentPage) {
+      try {
+        // Fetch just enough data to get the next cursor
+        const response = await this.trpcService.getAllPosters({
+          limit: this.itemsPerPage,
+          cursor: currentCursor,
+          filter: this.filter || undefined,
+          artistId: this.artistId,
+          eventId: this.eventId,
+        });
+
+        // If we got a next cursor, store it and continue
+        if (response.nextCursor) {
+          // Store the cursor for the next page
+          this.pageCursors.set(pageToFetch + 1, response.nextCursor);
+          currentCursor = response.nextCursor;
+          pageToFetch++;
+        } else {
+          // No more pages available
+          break;
+        }
+      } catch (error) {
+        console.error('Error building cursor chain:', error);
+        break;
+      }
     }
-    return this.nextCursor || undefined;
   }
 
   /**
