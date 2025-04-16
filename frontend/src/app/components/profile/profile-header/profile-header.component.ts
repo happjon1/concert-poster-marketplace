@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  computed,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { User } from '../../../services/trpc.service';
 
@@ -12,10 +17,11 @@ import { User } from '../../../services/trpc.service';
 })
 export class ProfileHeaderComponent {
   user = input.required<User>();
-  enableEditMode = input.required<() => void>();
   editMode = input<boolean>(false);
 
-  getInitials(name: string | null | undefined): string {
+  // Convert getInitials to a computed signal
+  initials = computed(() => {
+    const name = this.user()?.name;
     if (!name) return '';
 
     // Split the name and get initials from first and last parts
@@ -28,5 +34,5 @@ export class ProfileHeaderComponent {
       // If only one name, just use the first letter
       return nameParts[0][0].toUpperCase();
     }
-  }
+  });
 }

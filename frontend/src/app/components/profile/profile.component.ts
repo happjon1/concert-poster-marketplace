@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import {
@@ -18,6 +18,13 @@ import { ProfileEditFormComponent } from './profile-edit-form/profile-edit-form.
 import { ProfileAddressListComponent } from './profile-address-list/profile-address-list.component';
 import { ProfilePaymentComponent } from './profile-payment/profile-payment.component';
 import { ToastNotificationComponent } from './toast-notification/toast-notification.component';
+
+// Define TabType enum
+export enum TabType {
+  BASIC = 'basic',
+  ADDRESSES = 'addresses',
+  PAYMENT = 'payment',
+}
 
 @Component({
   selector: 'app-profile',
@@ -39,15 +46,19 @@ export class ProfileComponent implements OnInit {
   private trpcService = inject(TrpcService);
   private stripeService = inject(StripeService);
 
-  editMode = false;
-  editBasicDetails = false;
-  editAddresses = false;
-  editPayment = false;
-  saving = false;
-  showToast = false;
-  toastMessage = '';
-  activeTab = 'basic'; // Default active tab
-  paymentMethods: PaymentMethod[] = [];
+  // Make TabType available in the template
+  TabType = TabType;
+
+  // Convert all properties to signals
+  editMode = signal(false);
+  editBasicDetails = signal(false);
+  editAddresses = signal(false);
+  editPayment = signal(false);
+  saving = signal(false);
+  showToast = signal(false);
+  toastMessage = signal('');
+  activeTab = signal<TabType>(TabType.BASIC); // Default active tab
+  paymentMethods = signal<PaymentMethod[]>([]);
 
   ngOnInit() {
     // Load payment methods when component initializes
@@ -57,91 +68,69 @@ export class ProfileComponent implements OnInit {
   private loadPaymentMethods() {
     this.stripeService.loadPaymentMethods().subscribe({
       next: methods => {
-        this.paymentMethods = methods;
+        this.paymentMethods.set(methods);
       },
       error: err => {
         console.error('Error loading payment methods:', err);
-        this.toastMessage = 'Failed to load payment methods';
-        this.showToast = true;
+        this.toastMessage.set('Failed to load payment methods');
+        this.showToast.set(true);
       },
     });
   }
 
-  setActiveTab(tab: string) {
-    this.activeTab = tab;
+  setActiveTab(tab: TabType) {
+    this.activeTab.set(tab);
 
     // Reload payment methods when switching to payment tab
-    if (tab === 'payment') {
+    if (tab === TabType.PAYMENT) {
       this.loadPaymentMethods();
     }
   }
 
   // Basic Details tab methods
   enableBasicDetailsEdit() {
-    this.editBasicDetails = true;
+    this.editBasicDetails.set(true);
   }
 
   cancelBasicDetailsEdit() {
-    this.editBasicDetails = false;
+    this.editBasicDetails.set(false);
   }
 
   // Addresses tab methods
   enableAddressesEdit() {
-    this.editAddresses = true;
+    this.editAddresses.set(true);
   }
 
   cancelAddressesEdit() {
-    this.editAddresses = false;
+    this.editAddresses.set(false);
   }
 
   // Payment tab methods
   enablePaymentEdit() {
-    this.editPayment = true;
+    this.editPayment.set(true);
   }
 
   cancelPaymentEdit() {
-    this.editPayment = false;
-  }
-
-  // Legacy method (for backward compatibility)
-  enableEditMode() {
-    if (this.activeTab === 'basic') {
-      this.enableBasicDetailsEdit();
-    } else if (this.activeTab === 'addresses') {
-      this.enableAddressesEdit();
-    } else if (this.activeTab === 'payment') {
-      this.enablePaymentEdit();
-    }
-  }
-
-  // Legacy method (for backward compatibility)
-  cancelEdit() {
-    if (this.activeTab === 'basic') {
-      this.cancelBasicDetailsEdit();
-    } else if (this.activeTab === 'addresses') {
-      this.cancelAddressesEdit();
-    } else if (this.activeTab === 'payment') {
-      this.cancelPaymentEdit();
-    }
+    this.editPayment.set(false);
   }
 
   async deleteAddress(addressId: string) {
     if (!addressId) return;
 
     try {
-      this.saving = true;
+      this.saving.set(true);
       await this.trpcService.deleteAddress(addressId);
 
       // Refresh user data to update the addresses list
       await this.authService.fetchCurrentUser();
 
-      this.toastMessage = 'Address deleted successfully';
-      this.showToast = true;
+      this.toastMessage.set('Address deleted successfully');
+      this.showToast.set(true);
     } catch (error) {
-      this.toastMessage = this.handleError(error, 'deleting your address');
-      this.showToast = true;
+      this.toastMessage.set(this.handleError(error, 'deleting your address'));
+      this.showToast.set(true);
     } finally {
-      this.saving = false;
+      this.saving.set(false);
     }
   }
 
@@ -149,33 +138,32 @@ export class ProfileComponent implements OnInit {
     if (!paymentMethodId) return;
 
     try {
-      this.saving = true;
+      this.saving.set(true);
       await this.trpcService.deletePaymentMethod({ paymentMethodId });
 
       // Refresh user data to update the payment methods list
       await this.authService.fetchCurrentUser();
 
-      this.toastMessage = 'Payment method deleted successfully';
-      this.showToast = true;
+      this.toastMessage.set('Payment method deleted successfully');
+      this.showToast.set(true);
     } catch (error) {
-      this.toastMessage = this.handleError(
-        error,
-        'deleting your payment method'
+      this.toastMessage.set(
+        this.handleError(error, 'deleting your payment method')
       );
-      this.showToast = true;
+      this.showToast.set(true);
     } finally {
-      this.saving = false;
+      this.saving.set(false);
     }
   }
 
   async saveProfile(formData: UpdateUserInput) {
-    this.saving = true;
+    this.saving.set(true);
     const currentUser = this.authService.currentUser();
 
     if (!currentUser || !currentUser.id) {
-      this.toastMessage = 'Error: User not authenticated';
-      this.showToast = true;
-      this.saving = false;
+      this.toastMessage.set('Error: User not authenticated');
+      this.showToast.set(true);
+      this.saving.set(false);
       return;
     }
 
@@ -185,27 +173,27 @@ export class ProfileComponent implements OnInit {
       // Update the authService user data by fetching the current user
       await this.authService.fetchCurrentUser();
 
-      this.toastMessage = 'Profile updated successfully';
-      this.showToast = true;
-      this.editBasicDetails = false;
+      this.toastMessage.set('Profile updated successfully');
+      this.showToast.set(true);
+      this.editBasicDetails.set(false);
     } catch (error) {
-      this.toastMessage = this.handleError(error, 'updating your profile');
-      this.showToast = true;
+      this.toastMessage.set(this.handleError(error, 'updating your profile'));
+      this.showToast.set(true);
     } finally {
-      this.saving = false;
+      this.saving.set(false);
     }
   }
 
   async saveAddresses(formData: {
     addresses: (Address & { isDefault?: boolean })[];
   }) {
-    this.saving = true;
+    this.saving.set(true);
     const currentUser = this.authService.currentUser();
 
     if (!currentUser || !currentUser.id) {
-      this.toastMessage = 'Error: User not authenticated';
-      this.showToast = true;
-      this.saving = false;
+      this.toastMessage.set('Error: User not authenticated');
+      this.showToast.set(true);
+      this.saving.set(false);
       return;
     }
 
@@ -268,25 +256,25 @@ export class ProfileComponent implements OnInit {
       // This will also retrieve the updated addresses
       await this.authService.fetchCurrentUser();
 
-      this.toastMessage = 'Addresses updated successfully';
-      this.showToast = true;
-      this.editAddresses = false;
+      this.toastMessage.set('Addresses updated successfully');
+      this.showToast.set(true);
+      this.editAddresses.set(false);
     } catch (error) {
-      this.toastMessage = this.handleError(error, 'updating your addresses');
-      this.showToast = true;
+      this.toastMessage.set(this.handleError(error, 'updating your addresses'));
+      this.showToast.set(true);
     } finally {
-      this.saving = false;
+      this.saving.set(false);
     }
   }
 
   async savePaymentMethods(formData: { paymentMethods: PaymentMethod[] }) {
-    this.saving = true;
+    this.saving.set(true);
     const currentUser = this.authService.currentUser();
 
     if (!currentUser || !currentUser.id) {
-      this.toastMessage = 'Error: User not authenticated';
-      this.showToast = true;
-      this.saving = false;
+      this.toastMessage.set('Error: User not authenticated');
+      this.showToast.set(true);
+      this.saving.set(false);
       return;
     }
 
@@ -314,22 +302,21 @@ export class ProfileComponent implements OnInit {
       // Update the authService user data by fetching the current user
       await this.authService.fetchCurrentUser();
 
-      this.toastMessage = 'Payment information updated successfully';
-      this.showToast = true;
-      this.editPayment = false;
+      this.toastMessage.set('Payment information updated successfully');
+      this.showToast.set(true);
+      this.editPayment.set(false);
     } catch (error) {
-      this.toastMessage = this.handleError(
-        error,
-        'updating your payment information'
+      this.toastMessage.set(
+        this.handleError(error, 'updating your payment information')
       );
-      this.showToast = true;
+      this.showToast.set(true);
     } finally {
-      this.saving = false;
+      this.saving.set(false);
     }
   }
 
   hideToast() {
-    this.showToast = false;
+    this.showToast.set(false);
   }
 
   // Extract error handling to a reusable method

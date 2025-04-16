@@ -5,7 +5,7 @@
       #addressInput
       type="text"
       [formControl]="addressControl"
-      [placeholder]="placeholder"
+      [placeholder]="placeholder()"
       class="address-input"
       (keydown.enter)="handleEnterKey($event)" />
     <div class="input-actions">

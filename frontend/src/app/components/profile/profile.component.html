@@ -11,10 +11,7 @@
   } @else if (user) {
     <div class="d-flex flex-column gap-4">
       <!-- Profile Header -->
-      <app-profile-header
-        [user]="user"
-        [editMode]="editMode"
-        [enableEditMode]="enableEditMode.bind(this)">
+      <app-profile-header [user]="user" [editMode]="editMode()">
       </app-profile-header>
 
       <!-- Profile Tabs -->
@@ -22,9 +19,9 @@
         <li class="nav-item">
           <a
             class="nav-link"
-            [class.active]="activeTab === 'basic'"
-            (click)="setActiveTab('basic')"
-            (keydown.enter)="setActiveTab('basic')"
+            [class.active]="activeTab() === TabType.BASIC"
+            (click)="setActiveTab(TabType.BASIC)"
+            (keydown.enter)="setActiveTab(TabType.BASIC)"
             tabindex="0"
             role="tab"
             >Basic Details</a
@@ -33,9 +30,9 @@
         <li class="nav-item">
           <a
             class="nav-link"
-            [class.active]="activeTab === 'addresses'"
-            (click)="setActiveTab('addresses')"
-            (keydown.enter)="setActiveTab('addresses')"
+            [class.active]="activeTab() === TabType.ADDRESSES"
+            (click)="setActiveTab(TabType.ADDRESSES)"
+            (keydown.enter)="setActiveTab(TabType.ADDRESSES)"
             tabindex="0"
             role="tab"
             >Addresses</a
@@ -44,9 +41,9 @@
         <li class="nav-item">
           <a
             class="nav-link"
-            [class.active]="activeTab === 'payment'"
-            (click)="setActiveTab('payment')"
-            (keydown.enter)="setActiveTab('payment')"
+            [class.active]="activeTab() === TabType.PAYMENT"
+            (click)="setActiveTab(TabType.PAYMENT)"
+            (keydown.enter)="setActiveTab(TabType.PAYMENT)"
             tabindex="0"
             role="tab"
             >Payment Info</a
@@ -58,8 +55,8 @@
       <div class="card">
         <div class="card-body">
           <!-- Basic Details Tab Content -->
-          @if (activeTab === 'basic') {
-            @if (!editBasicDetails) {
+          @if (activeTab() === TabType.BASIC) {
+            @if (!editBasicDetails()) {
               <div class="d-flex justify-content-end mb-3">
                 <button
                   class="btn btn-outline-primary btn-sm"
@@ -71,7 +68,7 @@
             } @else {
               <app-profile-edit-form
                 [user]="user"
-                [saving]="saving"
+                [saving]="saving()"
                 (saveProfile)="saveProfile($event)"
                 (cancelEdit)="cancelBasicDetailsEdit()">
               </app-profile-edit-form>
@@ -79,8 +76,8 @@
           }
 
           <!-- Addresses Tab Content -->
-          @if (activeTab === 'addresses') {
-            @if (!editAddresses) {
+          @if (activeTab() === TabType.ADDRESSES) {
+            @if (!editAddresses()) {
               <div class="d-flex justify-content-end mb-3">
                 <button
                   class="btn btn-outline-primary btn-sm"
@@ -96,7 +93,7 @@
               <app-profile-address-list
                 [addresses]="user.addresses"
                 [readOnly]="false"
-                [saving]="saving"
+                [saving]="saving()"
                 (saveAddresses)="saveAddresses($event)"
                 (cancelEdit)="cancelAddressesEdit()"
                 (deleteAddress)="deleteAddress($event)">
@@ -105,8 +102,8 @@
           }
 
           <!-- Payment Info Tab Content -->
-          @if (activeTab === 'payment') {
-            @if (!editPayment) {
+          @if (activeTab() === TabType.PAYMENT) {
+            @if (!editPayment()) {
               <div class="d-flex justify-content-end mb-3">
                 <button
                   class="btn btn-outline-primary btn-sm"
@@ -115,13 +112,13 @@
                 </button>
               </div>
               <app-profile-payment
-                [paymentMethods]="paymentMethods"
+                [paymentMethods]="paymentMethods()"
                 [saving]="false">
               </app-profile-payment>
             } @else {
               <app-profile-payment
-                [paymentMethods]="paymentMethods"
-                [saving]="saving"
+                [paymentMethods]="paymentMethods()"
+                [saving]="saving()"
                 (savePaymentMethods)="savePaymentMethods($event)"
                 (cancelEdit)="cancelPaymentEdit()"
                 (deletePaymentMethod)="deletePaymentMethod($event)">
@@ -150,7 +147,7 @@
 
 <!-- Toast Notification -->
 <app-toast-notification
-  [message]="toastMessage"
-  [show]="showToast"
+  [message]="toastMessage()"
+  [show]="showToast()"
   (hideToast)="hideToast()">
 </app-toast-notification>
