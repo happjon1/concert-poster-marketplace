@@ -6,16 +6,28 @@ import {
   signal,
 } from '@angular/core';
 import {
-  FormBuilder,
   FormGroup,
+  FormControl,
   Validators,
   ReactiveFormsModule,
   FormsModule,
+  AbstractControl,
+  ValidationErrors,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { TrpcService } from '../../services/trpc.service';
+
+// Move validator outside the component as a standalone function
+export function passwordMatchValidator(
+  control: AbstractControl
+): ValidationErrors | null {
+  const password = control.get('password')?.value;
+  const confirmPassword = control.get('confirmPassword')?.value;
+
+  return password === confirmPassword ? null : { passwordMismatch: true };
+}
 
 @Component({
   selector: 'app-register',
@@ -36,30 +48,24 @@ export class RegisterComponent implements OnInit {
 
   authService = inject(AuthService); // Injecting AuthService for authentication
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router
-  ) {}
+  constructor(private router: Router) {}
 
   ngOnInit(): void {
-    this.registerForm = this.fb.group(
+    // Using FormGroup constructor directly instead of fb.group
+    this.registerForm = new FormGroup(
       {
-        email: ['', [Validators.required, Validators.email]],
-        name: ['', [Validators.minLength(2)]],
-        password: ['', [Validators.required, Validators.minLength(6)]],
-        confirmPassword: ['', [Validators.required]],
+        email: new FormControl('', [Validators.required, Validators.email]),
+        name: new FormControl('', [Validators.minLength(2)]),
+        password: new FormControl('', [
+          Validators.required,
+          Validators.minLength(6),
+        ]),
+        confirmPassword: new FormControl('', [Validators.required]),
       },
       {
-        validators: this.passwordMatchValidator, // Custom validator for password matching
+        validators: passwordMatchValidator, // Use standalone function
       }
     );
-  }
-
-  // Custom validator to check if password and confirmPassword match
-  passwordMatchValidator(group: FormGroup): Record<string, boolean> | null {
-    const password = group.get('password')?.value;
-    const confirmPassword = group.get('confirmPassword')?.value;
-    return password === confirmPassword ? null : { passwordMismatch: true };
   }
 
   async onSubmit(): Promise<void> {

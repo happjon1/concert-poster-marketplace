@@ -8,8 +8,8 @@ import {
 import { CommonModule } from '@angular/common';
 import {
   FormArray,
-  FormBuilder,
   FormGroup,
+  FormControl,
   ReactiveFormsModule,
 } from '@angular/forms';
 import { PaymentMethod } from '../../../services/stripe.service';
@@ -41,27 +41,24 @@ export class ProfilePaymentComponent implements OnInit {
   paymentForm!: FormGroup;
   showAddCardForm = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private stripeService: StripeService
-  ) {}
+  constructor(private stripeService: StripeService) {}
 
   ngOnInit() {
     this.initializeForm();
   }
 
   initializeForm() {
-    // Create payment methods array
+    // Create payment methods array using FormGroup constructor instead of fb.group
     const methodsControls = this.paymentMethods().map(method => {
-      return this.fb.group({
-        id: [method.id],
-        isDefault: [method.isDefault],
+      return new FormGroup({
+        id: new FormControl(method.id),
+        isDefault: new FormControl(method.isDefault),
       });
     });
 
     // Create the main form with the payment methods array
-    this.paymentForm = this.fb.group({
-      paymentMethods: this.fb.array(methodsControls),
+    this.paymentForm = new FormGroup({
+      paymentMethods: new FormArray(methodsControls),
     });
   }
 

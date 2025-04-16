@@ -138,27 +138,7 @@ export class ProfileComponent implements OnInit {
       this.toastMessage = 'Address deleted successfully';
       this.showToast = true;
     } catch (error) {
-      console.error('Error deleting address:', error);
-
-      // Extract a readable error message from the error object
-      let errorMessage =
-        'An unknown error occurred while deleting your address';
-
-      if (error instanceof Error) {
-        errorMessage = `Error: ${error.message}`;
-      } else if (typeof error === 'object' && error !== null) {
-        // Handle case where error might be a JSON object
-        if ('message' in error) {
-          errorMessage = `Error: ${(error as Record<string, string>)['message']}`;
-        } else if ('error' in error) {
-          errorMessage = `Error: ${(error as Record<string, string>)['error']}`;
-        } else {
-          // Avoid stringifying the entire object
-          errorMessage = 'Error deleting address. Please try again.';
-        }
-      }
-
-      this.toastMessage = errorMessage;
+      this.toastMessage = this.handleError(error, 'deleting your address');
       this.showToast = true;
     } finally {
       this.saving = false;
@@ -178,24 +158,10 @@ export class ProfileComponent implements OnInit {
       this.toastMessage = 'Payment method deleted successfully';
       this.showToast = true;
     } catch (error) {
-      console.error('Error deleting payment method:', error);
-
-      let errorMessage =
-        'An unknown error occurred while deleting your payment method';
-
-      if (error instanceof Error) {
-        errorMessage = `Error: ${error.message}`;
-      } else if (typeof error === 'object' && error !== null) {
-        if ('message' in error) {
-          errorMessage = `Error: ${(error as Record<string, string>)['message']}`;
-        } else if ('error' in error) {
-          errorMessage = `Error: ${(error as Record<string, string>)['error']}`;
-        } else {
-          errorMessage = 'Error deleting payment method. Please try again.';
-        }
-      }
-
-      this.toastMessage = errorMessage;
+      this.toastMessage = this.handleError(
+        error,
+        'deleting your payment method'
+      );
       this.showToast = true;
     } finally {
       this.saving = false;
@@ -223,25 +189,7 @@ export class ProfileComponent implements OnInit {
       this.showToast = true;
       this.editBasicDetails = false;
     } catch (error) {
-      console.error('Error updating profile:', error);
-
-      // Extract a readable error message from the error object
-      let errorMessage =
-        'An unknown error occurred while updating your profile';
-
-      if (error instanceof Error) {
-        errorMessage = `Error: ${error.message}`;
-      } else if (typeof error === 'object' && error !== null) {
-        if ('message' in error) {
-          errorMessage = `Error: ${(error as Record<string, string>)['message']}`;
-        } else if ('error' in error) {
-          errorMessage = `Error: ${(error as Record<string, string>)['error']}`;
-        } else {
-          errorMessage = 'Error updating profile. Please try again.';
-        }
-      }
-
-      this.toastMessage = errorMessage;
+      this.toastMessage = this.handleError(error, 'updating your profile');
       this.showToast = true;
     } finally {
       this.saving = false;
@@ -324,24 +272,7 @@ export class ProfileComponent implements OnInit {
       this.showToast = true;
       this.editAddresses = false;
     } catch (error) {
-      console.error('Error updating addresses:', error);
-
-      let errorMessage =
-        'An unknown error occurred while updating your addresses';
-
-      if (error instanceof Error) {
-        errorMessage = `Error: ${error.message}`;
-      } else if (typeof error === 'object' && error !== null) {
-        if ('message' in error) {
-          errorMessage = `Error: ${(error as Record<string, string>)['message']}`;
-        } else if ('error' in error) {
-          errorMessage = `Error: ${(error as Record<string, string>)['error']}`;
-        } else {
-          errorMessage = 'Error updating addresses. Please try again.';
-        }
-      }
-
-      this.toastMessage = errorMessage;
+      this.toastMessage = this.handleError(error, 'updating your addresses');
       this.showToast = true;
     } finally {
       this.saving = false;
@@ -387,25 +318,10 @@ export class ProfileComponent implements OnInit {
       this.showToast = true;
       this.editPayment = false;
     } catch (error) {
-      console.error('Error updating payment information:', error);
-
-      let errorMessage =
-        'An unknown error occurred while updating your payment information';
-
-      if (error instanceof Error) {
-        errorMessage = `Error: ${error.message}`;
-      } else if (typeof error === 'object' && error !== null) {
-        if ('message' in error) {
-          errorMessage = `Error: ${(error as Record<string, string>)['message']}`;
-        } else if ('error' in error) {
-          errorMessage = `Error: ${(error as Record<string, string>)['error']}`;
-        } else {
-          errorMessage =
-            'Error updating payment information. Please try again.';
-        }
-      }
-
-      this.toastMessage = errorMessage;
+      this.toastMessage = this.handleError(
+        error,
+        'updating your payment information'
+      );
       this.showToast = true;
     } finally {
       this.saving = false;
@@ -414,5 +330,26 @@ export class ProfileComponent implements OnInit {
 
   hideToast() {
     this.showToast = false;
+  }
+
+  // Extract error handling to a reusable method
+  private handleError(error: unknown, context: string): string {
+    console.error(`Error ${context}:`, error);
+
+    let errorMessage = `An unknown error occurred while ${context}`;
+
+    if (error instanceof Error) {
+      errorMessage = `Error: ${error.message}`;
+    } else if (typeof error === 'object' && error !== null) {
+      if ('message' in error) {
+        errorMessage = `Error: ${(error as Record<string, string>)['message']}`;
+      } else if ('error' in error) {
+        errorMessage = `Error: ${(error as Record<string, string>)['error']}`;
+      } else {
+        errorMessage = `Error ${context}. Please try again.`;
+      }
+    }
+
+    return errorMessage;
   }
 }

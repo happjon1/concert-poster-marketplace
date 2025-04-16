@@ -10,34 +10,9 @@ import {
   ReactiveFormsModule,
   FormBuilder,
   FormGroup,
-  FormArray,
   Validators,
 } from '@angular/forms';
-import { User, Address } from '../../../services/trpc.service';
-import { AutocompleteAddress } from '../../address-autocomplete/address-autocomplete.component';
-
-// Define interface for the form data with multiple sections
-// This needs to match the parent component's ProfileFormData
-interface ProfileFormData {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  bio?: string;
-  addresses?: {
-    id?: string;
-    label?: string | null;
-    address1: string;
-    address2?: string | null;
-    city: string;
-    state?: string | null;
-    zip?: string | null;
-    country: string;
-    isDefault?: boolean;
-  }[];
-}
-
-type FormSection = 'basic' | 'addresses' | 'wallet';
+import { User, UpdateUserInput } from '../../../services/trpc.service';
 
 @Component({
   selector: 'app-profile-edit-form',
@@ -50,13 +25,10 @@ type FormSection = 'basic' | 'addresses' | 'wallet';
 export class ProfileEditFormComponent implements OnInit {
   user = input.required<User>();
   saving = input<boolean>(false);
-  saveProfile = output<ProfileFormData>();
+  saveProfile = output<UpdateUserInput>();
   cancelEdit = output<void>();
-  deleteAddress = output<string>();
 
   profileForm!: FormGroup;
-  activeSection: FormSection = 'basic';
-  addressError = '';
 
   constructor(private fb: FormBuilder) {}
 
@@ -76,124 +48,7 @@ export class ProfileEditFormComponent implements OnInit {
         [Validators.required, Validators.email],
       ],
       bio: ['', [Validators.maxLength(300)]],
-
-      // Address Information - will be populated from user.addresses
-      addresses: this.fb.array([]),
-
-      // Payment Information
-      wallet: this.fb.group({
-        paypalEmail: ['', [Validators.email]],
-        venmoUsername: [''],
-        preferredPaymentMethod: [''],
-      }),
     });
-
-    // Populate addresses from user data
-    this.populateAddresses();
-  }
-
-  private populateAddresses() {
-    // Clear the addresses form array
-    this.addressesFormArray.clear();
-
-    if (this.user()?.addresses && this.user().addresses.length > 0) {
-      // Add form groups for each address
-      this.user().addresses.forEach(address => {
-        this.addressesFormArray.push(this.createAddressGroup(address));
-      });
-    } else {
-      // Add an empty address form if none exist
-      this.addAddressGroup();
-      // Return early since addAddressGroup already calls updateDefaultCheckboxesState
-      return;
-    }
-
-    // Update default checkboxes state
-    this.updateDefaultCheckboxesState();
-  }
-
-  get addressesFormArray() {
-    return this.profileForm.get('addresses') as FormArray;
-  }
-
-  createAddressGroup(address?: Address) {
-    return this.fb.group({
-      id: [address?.id || ''],
-      label: [address?.label || ''],
-      address1: [address?.address1 || '', Validators.required],
-      address2: [address?.address2 || ''],
-      city: [address?.city || '', Validators.required],
-      state: [address?.state || ''],
-      zip: [address?.zip || ''],
-      country: [address?.country || '', Validators.required],
-      isDefault: [address?.id === this.user().defaultAddressId],
-    });
-  }
-
-  addAddressGroup() {
-    this.addressesFormArray.push(this.createAddressGroup());
-
-    // If this is the only address (after adding), make it default
-    if (this.addressesFormArray.length === 1) {
-      this.addressesFormArray.at(0).get('isDefault')?.setValue(true);
-    }
-
-    // Update default checkboxes state
-    this.updateDefaultCheckboxesState();
-  }
-
-  removeAddressGroup(index: number) {
-    // Check if this is an existing address with an ID
-    const addressGroup = this.addressesFormArray.at(index);
-    const addressId = addressGroup.get('id')?.value;
-
-    // If it has an ID, emit the delete event
-    if (addressId) {
-      this.deleteAddress.emit(addressId);
-    }
-
-    // Remove from the form array
-    this.addressesFormArray.removeAt(index);
-
-    // If no addresses left, add an empty one
-    if (this.addressesFormArray.length === 0) {
-      this.addAddressGroup();
-    } else {
-      // Update default checkboxes state
-      this.updateDefaultCheckboxesState();
-    }
-  }
-
-  // Helper method to ensure default checkbox state is consistent
-  private updateDefaultCheckboxesState() {
-    // If there's only one address, force it to be the default
-    if (this.addressesFormArray.length === 1) {
-      const control = this.addressesFormArray.at(0).get('isDefault');
-      control?.setValue(true);
-      // This disables the control programmatically in addition to the template binding
-      control?.disable();
-    } else {
-      // If multiple addresses, ensure the controls are enabled
-      this.addressesFormArray.controls.forEach(group => {
-        const control = group.get('isDefault');
-        if (control?.disabled) {
-          control.enable();
-        }
-      });
-
-      // Ensure at least one address is marked as default
-      const hasDefault = this.addressesFormArray.controls.some(
-        group => group.get('isDefault')?.value === true
-      );
-
-      if (!hasDefault && this.addressesFormArray.length > 0) {
-        this.addressesFormArray.at(0).get('isDefault')?.setValue(true);
-      }
-    }
-  }
-
-  switchSection(section: FormSection) {
-    this.activeSection = section;
   }
 
   onSaveProfile() {
@@ -206,13 +61,11 @@ export class ProfileEditFormComponent implements OnInit {
 
     // Add the user ID to the form data
     // Format the data to match the expected structure on the backend
-    const profileData: ProfileFormData = {
+    const profileData: UpdateUserInput = {
       id: this.user().id,
       name: formValues.name,
       email: formValues.email,
       phone: formValues.phone || undefined,
-      // Include addresses from the form
-      addresses: formValues.addresses,
     };
 
     // Emit the complete profile data
@@ -223,20 +76,24 @@ export class ProfileEditFormComponent implements OnInit {
     this.cancelEdit.emit();
   }
 
-  // Handle address selection from autocomplete
-  onAddressSelected(index: number, address: AutocompleteAddress | null): void {
-    if (!address) return;
+  // Extract error handling to a reusable method
+  private handleError(error: unknown, context: string): string {
+    console.error(`Error ${context}:`, error);
 
-    const addressGroup = this.addressesFormArray.at(index);
+    let errorMessage = `An unknown error occurred while ${context}`;
 
-    // Update form fields with autocomplete data
-    addressGroup.patchValue({
-      address1: address.address1,
-      address2: address.address2 || '',
-      city: address.city,
-      state: address.state || '',
-      zip: address.zip || '',
-      country: address.country,
-    });
+    if (error instanceof Error) {
+      errorMessage = `Error: ${error.message}`;
+    } else if (typeof error === 'object' && error !== null) {
+      if ('message' in error) {
+        errorMessage = `Error: ${(error as Record<string, string>)['message']}`;
+      } else if ('error' in error) {
+        errorMessage = `Error: ${(error as Record<string, string>)['error']}`;
+      } else {
+        errorMessage = `Error ${context}. Please try again.`;
+      }
+    }
+
+    return errorMessage;
   }
 }
