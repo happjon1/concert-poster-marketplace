@@ -35,7 +35,7 @@ export type Address = ArrayElement<User['addresses']>;
 // Poster types
 export type GetAllPostersInput = RouterInput['posters']['getAll'];
 export type GetAllPostersOutput = RouterOutput['posters']['getAll'];
-export type PosterSlim = ArrayElement<GetAllPostersOutput['items']>;
+export type Poster = ArrayElement<GetAllPostersOutput['items']>;
 export type GetPosterByIdInput = RouterInput['posters']['getById'];
 export type GetPosterByIdOutput = RouterOutput['posters']['getById'];
 export type CreatePosterInput = RouterInput['posters']['create'];

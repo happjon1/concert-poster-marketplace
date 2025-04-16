@@ -1,0 +1,28 @@
+// Variables for use throughout the application
+// These match the Bootstrap variable names for consistency
+
+// Main colors
+$primary: #d84315; // Deeper orange-red - more accessible and vibrant
+$secondary: #e8e1d6; // Lighter cream - better contrast with text
+$success: #7b8d42; // Olive green - better for success states
+$danger: #c62828; // Deeper red - more accessible for warnings
+$warning: #f57c00; // Amber - complements the primary orange
+$info: #3f88c5; // Richer blue - better contrast on light backgrounds
+$light: #faf6f0; // Softer cream - for backgrounds
+$dark: #2c2017; // Deep brown - stronger contrast for text
+
+// Additional accent colors
+$accent1: #8c6d62; // Taupe - elegant accent color
+$accent2: #bfd9bf; // Sage green - subtle accent
+
+// Common variables for components
+$border-color: #e2e8f0;
+$border-color-translucent: rgba($dark, 0.1);
+$box-shadow-sm: 0 0.125rem 0.25rem rgba($dark, 0.075);
+$box-shadow: 0 0.5rem 1rem rgba($dark, 0.15);
+$box-shadow-lg: 0 1rem 3rem rgba($dark, 0.175);
+
+// Text colors
+$body-color: $dark;
+$body-color-secondary: rgba($dark, 0.7);
+$body-color-muted: rgba($dark, 0.5);

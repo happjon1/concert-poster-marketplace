@@ -1,3 +1,5 @@
+@import '../../../styles/variables';
+
 // Sticky footer styles
 .footer {
   position: sticky;
@@ -16,12 +18,11 @@
 // Add hover effect to pagination
 .pagination .page-link:hover {
   z-index: 2;
-  background-color: var(--bs-primary-rgb, #e04e1b);
-  background-color: rgba(var(--bs-primary-rgb, 224, 78, 27), 0.1);
+  background-color: rgba($primary, 0.1);
 }
 
 // Optional: Make pagination stand out with your theme color
 .pagination .page-item.active .page-link {
-  background-color: var(--bs-primary, #e04e1b);
-  border-color: var(--bs-primary, #e04e1b);
+  background-color: $primary;
+  border-color: $primary;
 }

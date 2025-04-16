@@ -1,3 +1,5 @@
+@import '../../../styles/variables';
+
 .card {
   transition: all 0.2s ease-in-out;
   height: 100%;
@@ -28,5 +30,5 @@
 // Optional: Add hover effect
 .card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 10px 20px rgba($dark, 0.1) !important;
 }

@@ -1,22 +1,37 @@
 <div class="card shadow mb-3 mb-md-4">
   <div class="card-header py-2 py-md-3">
-    <h5 class="card-title mb-0 fs-6 fs-md-5">Billy Strings</h5>
-    <h6 class="card-subtitle text-muted small">Pine Knob - 10/4/2024</h6>
+    <h5 class="card-title mb-0 fs-6 fs-md-5">
+      <app-comma-separated-list [items]="artistNames()" [autoAdjust]="true">
+      </app-comma-separated-list>
+    </h5>
+    <h6 class="card-subtitle text-muted small">
+      <app-comma-separated-list
+        [items]="eventDetailsArray()"
+        [autoAdjust]="true">
+      </app-comma-separated-list>
+    </h6>
   </div>
 
   <div class="card-body p-1">
     <div class="poster-image-container">
       <img
-        src="https://i.etsystatic.com/34128228/r/il/b3b09a/6344453758/il_794xN.6344453758_ix9c.jpg"
+        src="{{ poster()?.imageUrls?.[0] || '' }}"
         class="img-fluid rounded w-100"
-        alt="Billy Strings concert poster" />
+        [alt]="poster()?.title" />
     </div>
   </div>
 
   <div class="card-footer py-2 py-md-3 text-end">
-    <button class="btn btn-outline-primary btn-sm btn-md-md">
-      <i class="bi bi-tag-fill me-1"></i>
-      bid $207.00
+    <button
+      class="btn btn-outline-primary btn-sm btn-md-md"
+      [routerLink]="['/posters', poster()?.id]">
+      <i
+        class="bi"
+        [ngClass]="{
+          'bi-tag-fill': poster()?.isAuction,
+          'bi-cart': !poster()?.isAuction,
+        }"></i>
+      {{ priceDisplay() }}
     </button>
   </div>
 </div>

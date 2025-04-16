@@ -13,14 +13,27 @@
           Sort by
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
-          <li><button class="dropdown-item" type="button">Newest</button></li>
           <li>
-            <button class="dropdown-item" type="button">
+            <button
+              class="dropdown-item"
+              type="button"
+              (click)="applySort('newest')">
+              Newest
+            </button>
+          </li>
+          <li>
+            <button
+              class="dropdown-item"
+              type="button"
+              (click)="applySort('price_asc')">
               Price: Low to High
             </button>
           </li>
           <li>
-            <button class="dropdown-item" type="button">
+            <button
+              class="dropdown-item"
+              type="button"
+              (click)="applySort('price_desc')">
               Price: High to Low
             </button>
           </li>
@@ -28,38 +41,89 @@
       </div>
     </div>
 
+    <!-- Loading indicator -->
+    <div class="text-center my-5" *ngIf="loading">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2 text-muted">Loading posters...</p>
+    </div>
+
+    <!-- Error message -->
+    <div class="alert alert-danger" *ngIf="error">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ error }}
+    </div>
+
+    <!-- Empty state -->
+    <div
+      class="text-center my-5"
+      *ngIf="!loading && items.length === 0 && !error">
+      <i class="bi bi-images display-1 text-muted"></i>
+      <h5 class="mt-3">No posters found</h5>
+      <p class="text-muted">Try adjusting your filters or check back later</p>
+    </div>
+
     <!-- Poster grid -->
-    <div class="row g-4">
-      @for (item of items; track item) {
+    <div class="row g-4" *ngIf="!loading && items.length > 0">
+      @for (poster of items; track poster.id) {
         <div class="col-6 col-sm-4 col-lg-3 col-xl-2">
-          <app-poster-card></app-poster-card>
+          <app-poster-card [poster]="poster"></app-poster-card>
         </div>
       }
     </div>
   </div>
 
   <!-- Sticky footer with pagination -->
-  <footer class="footer mt-auto py-3 bg-white border-top shadow-sm">
+  <footer
+    class="footer mt-auto py-3 bg-white border-top shadow-sm"
+    *ngIf="!loading && items.length > 0">
     <div class="container-fluid">
       <div class="d-flex justify-content-between align-items-center">
-        <span class="text-muted"
-          >Showing <strong>1-24</strong> of 120 posters</span
-        >
+        <span class="text-muted">
+          Showing
+          <strong
+            >{{ getDisplayedRange().start }}-{{
+              getDisplayedRange().end
+            }}</strong
+          >
+          of {{ getDisplayedRange().total }} posters
+        </span>
 
         <nav>
           <ul class="pagination pagination-sm mb-0">
-            <li class="page-item disabled">
-              <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+            <li class="page-item" [class.disabled]="currentPage === 1">
+              <a
+                class="page-link"
+                href="javascript:void(0)"
+                (click)="goToPage(currentPage - 1)"
+                [attr.tabindex]="currentPage === 1 ? -1 : null"
+                [attr.aria-disabled]="currentPage === 1 ? true : null">
                 <i class="bi bi-chevron-left"></i>
               </a>
             </li>
-            <li class="page-item active">
-              <a class="page-link" href="#">1</a>
-            </li>
-            <li class="page-item"><a class="page-link" href="#">2</a></li>
-            <li class="page-item"><a class="page-link" href="#">3</a></li>
-            <li class="page-item">
-              <a class="page-link" href="#">
+
+            @for (page of getPageNumbers(); track page) {
+              <li class="page-item" [class.active]="page === currentPage">
+                <a
+                  class="page-link"
+                  href="javascript:void(0)"
+                  (click)="goToPage(page)">
+                  {{ page }}
+                </a>
+              </li>
+            }
+
+            <li
+              class="page-item"
+              [class.disabled]="currentPage === getTotalPages()">
+              <a
+                class="page-link"
+                href="javascript:void(0)"
+                (click)="goToPage(currentPage + 1)"
+                [attr.tabindex]="currentPage === getTotalPages() ? -1 : null"
+                [attr.aria-disabled]="
+                  currentPage === getTotalPages() ? true : null
+                ">
                 <i class="bi bi-chevron-right"></i>
               </a>
             </li>

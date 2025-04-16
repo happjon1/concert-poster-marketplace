@@ -1,30 +1,49 @@
-// 1. First import Bootstrap functions (required for variable overrides)
+// 1. Include Bootstrap functions first (required for variable overrides)
 @import 'bootstrap/scss/functions';
 
-// 2. Then include any default variable overrides
-$primary: #e04e1b;
-$secondary: #f5f1e6;
-$success: #8c6a3c;
-$danger: #b22222;
-$warning: #d9a441;
-$info: #a0c4e2;
-$light: #fff8f0;
-$dark: #3d2b1f;
+// 2. Custom color palette - variables that will override Bootstrap defaults
+$primary: #d84315; // Deeper orange-red - more accessible and vibrant
+$secondary: #e8e1d6; // Lighter cream - better contrast with text
+$success: #7b8d42; // Olive green - better for success states
+$danger: #c62828; // Deeper red - more accessible for warnings
+$warning: #f57c00; // Amber - complements the primary orange
+$info: #3f88c5; // Richer blue - better contrast on light backgrounds
+$light: #faf6f0; // Softer cream - for backgrounds
+$dark: #2c2017; // Deep brown - stronger contrast for text
 
-// 3. Include remainder of Bootstrap
+// Additional accent colors
+$accent1: #8c6d62; // Taupe - elegant accent color
+$accent2: #bfd9bf; // Sage green - subtle accent
+
+// Custom theme colors map - ensure Bootstrap recognizes our variables
+$theme-colors: (
+  'primary': $primary,
+  'secondary': $secondary,
+  'success': $success,
+  'danger': $danger,
+  'warning': $warning,
+  'info': $info,
+  'light': $light,
+  'dark': $dark,
+);
+
+// 3. Include Bootstrap core variable defaults
 @import 'bootstrap/scss/variables';
 @import 'bootstrap/scss/variables-dark';
 @import 'bootstrap/scss/maps';
 @import 'bootstrap/scss/mixins';
 @import 'bootstrap/scss/root';
+
+// 4. Include the full Bootstrap styles
 @import 'bootstrap/scss/bootstrap';
 @import 'bootstrap-icons/font/bootstrap-icons.css';
 
-// 4. Your custom styles
+// 5. Custom styles
 html,
 body {
   height: 100%;
 }
+
 body {
   display: flex;
   flex-direction: column;
@@ -48,4 +67,10 @@ body {
 .btn-dark:hover,
 .btn-secondary:hover {
   color: white !important;
+}
+
+// 6. Extra custom accent colors not included in Bootstrap
+:root {
+  --accent1: #{$accent1};
+  --accent2: #{$accent2};
 }

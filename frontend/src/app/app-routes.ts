@@ -5,6 +5,7 @@ import { RegisterComponent } from './components/register/register.component';
 import { HomeComponent } from './components/home/home.component';
 import { isAuthenticated } from './guards/auth.guard';
 import { CreatePosterComponent } from './components/create-poster/create-poster.component';
+import { PosterDetailsComponent } from './components/poster-details/poster-details.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/home', pathMatch: 'full' },
@@ -28,6 +29,10 @@ export const routes: Routes = [
         },
       },
     ],
+  },
+  {
+    path: 'posters/:id',
+    component: PosterDetailsComponent,
   },
   // Add other routes as needed
 ];

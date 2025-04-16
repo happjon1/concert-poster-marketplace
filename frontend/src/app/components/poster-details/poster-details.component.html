@@ -1,0 +1,203 @@
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <!-- Loading and error states -->
+    <div class="col-12 text-center" *ngIf="loading()">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-3">Loading poster details...</p>
+    </div>
+
+    <div class="col-12" *ngIf="error()">
+      <div class="alert alert-danger">
+        {{ error() }}
+      </div>
+      <div class="text-center mt-3">
+        <a routerLink="/home" class="btn btn-primary">Return to Home</a>
+      </div>
+    </div>
+
+    <!-- Poster content when loaded -->
+    <div class="col-lg-10" *ngIf="poster() && !loading() && !error()">
+      <!-- Back button -->
+      <div class="mb-4">
+        <a routerLink="/home" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left me-2"></i> Back to Posters
+        </a>
+      </div>
+
+      <div class="row">
+        <!-- Left column - Image carousel -->
+        <div class="col-lg-7 mb-4">
+          <div class="card shadow">
+            <!-- Main image display -->
+            <div
+              class="position-relative bg-light rounded"
+              style="height: 500px">
+              <img
+                *ngIf="poster()?.imageUrls && poster()!.imageUrls.length > 0"
+                [src]="poster()!.imageUrls[activeImageIndex()]"
+                class="d-block mx-auto h-100"
+                style="object-fit: contain"
+                [alt]="poster()!.title" />
+
+              <!-- Navigation controls -->
+              <div
+                class="position-absolute top-50 start-0 end-0 d-flex justify-content-between px-3"
+                *ngIf="poster()?.imageUrls && poster()!.imageUrls.length > 1">
+                <button
+                  type="button"
+                  class="btn btn-dark rounded-circle p-2"
+                  (click)="prevImage()">
+                  <i class="bi bi-chevron-left"></i>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-dark rounded-circle p-2"
+                  (click)="nextImage()">
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Thumbnail navigation -->
+            <div
+              class="card-footer bg-white p-3"
+              *ngIf="poster()?.imageUrls && poster()!.imageUrls.length > 1">
+              <div class="d-flex justify-content-center flex-wrap gap-2">
+                <div
+                  *ngFor="let image of poster()!.imageUrls; let i = index"
+                  class="thumbnail-wrapper"
+                  style="width: 60px; height: 60px; cursor: pointer"
+                  [class.border-primary]="i === activeImageIndex()"
+                  [class.border]="i === activeImageIndex()"
+                  tabindex="0"
+                  (keydown.enter)="setActiveImage(i)"
+                  (click)="setActiveImage(i)">
+                  <img
+                    [src]="image"
+                    class="img-thumbnail w-100 h-100"
+                    style="object-fit: cover"
+                    [alt]="'Thumbnail ' + (i + 1)" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column - Poster details -->
+        <div class="col-lg-5">
+          <div class="card shadow mb-4">
+            <div class="card-header bg-white py-3">
+              <h1 class="fs-4 mb-0 fw-bold">{{ poster()!.title }}</h1>
+              <div class="text-muted mt-1">
+                <span class="fs-5">{{ artistNames() }}</span>
+              </div>
+              <div class="text-muted small">{{ getEventDetails() }}</div>
+            </div>
+
+            <div class="card-body">
+              <!-- Price/Auction section -->
+              <div class="mb-4">
+                <!-- Buy Now price display -->
+                <div
+                  *ngIf="!poster()!.isAuction"
+                  class="d-flex align-items-center">
+                  <span class="fs-2 fw-bold text-success me-3"
+                    >${{ poster()!.buyNowPrice?.toFixed(2) }}</span
+                  >
+                  <button
+                    class="btn btn-success"
+                    [disabled]="isCurrentUserSeller() || !isLoggedIn()"
+                    (click)="buyNow()">
+                    <i class="bi bi-cart-fill me-2"></i> Buy Now
+                  </button>
+                </div>
+
+                <!-- Auction information display -->
+                <div *ngIf="poster()!.isAuction" class="mb-3">
+                  <div class="mb-2">
+                    <span class="text-muted">Current Bid: </span>
+                    <span class="fs-2 fw-bold text-primary"
+                      >${{ poster()!.startPrice?.toFixed(2) }}</span
+                    >
+                  </div>
+
+                  <div class="d-flex flex-column mb-3">
+                    <div class="mb-2">
+                      <i class="bi bi-clock me-1"></i>
+                      <span class="text-muted">Ends: </span>
+                      <span>{{ getAuctionEndTime() }}</span>
+                    </div>
+                    <div class="text-danger">
+                      <i class="bi bi-hourglass-split me-1"></i>
+                      {{ getTimeRemaining() }}
+                    </div>
+                  </div>
+
+                  <button
+                    class="btn btn-primary"
+                    [disabled]="isCurrentUserSeller() || !isLoggedIn()"
+                    (click)="placeBid()">
+                    <i class="bi bi-tag-fill me-2"></i> Place Bid
+                  </button>
+                </div>
+
+                <!-- Login message for non-logged in users -->
+                <div class="mt-2 small text-muted" *ngIf="!isLoggedIn()">
+                  <i class="bi bi-info-circle me-1"></i>
+                  <a
+                    routerLink="/login"
+                    [queryParams]="{ returnUrl: '/posters/' + poster()!.id }"
+                    >Log in</a
+                  >
+                  or
+                  <a
+                    routerLink="/register"
+                    [queryParams]="{ returnUrl: '/posters/' + poster()!.id }"
+                    >register</a
+                  >
+                  to purchase.
+                </div>
+
+                <!-- Owner message -->
+                <div
+                  class="mt-2 small text-muted"
+                  *ngIf="isCurrentUserSeller()">
+                  <i class="bi bi-info-circle me-1"></i>
+                  You are the seller of this poster.
+                </div>
+              </div>
+
+              <!-- Poster details -->
+              <div class="mb-4">
+                <h5 class="border-bottom pb-2">Details</h5>
+
+                <div class="row mb-2">
+                  <div class="col-4 text-muted">Dimensions:</div>
+                  <div class="col-8">
+                    {{
+                      poster()?.widthInInches + ' x ' + poster()?.heightInInches
+                    }}
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-4 text-muted">Seller:</div>
+                  <div class="col-8">
+                    {{ poster()!.seller.name || 'Anonymous' }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Description -->
+              <div>
+                <h5 class="border-bottom pb-2">Description</h5>
+                <p class="mb-0">{{ poster()!.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -832,6 +832,331 @@ async function main() {
 
   // Seed bulk data
   await seedBulkData();
+
+  console.log(
+    "Creating additional poster-event and poster-artist relationships..."
+  );
+
+  // Get all posters, artists, and events
+  const allPosters = await prisma.poster.findMany();
+  const allArtists = await prisma.artist.findMany();
+  const allEvents = await prisma.event.findMany();
+
+  if (
+    allPosters.length === 0 ||
+    allArtists.length === 0 ||
+    allEvents.length === 0
+  ) {
+    console.log("Not enough data to create relationships");
+    return;
+  }
+
+  // For each poster that doesn't have any artists, add 1-3 artists
+  for (const poster of allPosters) {
+    // Check if poster already has artists
+    const existingArtists = await prisma.posterArtist.findMany({
+      where: { posterId: poster.id },
+    });
+
+    if (existingArtists.length === 0) {
+      // Add 1-3 random artists
+      const artistsToAdd = getRandomSubset(allArtists, 1, 3);
+      console.log(
+        `Adding ${artistsToAdd.length} artists to poster ${poster.id}`
+      );
+
+      for (const artist of artistsToAdd) {
+        try {
+          await prisma.posterArtist.create({
+            data: {
+              posterId: poster.id,
+              artistId: artist.id,
+            },
+          });
+        } catch (error) {
+          console.log(
+            `Error adding artist ${artist.id} to poster ${poster.id}: ${error.message}`
+          );
+        }
+      }
+    }
+
+    // Check if poster already has events
+    const existingEvents = await prisma.posterEvent.findMany({
+      where: { posterId: poster.id },
+    });
+
+    if (existingEvents.length === 0) {
+      // Add 1-2 random events
+      const eventsToAdd = getRandomSubset(allEvents, 1, 2);
+      console.log(`Adding ${eventsToAdd.length} events to poster ${poster.id}`);
+
+      for (const event of eventsToAdd) {
+        try {
+          await prisma.posterEvent.create({
+            data: {
+              posterId: poster.id,
+              eventId: event.id,
+            },
+          });
+        } catch (error) {
+          console.log(
+            `Error adding event ${event.id} to poster ${poster.id}: ${error.message}`
+          );
+        }
+      }
+    }
+  }
+
+  console.log("✅ Finished creating additional relationships");
+
+  // Create 100 posters with diverse properties
+  console.log("Creating 100 diverse posters for sale...");
+
+  // Get existing sellers or create new ones if needed
+  async function getSellerIds() {
+    let sellers = await prisma.user.findMany({
+      where: { passwordHash: { not: "" } }, // Use empty string instead of null
+      take: 5,
+    });
+
+    // If we don't have enough sellers, create more
+    if (sellers.length < 5) {
+      const additionalSellersNeeded = 5 - sellers.length;
+      console.log(`Creating ${additionalSellersNeeded} additional sellers`);
+
+      for (let i = 0; i < additionalSellersNeeded; i++) {
+        const newSellerHash = await bcrypt.hash("securepassword123", 10);
+        const newSeller = await prisma.user.create({
+          data: {
+            email: `seller${i + sellers.length}@example.com`,
+            passwordHash: newSellerHash,
+            name: `Poster Seller ${i + sellers.length}`,
+            addresses: {
+              create: [
+                {
+                  address1: `${1000 + i} Seller St`,
+                  city: pickRandom([
+                    "Denver",
+                    "Boulder",
+                    "Austin",
+                    "Portland",
+                    "Nashville",
+                  ]),
+                  state: pickRandom(["CO", "TX", "OR", "TN", "CA"]),
+                  country: "US",
+                  isValidated: true,
+                },
+              ],
+            },
+          },
+          include: { addresses: true },
+        });
+
+        // Set default address
+        await prisma.user.update({
+          where: { id: newSeller.id },
+          data: { defaultAddressId: newSeller.addresses[0].id },
+        });
+
+        sellers.push(newSeller);
+      }
+    }
+
+    return sellers.map((s) => s.id);
+  }
+
+  // Create the posters
+  const createDiversePosters = async () => {
+    const sellerIds = await getSellerIds();
+    const allArtists = await prisma.artist.findMany();
+    const allEvents = await prisma.event.findMany();
+
+    if (allArtists.length < 10 || allEvents.length < 10) {
+      console.error("Not enough artists or events to create diverse posters");
+      return;
+    }
+
+    // Create posters in batches to avoid timeouts
+    const totalPosters = 100;
+    const batchSize = 10;
+
+    for (let batch = 0; batch < totalPosters / batchSize; batch++) {
+      console.log(
+        `Creating posters batch ${batch + 1}/${totalPosters / batchSize}...`
+      );
+
+      for (let i = 0; i < batchSize; i++) {
+        const posterIndex = batch * batchSize + i;
+        const isAuction = Math.random() > 0.6; // 40% auctions, 60% buy now
+
+        try {
+          // Create poster data based on schema
+          const posterData = {
+            title: `${pickRandom([
+              "Limited",
+              "Exclusive",
+              "Rare",
+              "Vintage",
+              "Classic",
+              "Special",
+            ])} ${pickRandom([
+              "Edition",
+              "Series",
+              "Collection",
+              "Release",
+              "Print",
+            ])} Poster`,
+            description: pickRandom([
+              "Beautiful concert poster with vibrant colors and detailed artwork.",
+              "Rare limited edition poster from an iconic show.",
+              "Collector's item featuring premium printing techniques.",
+              "Stunning artwork commemorating a legendary performance.",
+              "Official merchandise with unique design elements.",
+              "Hand-numbered concert poster with holographic elements.",
+              "Tour poster designed by a renowned artist.",
+              "Striking visual design capturing the spirit of the performance.",
+              "Exclusive release featuring metallic ink details.",
+              "Museum-quality print perfect for framing and display.",
+            ]),
+            imageUrls: [
+              `https://picsum.photos/seed/${Math.random() * 9999}/600/800`,
+              `https://picsum.photos/seed/${Math.random() * 9999}/600/800`,
+              `https://picsum.photos/seed/${Math.random() * 9999}/600/800`,
+            ].slice(0, Math.floor(Math.random() * 3) + 1), // 1-3 images
+            type: pickRandom(["EVENT", "TOUR", "PROMO", "ART_PRINT", "OTHER"]), // Using correct enum values
+            isAuction: isAuction,
+            status: pickRandom([
+              PosterStatus.ACTIVE,
+              PosterStatus.ACTIVE,
+              PosterStatus.ACTIVE,
+              PosterStatus.PENDING_REVIEW,
+            ]), // Bias toward active
+            signedByArtist: Math.random() > 0.7, // 30% chance of being signed
+            signedByMusician: Math.random() > 0.8, // 20% chance of being signed by musician
+            isNumbered: Math.random() > 0.3, // 70% chance of being numbered
+            widthInInches: pickRandom([11, 13, 16, 18, 20, 24]),
+            heightInInches: pickRandom([17, 19, 20, 24, 28, 36]),
+            editionNumber:
+              Math.random() > 0.3
+                ? `${Math.floor(Math.random() * 500) + 1}/${
+                    Math.floor(Math.random() * 1000) + 500
+                  }`
+                : null, // 70% chance of having edition number
+            variant: pickRandom([
+              "Regular",
+              "Foil",
+              "Holographic",
+              "Glow in the Dark",
+              null,
+              null,
+              null,
+            ]), // 40% chance of variant
+            notes:
+              Math.random() > 0.7
+                ? pickRandom([
+                    "Limited run",
+                    "Artist proof",
+                    "Test print",
+                    "Special commission",
+                    "Festival exclusive",
+                  ])
+                : null,
+            paperType: pickRandom([
+              "Glossy",
+              "Matte",
+              "Cardstock",
+              "Recycled",
+              "Fine Art",
+              "Textured",
+              "Canvas",
+            ]),
+            sellerId: pickRandom(sellerIds),
+          };
+
+          // Set price based on auction or buy now
+          if (isAuction) {
+            posterData.startPrice = Math.floor(Math.random() * 200) + 30; // $30-$230
+
+            // Set auction end date between 1 and 14 days in the future
+            const daysToAdd = Math.floor(Math.random() * 14) + 1;
+            const auctionEndDate = new Date();
+            auctionEndDate.setDate(auctionEndDate.getDate() + daysToAdd);
+            posterData.auctionEndAt = auctionEndDate;
+          } else {
+            posterData.buyNowPrice = Math.floor(Math.random() * 300) + 50; // $50-$350
+          }
+
+          // Create the poster
+          const poster = await prisma.poster.create({
+            data: posterData,
+          });
+
+          // Add 1-3 artists
+          const artistsForPoster = getRandomSubset(allArtists, 1, 3);
+          for (const artist of artistsForPoster) {
+            await prisma.posterArtist.create({
+              data: {
+                posterId: poster.id,
+                artistId: artist.id,
+              },
+            });
+          }
+
+          // Add 1-2 events
+          const eventsForPoster = getRandomSubset(allEvents, 1, 2);
+          for (const event of eventsForPoster) {
+            await prisma.posterEvent.create({
+              data: {
+                posterId: poster.id,
+                eventId: event.id,
+              },
+            });
+          }
+
+          // For auction posters, occasionally add bids
+          if (isAuction && Math.random() > 0.7) {
+            // 30% of auctions have bids
+            const bidCount = Math.floor(Math.random() * 5) + 1; // 1-5 bids
+            let currentBid = posterData.startPrice;
+
+            // Get potential bidders (all users except the seller)
+            const allUsers = await prisma.user.findMany({
+              where: { id: { not: posterData.sellerId } },
+            });
+
+            if (allUsers.length > 0) {
+              for (let b = 0; b < bidCount; b++) {
+                // Increase bid by 10-30%
+                currentBid += Math.floor(
+                  currentBid * (Math.random() * 0.2 + 0.1)
+                );
+
+                await prisma.bid.create({
+                  data: {
+                    amount: currentBid,
+                    posterId: poster.id,
+                    userId: pickRandom(allUsers).id,
+                  },
+                });
+              }
+            }
+          }
+
+          console.log(`Created poster ${posterIndex + 1}: ${posterData.title}`);
+        } catch (error) {
+          console.error(
+            `Error creating poster ${posterIndex + 1}:`,
+            error.message
+          );
+        }
+      }
+    }
+
+    console.log("✅ Created 100 diverse posters with mixed properties");
+  };
+
+  await createDiversePosters();
 }
 
 main()

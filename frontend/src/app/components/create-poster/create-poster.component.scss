@@ -1,3 +1,5 @@
+@import '../../../styles/variables';
+
 // Just add a few custom enhancements
 .card {
   transition:
@@ -6,11 +8,11 @@
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 10px 20px rgba($dark, 0.1) !important;
   }
 
   .card-header {
-    background-color: #fff;
+    background-color: $light;
   }
 }
 
@@ -62,12 +64,12 @@
       font-size: 1.2rem;
       font-weight: 500;
       border-radius: 50%;
-      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+      box-shadow: 0 0.125rem 0.25rem rgba($dark, 0.1);
     }
 
     .bs-stepper-label {
       font-weight: 500;
-      color: #6c757d;
+      color: $body-color-secondary;
     }
 
     .active .bs-stepper-circle {
@@ -75,7 +77,7 @@
     }
 
     .active .bs-stepper-label {
-      color: #212529;
+      color: $dark;
       font-weight: 600;
     }
 
@@ -84,7 +86,7 @@
       min-width: 1.5rem;
       margin: 0 0.5rem;
       height: 2px;
-      background-color: #dee2e6;
+      background-color: $border-color;
       align-self: center;
     }
   }
@@ -92,7 +94,7 @@
   .bs-stepper-content {
     .content {
       padding: 2rem 1rem;
-      background: white;
+      background: $light;
     }
 
     .content.fade {
@@ -102,12 +104,12 @@
     // Card styling within stepper content
     .card {
       border-radius: 0.5rem;
-      border: 1px solid #edf2f9;
-      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05);
+      border: 1px solid $border-color-translucent;
+      box-shadow: 0 0.125rem 0.25rem rgba($dark, 0.05);
 
       .card-header {
-        background-color: white;
-        border-bottom-color: #edf2f9;
+        background-color: $light;
+        border-bottom-color: $border-color-translucent;
       }
     }
 
@@ -119,7 +121,7 @@
 
     // Add separation between sections with subtle dividers instead
     ::ng-deep .card-header {
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid $border-color;
       background-color: transparent;
       padding-left: 0;
       padding-right: 0;
@@ -142,7 +144,7 @@
   left: 0;
   right: 0;
   background-color: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -4px 6px -1px rgba($dark, 0.1);
   padding: 1rem 0;
   z-index: 1030;
 
@@ -313,11 +315,11 @@
       .current {
         font-size: 1.5rem;
         font-weight: bold;
-        color: #0d6efd;
+        color: $primary;
       }
 
       .total {
-        color: #6c757d;
+        color: $body-color-secondary;
       }
     }
 
@@ -342,16 +344,16 @@
       width: 0.75rem;
       height: 0.75rem;
       border-radius: 50%;
-      background-color: #dee2e6;
+      background-color: $border-color;
       cursor: pointer;
 
       &.active {
-        background-color: #0d6efd;
+        background-color: $primary;
         transform: scale(1.25);
       }
 
       &.completed {
-        background-color: #198754;
+        background-color: $success;
       }
     }
   }
@@ -364,8 +366,8 @@
   bottom: 4rem; // Above the nav buttons
   left: 0;
   right: 0;
-  background-color: white;
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  background-color: $light;
+  box-shadow: 0 -2px 5px rgba($dark, 0.1);
   z-index: 1020;
 
   .tab {
@@ -381,7 +383,7 @@
     }
 
     &.active {
-      color: #0d6efd;
+      color: $primary;
       font-weight: 500;
     }
   }
@@ -390,7 +392,7 @@
 // Add styles for the unified content container
 .unified-content-container {
   padding-bottom: 5rem; // Space for sticky buttons
-  background-color: white;
+  background-color: $light;
 
   .content {
     transition: opacity 0.3s ease;

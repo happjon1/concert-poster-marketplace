@@ -1,3 +1,5 @@
+@import '../../../styles/variables';
+
 .payment-methods-container {
   max-width: 800px;
   margin: 0 auto;
@@ -21,13 +23,13 @@
 }
 
 ::ng-deep .StripeElement--focus {
-  box-shadow: 0 1px 3px 0 #cfd7df;
+  box-shadow: 0 1px 3px 0 $border-color;
 }
 
 ::ng-deep .StripeElement--invalid {
-  border-color: #fa755a;
+  border-color: $danger;
 }
 
 ::ng-deep .StripeElement--webkit-autofill {
-  background-color: #fefde5 !important;
+  background-color: rgba($warning, 0.1) !important;
 }

@@ -1,322 +1,194 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../trpc.js";
 import { TRPCError } from "@trpc/server";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 // Initialize Prisma client
 const prisma = new PrismaClient();
-
-// ------------------- Helper Functions -------------------
-
-/**
- * Find all posters with optional filters
- */
-async function findAllPosters({
-  limit = 50,
-  cursor,
-  filter,
-  artistId,
-  eventId,
-}: {
-  limit?: number;
-  cursor?: string;
-  filter?: string;
-  artistId?: number;
-  eventId?: number;
-} = {}) {
-  const query: any = {
-    take: limit,
-    orderBy: {
-      createdAt: "desc" as const,
-    },
-    include: {
-      artists: true,
-      events: true,
-    },
-  };
-
-  // Add cursor-based pagination if cursor is provided
-  if (cursor) {
-    query.cursor = {
-      id: cursor,
-    };
-    query.skip = 1; // Skip the cursor itself
-  }
-
-  // Build the where clause
-  const whereConditions: any[] = [];
-
-  // Add search filter if provided
-  if (filter) {
-    whereConditions.push({
-      OR: [
-        { title: { contains: filter, mode: "insensitive" as const } },
-        { description: { contains: filter, mode: "insensitive" as const } },
-      ],
-    });
-  }
-
-  // Filter by artist
-  if (artistId) {
-    whereConditions.push({
-      artists: {
-        some: {
-          id: artistId,
-        },
-      },
-    });
-  }
-
-  // Filter by event
-  if (eventId) {
-    whereConditions.push({
-      events: {
-        some: {
-          id: eventId,
-        },
-      },
-    });
-  }
-
-  // Apply all where conditions if any exist
-  if (whereConditions.length > 0) {
-    query.where = {
-      AND: whereConditions,
-    };
-  }
-
-  const posters = await prisma.poster.findMany(query);
-
-  // Get the next cursor
-  const nextCursor = posters.length > 0 ? posters[posters.length - 1].id : null;
-
-  return {
-    items: posters,
-    nextCursor,
-  };
-}
-
-/**
- * Find a poster by ID
- */
-async function findPosterById(id: number) {
-  return prisma.poster.findUnique({
-    where: { id },
-    include: {
-      seller: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-      artists: true,
-      events: true,
-    },
-  });
-}
-
-/**
- * Create a new poster
- */
-async function createPoster(data: {
-  title: string;
-  artistIds: string[];
-  eventIds: string[];
-  price: number;
-  description: string;
-  condition: string;
-  dimensions: string;
-  listingType: string;
-  auctionEndDate?: Date | null;
-  imageUrls: string[];
-  sellerId: string;
-}) {
-  const { artistIds, eventIds, imageUrls, ...posterData } = data;
-
-  return prisma.poster.create({
-    data: {
-      ...posterData,
-      imageUrls: imageUrls, // All images
-      artists: {
-        create: artistIds.map((artistId) => ({
-          artist: { connect: { id: artistId } },
-        })),
-      },
-      events: {
-        create: eventIds.map((eventId) => ({
-          event: { connect: { id: eventId } },
-        })),
-      },
-    },
-    include: {
-      seller: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-      artists: {
-        include: {
-          artist: true,
-        },
-      },
-      events: {
-        include: {
-          event: true,
-        },
-      },
-    },
-  });
-}
-
-/**
- * Update a poster
- */
-async function updatePoster(
-  id: number,
-  data: {
-    title?: string;
-    artistIds?: string[];
-    eventIds?: string[];
-    price?: number;
-    description?: string;
-    condition?: string;
-    dimensions?: string;
-    listingType?: string;
-    auctionEndDate?: Date | null;
-    images?: string[];
-  }
-) {
-  const { artistIds, eventIds, images, ...posterData } = data;
-
-  // Start with basic poster updates
-  const updateData: any = {
-    ...posterData,
-    ...(images && { images, imageUrl: images[0] }),
-  };
-
-  // Handle relationship updates with transactions
-  return prisma.$transaction(async (tx) => {
-    // Update basic poster data
-    const updatedPoster = await tx.poster.update({
-      where: { id },
-      data: updateData,
-      include: {
-        seller: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-    });
-
-    // If artistIds provided, delete existing relationships and create new ones
-    if (artistIds) {
-      // Delete existing artist connections
-      await tx.posterArtist.deleteMany({
-        where: { posterId: id },
-      });
-
-      // Create new artist connections
-      for (const artistId of artistIds) {
-        await tx.posterArtist.create({
-          data: {
-            posterId: id,
-            artistId,
-          },
-        });
-      }
-    }
-
-    // If eventIds provided, delete existing relationships and create new ones
-    if (eventIds) {
-      // Delete existing event connections
-      await tx.posterEvent.deleteMany({
-        where: { posterId: id },
-      });
-
-      // Create new event connections
-      for (const eventId of eventIds) {
-        await tx.posterEvent.create({
-          data: {
-            posterId: id,
-            eventId,
-          },
-        });
-      }
-    }
-
-    // Return the complete updated poster with relationships
-    return tx.poster.findUnique({
-      where: { id },
-      include: {
-        seller: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        artists: {
-          include: {
-            artist: true,
-          },
-        },
-        events: {
-          include: {
-            event: true,
-          },
-        },
-      },
-    });
-  });
-}
-
-/**
- * Delete a poster
- */
-async function deletePoster(id: number) {
-  return prisma.poster.delete({
-    where: { id },
-  });
-}
-
-// ------------------- tRPC Router -------------------
 
 export const posterRouter = router({
   // Get all posters
   getAll: publicProcedure
     .input(
-      z.object({
-        limit: z.number().min(1).max(100).optional(),
-        cursor: z.string().optional(),
-        filter: z.string().optional(),
-        artistId: z.number().optional(),
-        eventId: z.number().optional(),
-      })
+      z
+        .object({
+          limit: z.number().min(1).max(100).optional().default(50),
+          cursor: z.string().optional(),
+          filter: z.string().optional(),
+          artistId: z.number().optional(),
+          eventId: z.number().optional(),
+        })
+        .optional()
     )
     .query(async ({ input }) => {
-      return await findAllPosters(input);
+      try {
+        const { limit = 50, cursor, filter, artistId, eventId } = input || {};
+
+        // Convert cursor from string to number if provided
+        const cursorId = cursor ? parseInt(cursor, 10) : undefined;
+
+        // Build where conditions
+        const whereConditions: Prisma.PosterWhereInput = {};
+        const conditions: Prisma.PosterWhereInput[] = [];
+
+        // Add search filter if provided
+        if (filter) {
+          conditions.push({
+            OR: [
+              { title: { contains: filter, mode: "insensitive" } },
+              { description: { contains: filter, mode: "insensitive" } },
+            ],
+          });
+        }
+
+        // Filter by artist
+        if (artistId) {
+          conditions.push({
+            artists: {
+              some: {
+                artistId: artistId.toString(), // Convert to string as artistId is string in the schema
+              },
+            },
+          });
+        }
+
+        // Filter by event
+        if (eventId) {
+          conditions.push({
+            events: {
+              some: {
+                eventId: eventId.toString(), // Convert to string as eventId is string in the schema
+              },
+            },
+          });
+        }
+
+        // Apply all where conditions if any exist
+        if (conditions.length > 0) {
+          whereConditions.AND = conditions;
+        }
+
+        // Execute the query
+        const posters = await prisma.poster.findMany({
+          take: limit,
+          skip: cursorId ? 1 : 0,
+          cursor: cursorId ? { id: cursorId } : undefined,
+          orderBy: {
+            createdAt: "desc",
+          },
+          where: whereConditions,
+          include: {
+            seller: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            artists: {
+              include: {
+                artist: true,
+              },
+            },
+            events: {
+              include: {
+                event: {
+                  include: {
+                    venue: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        // Get the next cursor
+        const nextCursor =
+          posters.length === limit
+            ? posters[posters.length - 1].id.toString()
+            : null;
+
+        // Format the response using the same pattern as the event router
+        return {
+          items: posters.map((poster) => ({
+            ...poster,
+            // Transform the junction table entries to just the related entities
+            artists: poster.artists.map((pa) => pa.artist),
+            events: poster.events.map((pe) => ({
+              ...pe.event,
+              // Preserve the venue structure
+              venue: pe.event.venue,
+            })),
+          })),
+          nextCursor,
+          total: await prisma.poster.count({ where: whereConditions }),
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch posters",
+          cause: error,
+        });
+      }
     }),
 
   // Get poster by ID
   getById: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
-      const poster = await findPosterById(input.id);
+      try {
+        const poster = await prisma.poster.findUnique({
+          where: { id: input.id },
+          include: {
+            seller: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            artists: {
+              include: {
+                artist: true,
+              },
+            },
+            events: {
+              include: {
+                event: {
+                  include: {
+                    venue: true,
+                  },
+                },
+              },
+            },
+          },
+        });
 
-      if (!poster) {
+        if (!poster) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Poster not found",
+          });
+        }
+
+        // Return the transformed poster with the same pattern used in the event router
+        return {
+          ...poster,
+          // Transform the junction table entries to just the related entities
+          artists: poster.artists.map((pa) => pa.artist),
+          events: poster.events.map((pe) => ({
+            ...pe.event,
+            // Preserve the venue structure
+            venue: pe.event.venue,
+          })),
+        };
+      } catch (error) {
         throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Poster not found",
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch poster",
+          cause: error,
         });
       }
-
-      return poster;
     }),
 
   // Create poster
@@ -336,10 +208,90 @@ export const posterRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return await createPoster({
-        ...input,
-        sellerId: ctx.userId,
-      });
+      try {
+        const {
+          artistIds,
+          eventIds,
+          price,
+          listingType,
+          auctionEndDate,
+          ...posterData
+        } = input;
+
+        // Set pricing fields based on listingType
+        const pricingData =
+          listingType === "auction"
+            ? {
+                isAuction: true,
+                startPrice: price,
+                buyNowPrice: null,
+                auctionEndAt: auctionEndDate,
+              }
+            : {
+                isAuction: false,
+                buyNowPrice: price,
+                startPrice: null,
+                auctionEndAt: null,
+              };
+
+        // Create the poster with relationships
+        const poster = await prisma.poster.create({
+          data: {
+            ...posterData,
+            ...pricingData,
+            sellerId: ctx.userId,
+            artists: {
+              create: artistIds.map((artistId) => ({
+                artist: { connect: { id: artistId } },
+              })),
+            },
+            events: {
+              create: eventIds.map((eventId) => ({
+                event: { connect: { id: eventId } },
+              })),
+            },
+          },
+          include: {
+            seller: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            artists: {
+              include: {
+                artist: true,
+              },
+            },
+            events: {
+              include: {
+                event: {
+                  include: {
+                    venue: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        // Return the transformed poster
+        return {
+          ...poster,
+          artists: poster.artists.map((pa) => pa.artist),
+          events: poster.events.map((pe) => ({
+            ...pe.event,
+            venue: pe.event.venue,
+          })),
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create poster",
+          cause: error,
+        });
+      }
     }),
 
   // Update poster
@@ -360,50 +312,203 @@ export const posterRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Check if the user owns this poster
-      const poster = await findPosterById(input.id);
+      try {
+        const {
+          id,
+          artistIds,
+          eventIds,
+          price,
+          listingType,
+          auctionEndDate,
+          ...posterData
+        } = input;
 
-      if (!poster) {
+        // Check if the user owns this poster
+        const existingPoster = await prisma.poster.findUnique({
+          where: { id },
+          select: { sellerId: true },
+        });
+
+        if (!existingPoster) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Poster not found",
+          });
+        }
+
+        if (existingPoster.sellerId !== ctx.userId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You can only update your own posters",
+          });
+        }
+
+        // Prepare pricing updates if provided
+        const pricingData: Prisma.PosterUpdateInput = {};
+        if (price || listingType) {
+          if (listingType === "auction") {
+            pricingData.isAuction = true;
+            pricingData.startPrice = price;
+            pricingData.buyNowPrice = null;
+            pricingData.auctionEndAt = auctionEndDate;
+          } else if (listingType === "buyNow") {
+            pricingData.isAuction = false;
+            pricingData.buyNowPrice = price;
+            pricingData.startPrice = null;
+            pricingData.auctionEndAt = null;
+          } else if (price) {
+            // Just update the price for the current listing type
+            const currentPoster = await prisma.poster.findUnique({
+              where: { id },
+              select: { isAuction: true },
+            });
+
+            if (currentPoster) {
+              if (currentPoster.isAuction) {
+                pricingData.startPrice = price;
+              } else {
+                pricingData.buyNowPrice = price;
+              }
+            }
+          }
+        }
+
+        // Handle updates within a transaction
+        return prisma.$transaction(async (tx) => {
+          // Update basic poster data
+          const poster = await tx.poster.update({
+            where: { id },
+            data: {
+              ...posterData,
+              ...pricingData,
+            },
+          });
+
+          // If artistIds provided, update artist relationships
+          if (artistIds) {
+            // Delete existing artist connections
+            await tx.posterArtist.deleteMany({
+              where: { posterId: id },
+            });
+
+            // Create new artist connections
+            for (const artistId of artistIds) {
+              await tx.posterArtist.create({
+                data: {
+                  posterId: id,
+                  artistId,
+                },
+              });
+            }
+          }
+
+          // If eventIds provided, update event relationships
+          if (eventIds) {
+            // Delete existing event connections
+            await tx.posterEvent.deleteMany({
+              where: { posterId: id },
+            });
+
+            // Create new event connections
+            for (const eventId of eventIds) {
+              await tx.posterEvent.create({
+                data: {
+                  posterId: id,
+                  eventId,
+                },
+              });
+            }
+          }
+
+          // Fetch the updated poster with all relationships
+          const updatedPoster = await tx.poster.findUnique({
+            where: { id },
+            include: {
+              seller: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              artists: {
+                include: {
+                  artist: true,
+                },
+              },
+              events: {
+                include: {
+                  event: {
+                    include: {
+                      venue: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+
+          if (!updatedPoster) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Updated poster not found",
+            });
+          }
+
+          // Return the transformed poster
+          return {
+            ...updatedPoster,
+            artists: updatedPoster.artists.map((pa) => pa.artist),
+            events: updatedPoster.events.map((pe) => ({
+              ...pe.event,
+              venue: pe.event.venue,
+            })),
+          };
+        });
+      } catch (error) {
         throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Poster not found",
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to update poster",
+          cause: error,
         });
       }
-
-      if (poster.sellerId !== ctx.userId) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You can only update your own posters",
-        });
-      }
-
-      // Remove the id from the update data
-      const { id, ...updateData } = input;
-
-      return await updatePoster(id, updateData);
     }),
 
   // Delete poster
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      // Check if the user owns this poster
-      const poster = await findPosterById(input.id);
+      try {
+        // Check if the user owns this poster
+        const poster = await prisma.poster.findUnique({
+          where: { id: input.id },
+          select: { sellerId: true },
+        });
 
-      if (!poster) {
+        if (!poster) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Poster not found",
+          });
+        }
+
+        if (poster.sellerId !== ctx.userId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You can only delete your own posters",
+          });
+        }
+
+        // Delete the poster
+        return await prisma.poster.delete({
+          where: { id: input.id },
+        });
+      } catch (error) {
         throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Poster not found",
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to delete poster",
+          cause: error,
         });
       }
-
-      if (poster.sellerId !== ctx.userId) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You can only delete your own posters",
-        });
-      }
-
-      return await deletePoster(input.id);
     }),
 });
