@@ -69,6 +69,13 @@ body {
   color: white !important;
 }
 
+// Make btn-outline-secondary text color black for better visibility
+.btn-outline-secondary {
+  --bs-btn-color: #000 !important;
+  --bs-btn-border-color: var(--bs-secondary) !important;
+  color: #000 !important;
+}
+
 // 6. Extra custom accent colors not included in Bootstrap
 :root {
   --accent1: #{$accent1};
