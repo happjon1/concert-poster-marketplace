@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   input,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -19,6 +20,7 @@ import { CommaSeparatedListComponent } from '../comma-separated-list/comma-separ
 })
 export class PosterCardComponent {
   poster = input<Poster>();
+  imageLoaded = signal(false);
 
   // Get array of artist names for use in the CommaSeparatedList component
   artistNames = computed(
@@ -58,4 +60,13 @@ export class PosterCardComponent {
 
     return 'Price not available';
   });
+
+  onImageLoad(): void {
+    this.imageLoaded.set(true);
+  }
+
+  onImageError(): void {
+    // Keep the placeholder visible if image fails to load
+    this.imageLoaded.set(false);
+  }
 }

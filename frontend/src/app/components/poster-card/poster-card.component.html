@@ -14,10 +14,15 @@
 
   <div class="card-body p-1">
     <div class="poster-image-container">
+      <!-- Always show the placeholder, the image will cover it when loaded -->
+      <div class="poster-placeholder"></div>
       <img
         src="{{ poster()?.imageUrls?.[0] || '' }}"
-        class="img-fluid rounded w-100"
-        [alt]="poster()?.title" />
+        class="poster-image rounded"
+        [alt]="poster()?.title"
+        [class.loaded]="imageLoaded()"
+        (load)="onImageLoad()"
+        (error)="onImageError()" />
     </div>
   </div>
 

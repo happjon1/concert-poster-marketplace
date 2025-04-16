@@ -11,6 +11,44 @@
   overflow: hidden;
 }
 
+.poster-placeholder {
+  position: relative;
+  padding-top: 150%; /* Standard concert poster aspect ratio (2:3) */
+  background: linear-gradient(
+    110deg,
+    $border-color 8%,
+    lighten($border-color, 5%) 18%,
+    $border-color 33%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 0.25rem;
+}
+
+.poster-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  
+  &.loaded {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 // Handle button size on different screens
 @media (max-width: 576px) {
   .btn-md-md {
