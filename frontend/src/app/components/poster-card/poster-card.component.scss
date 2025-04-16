@@ -3,12 +3,24 @@
 .card {
   transition: all 0.2s ease-in-out;
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .poster-image-container {
   position: relative;
   width: 100%;
   overflow: hidden;
+  font-size: 0; /* Remove any font-size related spacing */
+  line-height: 0; /* Remove any line-height related spacing */
+}
+
+.card-body {
+  padding: 0 !important; /* Remove all padding from the card body */
+  margin: 0 !important; /* Ensure no margin */
+  flex: 0 0 auto; /* Prevent flex growing/shrinking */
+  font-size: 0; /* Remove any font-size related spacing */
+  line-height: 0; /* Remove any line-height related spacing */
 }
 
 .poster-placeholder {
@@ -22,7 +34,8 @@
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
-  border-radius: 0.25rem;
+  border-radius: 0;
+  margin: 0; /* Ensure no margin */
 }
 
 .poster-image {
@@ -34,10 +47,30 @@
   object-fit: cover;
   opacity: 0;
   transition: opacity 0.3s ease;
+  border-radius: 0;
+  display: block; /* Remove any potential inline-block spacing */
   
   &.loaded {
     opacity: 1;
   }
+}
+
+/* Adjust card footer to be taller */
+.card-footer {
+  border-top: 0 !important;
+  padding: 0.75rem 0.75rem !important; /* Increased padding to make footer taller */
+  margin-top: 0 !important;
+  background-color: white;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 0;
+}
+
+/* Remove unnecessary vertical alignment from button */
+.btn-outline-primary.btn-sm {
+  padding: 0.15rem 0.5rem;
+  line-height: 1.2;
 }
 
 @keyframes shimmer {

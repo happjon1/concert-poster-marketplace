@@ -1,4 +1,4 @@
-<div class="card shadow mb-3 mb-md-4">
+<div class="card shadow">
   <div class="card-header py-2 py-md-3">
     <h5 class="card-title mb-0 fs-6 fs-md-5">
       <app-comma-separated-list [items]="artistNames()" [autoAdjust]="true">
@@ -12,13 +12,13 @@
     </h6>
   </div>
 
-  <div class="card-body p-1">
+  <div class="card-body">
     <div class="poster-image-container">
       <!-- Always show the placeholder, the image will cover it when loaded -->
       <div class="poster-placeholder"></div>
       <img
         src="{{ poster()?.imageUrls?.[0] || '' }}"
-        class="poster-image rounded"
+        class="poster-image"
         [alt]="poster()?.title"
         [class.loaded]="imageLoaded()"
         (load)="onImageLoad()"
