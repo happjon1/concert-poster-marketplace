@@ -1,8 +1,8 @@
 <nav
   class="navbar navbar-expand-lg navbar-dark navbar-gradient py-2 navbar-edge-logo">
   <div class="container-fluid px-0">
-    <!-- Logo and Brand -->
-    <div class="d-flex align-items-center ms-0">
+    <!-- Left Section: Logo and Brand -->
+    <div class="navbar-left">
       <a
         class="navbar-brand d-flex align-items-center logo-container"
         routerLink="/">
@@ -14,68 +14,129 @@
       </a>
     </div>
 
-    <!-- Spacer to push buttons to the right -->
-    <div class="flex-grow-1"></div>
-
-    <!-- Filter button - visible only on home page, icon only -->
+    <!-- Center Section: Search Bar - only visible on home page and on medium screens and up -->
     @if (isHomePage()) {
-      <button
-        class="btn btn-outline-light me-2"
-        type="button"
-        data-bs-toggle="offcanvas"
-        data-bs-target="#filterSidebar"
-        aria-controls="filterSidebar">
-        <i class="bi bi-funnel"></i>
-      </button>
+      <div class="navbar-center d-none d-md-flex">
+        <div class="search-form">
+          <div class="input-group">
+            <input
+              type="search"
+              class="form-control"
+              placeholder="Search posters..."
+              aria-label="Search"
+              name="searchQuery"
+              [ngModel]="searchQuery()"
+              (ngModelChange)="onSearchInput($event)" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile search form - shown when mobileSearchVisible is true -->
+      @if (mobileSearchVisible()) {
+        <div class="mobile-search-overlay">
+          <div class="mobile-search-form">
+            <div class="input-group">
+              <input
+                type="search"
+                class="form-control"
+                placeholder="Search posters..."
+                aria-label="Search"
+                name="mobileSearchQuery"
+                [ngModel]="mobileSearchQuery()"
+                (ngModelChange)="onMobileSearchInput($event)"
+                #searchInput />
+              <button
+                class="btn btn-secondary"
+                type="button"
+                (click)="toggleMobileSearch()">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     }
 
-    <!-- User Menu Dropdown - icon only -->
-    <div class="dropdown">
-      <button
-        class="btn btn-outline-light"
-        type="button"
-        id="userMenuDropdown"
-        data-bs-toggle="dropdown"
-        aria-expanded="false">
-        <i class="bi bi-person-circle"></i>
-      </button>
-      <ul
-        class="dropdown-menu dropdown-menu-end"
-        aria-labelledby="userMenuDropdown">
-        <li>
-          <a class="dropdown-item" routerLink="/profile">
-            <i class="bi bi-person me-2"></i> Profile
-          </a>
-        </li>
-        <li>
-          <a class="dropdown-item" routerLink="/my-posters">
-            <i class="bi bi-collection me-2"></i> Listings
-          </a>
-        </li>
-        <li><hr class="dropdown-divider" /></li>
-        <li>
-          @if (isLoggedIn()) {
-            <button
-              class="dropdown-item"
-              (click)="logout()"
-              (keydown.enter)="logout()"
-              (keydown.space)="logout()">
-              <i class="bi bi-box-arrow-right me-2"></i> Logout
-            </button>
-          } @else {
-            <button
-              class="dropdown-item"
-              (click)="login()"
-              (keydown.enter)="login()"
-              (keydown.space)="login()">
-              <i class="bi bi-box-arrow-in-right me-2"></i> Login
-            </button>
-          }
-        </li>
-      </ul>
+    <!-- Right Section: Buttons -->
+    <div class="navbar-right">
+      <!-- Filter button - visible only on home page, icon only -->
+      @if (isHomePage()) {
+        <button
+          class="btn btn-outline-light me-0"
+          type="button"
+          data-bs-toggle="offcanvas"
+          data-bs-target="#filterSidebar"
+          aria-controls="filterSidebar">
+          <i class="bi bi-funnel"></i>
+        </button>
+      }
+
+      <!-- User Menu Dropdown - icon only -->
+      <div class="dropdown">
+        <button
+          class="btn btn-outline-light"
+          type="button"
+          id="userMenuDropdown"
+          data-bs-toggle="dropdown"
+          aria-expanded="false">
+          <i class="bi bi-person-circle"></i>
+        </button>
+        <ul
+          class="dropdown-menu dropdown-menu-end"
+          aria-labelledby="userMenuDropdown">
+          <li>
+            <a class="dropdown-item" routerLink="/profile">
+              <i class="bi bi-person me-2"></i> Profile
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item" routerLink="/my-posters">
+              <i class="bi bi-collection me-2"></i> Listings
+            </a>
+          </li>
+          <li><hr class="dropdown-divider" /></li>
+          <li>
+            @if (isLoggedIn()) {
+              <button
+                class="dropdown-item"
+                (click)="logout()"
+                (keydown.enter)="logout()"
+                (keydown.space)="logout()">
+                <i class="bi bi-box-arrow-right me-2"></i> Logout
+              </button>
+            } @else {
+              <button
+                class="dropdown-item"
+                (click)="login()"
+                (keydown.enter)="login()"
+                (keydown.space)="login()">
+                <i class="bi bi-box-arrow-in-right me-2"></i> Login
+              </button>
+            }
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </nav>
+
+<!-- Mobile Search Bar - below navbar, full width -->
+@if (isHomePage()) {
+  <div class="mobile-search-container d-md-none">
+    <div class="container-fluid p-2">
+      <div class="input-group">
+        <input
+          type="search"
+          class="form-control"
+          placeholder="Search posters..."
+          aria-label="Search"
+          name="mobileSearchQueryBelow"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="onSearchInput($event)" />
+      </div>
+    </div>
+  </div>
+}
 
 <!-- Filter Sidebar -->
 <div

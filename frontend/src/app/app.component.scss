@@ -1,0 +1,14 @@
+// Main content area styles
+.content {
+  padding-top: 60px; // Add padding equal to navbar height
+  min-height: calc(
+    100vh - 60px
+  ); // Ensure content area takes up remaining viewport height
+}
+
+// For pages with the mobile search bar
+:host ::ng-deep .mobile-search-container + .content {
+  padding-top: calc(
+    60px + 54px
+  ); // Account for navbar height + mobile search container height
+}

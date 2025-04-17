@@ -1,25 +1,97 @@
 @import '../../../styles/variables';
 
-// .navbar {
-//   -webkit-box-shadow: 3px 3px 5px 6px #ccc;  /* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */
-//   -moz-box-shadow:    3px 3px 5px 6px #ccc;  /* Firefox 3.5 - 3.6 */
-//    box-shadow:        2px 2px 4px 5px #ccc;
-//   z-index: 10;
-//   top:0;
-//   position: sticky;
-//   display: flex;
-//   justify-content: space-between;
-// }
+:host {
+  display: block;
+}
+
+// Navbar layout styles for centering the search bar
+.navbar {
+  .container-fluid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .navbar-left,
+  .navbar-right {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center; // Align items vertically
+  }
+
+  .navbar-right {
+    flex-direction: row; // Ensure buttons are in a row, not stacked
+    gap: 0.5rem; // Add some spacing between buttons
+  }
+
+  .navbar-center {
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center; // Center search bar vertically
+    padding: 0 1rem;
+  }
+
+  .search-form {
+    width: 100%;
+    max-width: 500px;
+
+    @media (min-width: 1200px) {
+      // On extra large screens, make the search wider
+      max-width: 600px;
+    }
+
+    @media (min-width: 1400px) {
+      // On xxl screens, make the search even wider
+      max-width: 700px;
+    }
+
+    @media (max-width: 991.98px) {
+      // On tablets and smaller screens, reduce width to fit
+      max-width: 300px;
+    }
+
+    @media (max-width: 767.98px) {
+      // On mobile, make it bigger proportionally
+      max-width: 50%;
+    }
+
+    @media (max-width: 575.98px) {
+      // On extra small screens, make it smaller
+      max-width: 40%;
+
+      // Make the search button and input smaller
+      .form-control,
+      .btn {
+        font-size: 0.875rem;
+        padding: 0.25rem 0.5rem;
+      }
+
+      // Hide placeholder text on very small screens
+      .form-control::placeholder {
+        opacity: 0;
+      }
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center; // Align input vertically
+    }
+
+    .form-control {
+      height: 38px; // Consistent height
+    }
+  }
+}
 
 .navbar-gradient {
-  background: linear-gradient(
-    to bottom,
-    var(--bs-primary) 0%,
-    lighten($primary, 10%) 100%
-  );
-  box-shadow: 0 2px 10px rgba($dark, 0.1);
-  position: sticky;
+  background: linear-gradient(to bottom, $primary, lighten($primary, 10%));
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); // Enhanced drop shadow
+  position: fixed; // Change from sticky to fixed for consistent behavior
   top: 0;
+  left: 0; // Add left: 0 to ensure it spans the full width
+  right: 0; // Add right: 0 to ensure it spans the full width
+  width: 100%; // Ensure full width
   z-index: 1030;
   padding-top: 0.1rem !important; // Minimal padding
   padding-bottom: 0.1rem !important; // Minimal padding
@@ -65,9 +137,10 @@
 // Make offcanvas header match the navbar
 .offcanvas-header-gradient {
   background: linear-gradient(
-    to bottom,
-    var(--bs-primary) 0%,
-    lighten($primary, 10%) 100%
+    to right,
+    darken($primary, 10%),
+    $primary,
+    lighten($primary, 10%)
   );
   color: white;
   min-height: 70px; // Match navbar height
@@ -88,6 +161,7 @@
   padding: 0.25rem 0; // Reduced padding
   padding-left: 0 !important; // Remove left padding from logo container
   margin-left: -1rem !important; // Very aggressive negative margin
+  max-width: 150px;
 }
 
 // Extreme logo size increase
@@ -121,7 +195,8 @@
 
 // Extreme left position for logo
 .navbar-edge-logo {
-  padding-left: 0 !important; // Remove all left padding
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 .navbar-edge-logo > .container-fluid {
@@ -149,5 +224,88 @@
   .navbar .d-flex:last-child {
     margin-right: 0.5rem !important;
     padding-right: 0.25rem !important;
+  }
+}
+
+// Mobile search overlay styles
+.mobile-search-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 20%;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.mobile-search-form {
+  width: 90%;
+  max-width: 500px;
+  padding: 1rem;
+
+  .input-group {
+    .form-control {
+      border-radius: 4px 0 0 4px;
+      border: none;
+      height: 46px;
+      font-size: 1rem;
+    }
+
+    .btn {
+      height: 46px;
+      border: none;
+
+      &.btn-primary {
+        border-radius: 0;
+      }
+
+      &.btn-secondary {
+        border-radius: 0 4px 4px 0;
+      }
+    }
+  }
+}
+
+// Mobile search container styles
+.mobile-search-container {
+  background-color: $light; // Changed to light background
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1); // Add subtle border
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: fixed; // Change to fixed position
+  top: 60px; // Position right below navbar
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1025; // Below navbar but above other content
+
+  .input-group {
+    margin: 0;
+
+    .form-control {
+      border: 1px solid #ced4da; // Add border to match light theme
+      border-radius: 4px 0 0 4px;
+      height: 38px;
+    }
+
+    .btn {
+      border: 1px solid #ced4da;
+      border-left: none;
+      border-radius: 0 4px 4px 0;
+      height: 38px;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
