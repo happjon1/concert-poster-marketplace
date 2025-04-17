@@ -128,6 +128,17 @@ export class TrpcService {
 
   // Poster methods
   getAllPosters(params?: GetAllPostersInput): Promise<GetAllPostersOutput> {
+    // If there's a filter but no searchQuery, copy the filter to searchQuery as well
+    // This ensures search works regardless of whether backend uses filter or searchQuery
+    if (params?.filter && !params.searchQuery) {
+      const enhancedParams = {
+        ...params,
+        searchQuery: params.filter,
+      };
+      console.log('Enhanced search params:', enhancedParams);
+      return this.client.posters.getAll.query(enhancedParams);
+    }
+
     return this.client.posters.getAll.query(params || {});
   }
 

@@ -126,6 +126,13 @@ export class HomeComponent implements OnInit {
 
       const cursor = this.getPageCursor();
 
+      // Log the search parameters we're using to help with debugging
+      console.log('Searching with parameters:', {
+        filter: this.filter,
+        artistId: this.artistId,
+        eventId: this.eventId,
+      });
+
       const response = await this.trpcService.getAllPosters({
         limit: this.itemsPerPage,
         cursor: cursor,
@@ -133,6 +140,19 @@ export class HomeComponent implements OnInit {
         artistId: this.artistId,
         eventId: this.eventId,
       });
+
+      // Log the returned items to verify they match what we saw in the backend logs
+      console.log(`Retrieved ${response.items.length} posters from backend`);
+      if (response.items.length > 0) {
+        console.log(
+          'First 3 posters:',
+          response.items.slice(0, 3).map(poster => ({
+            id: poster.id,
+            title: poster.title,
+            artists: poster.artists.map(artist => artist.name),
+          }))
+        );
+      }
 
       this.items = response.items;
 
