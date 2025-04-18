@@ -1,9 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { Context } from "./context.js";
 import superjson from "superjson";
-import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
-import prisma from "../config/prisma"; // Import shared Prisma instance
+import prisma from "../config/prisma.js"; // Import shared Prisma instance
 
 // Initialize tRPC
 const t = initTRPC.context<Context>().create({

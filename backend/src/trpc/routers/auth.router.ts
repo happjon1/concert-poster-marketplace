@@ -2,11 +2,11 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, router } from "../trpc";
-import prisma from "../../config/prisma"; // Import shared Prisma instance
+import { publicProcedure, router } from "../trpc.js";
+import prisma from "../../config/prisma.js"; // Import shared Prisma instance
 
 // JWT secret key from environment or fallback
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const JWT_SECRET = process.env["JWT_SECRET"] || "your-secret-key";
 const REFRESH_SECRET = process.env["REFRESH_SECRET"] || "refresh_secret";
 const tokenBlacklist = new Set<string>();
 

@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 // Check if we're in test mode
-const isTestEnvironment = process.env.NODE_ENV === "test";
+const isTestEnvironment = process.env["NODE_ENV"] === "test";
 
 // Configuration options
 const config = isTestEnvironment
@@ -26,7 +26,7 @@ const prisma = isTestEnvironment
 // Log which database we're connecting to (for debugging)
 const dbUrl = isTestEnvironment
   ? "concert_poster_marketplace_test"
-  : process.env.DATABASE_URL || "default database";
+  : process.env["DATABASE_URL"] || "default database";
 
 console.log(
   `[Prisma] Connecting to ${

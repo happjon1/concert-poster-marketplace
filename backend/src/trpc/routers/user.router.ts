@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../trpc.js";
 import { TRPCError } from "@trpc/server";
 import bcrypt from "bcrypt";
-import prisma from "../../config/prisma"; // Import shared Prisma instance
+import prisma from "../../config/prisma.js"; // Import shared Prisma instance
 
 // ------------------- Helper Functions -------------------
 

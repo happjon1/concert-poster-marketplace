@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { Prisma, PosterStatus } from "@prisma/client";
-import { fuzzyPosterSearch } from "../../utils/fuzzy-search";
-import prisma from "../../config/prisma"; // Import shared Prisma instance
+import { router, publicProcedure, protectedProcedure } from "../trpc.js";
+import { fuzzyPosterSearch } from "../../utils/fuzzy-search.js";
+import prisma from "../../config/prisma.js"; // Import shared Prisma instance
 import * as chrono from "chrono-node";
+import { Prisma } from "@prisma/client";
 
 // Create a more robust query preprocessor
 const preprocessSearchQuery = (query: string): string[] => {

@@ -121,8 +121,8 @@ export class NavbarComponent implements OnInit, AfterViewInit {
     if (this.isOnHomePage()) {
       const queryParams: SearchQueryParams = { page: 1 };
 
-      if (term.trim()) {
-        queryParams.filter = term.trim();
+      if (term.length > 0) {
+        queryParams.filter = term;
       } else {
         // If search is empty, remove the filter parameter
         queryParams.filter = null;

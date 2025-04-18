@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, publicProcedure } from "../trpc.js";
 import { TRPCError } from "@trpc/server";
-import prisma from "../../config/prisma"; // Import shared Prisma instance
+import prisma from "../../config/prisma.js"; // Import shared Prisma instance
 
 export const artistRouter = router({
   getAll: publicProcedure
