@@ -1,87 +1,58 @@
-// Debug script to check for posters with Stone Temple Pilots as an artist
 import { PrismaClient } from "@prisma/client";
+import prisma from "./config/prisma"; // Import shared Prisma instance
 
-async function main() {
-  const prisma = new PrismaClient();
-  console.log("Debugging search for Stone Temple Pilots");
-
+// Create a debug file to check for Phish posters in Seattle
+async function debugSearch() {
   try {
-    // 1. First check if the artist exists
-    console.log("Checking if Stone Temple Pilots exists in artists table...");
-    const stpArtist = await prisma.artist.findFirst({
+    // Search for artists with "phish" in the name
+    const phishArtists = await prisma.artist.findMany({
       where: {
         name: {
-          contains: "Stone Temple Pilots",
+          contains: "phish",
           mode: "insensitive",
         },
       },
     });
 
-    console.log("Artist search result:", stpArtist);
+    console.log("Phish artists:", phishArtists);
 
-    // 2. Look for any posters with this artist
-    console.log("\nLooking for posters with Stone Temple Pilots...");
-    const posters = await prisma.poster.findMany({
+    // Search for venues in Seattle
+    const seattleVenues = await prisma.venue.findMany({
       where: {
-        artists: {
-          some: {
-            artist: {
-              name: {
-                contains: "Stone Temple Pilots",
-                mode: "insensitive",
-              },
-            },
-          },
-        },
-      },
-      include: {
-        artists: {
-          include: {
-            artist: true,
-          },
-        },
+        OR: [
+          { name: { contains: "seattle", mode: "insensitive" } },
+          { city: { contains: "seattle", mode: "insensitive" } },
+        ],
       },
     });
 
-    console.log(`Found ${posters.length} posters with Stone Temple Pilots`);
+    console.log("Seattle venues:", seattleVenues);
 
-    if (posters.length > 0) {
-      posters.forEach((poster, index) => {
-        console.log(`\nPoster ${index + 1}:`);
-        console.log(`  ID: ${poster.id}`);
-        console.log(`  Title: ${poster.title}`);
-        console.log(
-          `  Artists: ${poster.artists.map((pa) => pa.artist.name).join(", ")}`
-        );
-      });
-    }
-
-    // 3. Test our search function directly with the term "stone"
-    console.log("\nTesting search with term 'stone'...");
-    const searchPosters = await prisma.poster.findMany({
+    // Check for posters that match both conditions
+    const matchingPosters = await prisma.poster.findMany({
       where: {
-        OR: [
-          // Test direct title/description search
-          {
-            title: {
-              contains: "stone",
-              mode: "insensitive",
-            },
-          },
-          {
-            description: {
-              contains: "stone",
-              mode: "insensitive",
-            },
-          },
-          // Test artist name search
+        AND: [
           {
             artists: {
               some: {
                 artist: {
                   name: {
-                    contains: "stone",
+                    contains: "phish",
                     mode: "insensitive",
+                  },
+                },
+              },
+            },
+          },
+          {
+            events: {
+              some: {
+                event: {
+                  venue: {
+                    OR: [
+                      { name: { contains: "seattle", mode: "insensitive" } },
+                      { city: { contains: "seattle", mode: "insensitive" } },
+                    ],
                   },
                 },
               },
@@ -95,28 +66,142 @@ async function main() {
             artist: true,
           },
         },
+        events: {
+          include: {
+            event: {
+              include: {
+                venue: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    console.log(
-      `\nFound ${searchPosters.length} posters with 'stone' in title, description, or artist name`
-    );
-
-    if (searchPosters.length > 0) {
-      searchPosters.forEach((poster, index) => {
-        console.log(`\nPoster ${index + 1}:`);
-        console.log(`  ID: ${poster.id}`);
-        console.log(`  Title: ${poster.title}`);
+    console.log("Matching posters:", matchingPosters.length);
+    if (matchingPosters.length > 0) {
+      matchingPosters.forEach((poster) => {
+        console.log("\nPoster ID:", poster.id);
+        console.log("Title:", poster.title);
         console.log(
-          `  Artists: ${poster.artists.map((pa) => pa.artist.name).join(", ")}`
+          "Artists:",
+          poster.artists.map((pa) => pa.artist.name)
+        );
+        console.log(
+          "Venues:",
+          poster.events.map(
+            (pe) => `${pe.event.venue.name} (${pe.event.venue.city})`
+          )
+        );
+      });
+    }
+
+    // Do we have any Phish posters at all?
+    const anyPhishPosters = await prisma.poster.findMany({
+      where: {
+        artists: {
+          some: {
+            artist: {
+              name: {
+                contains: "phish",
+                mode: "insensitive",
+              },
+            },
+          },
+        },
+      },
+      include: {
+        artists: {
+          include: {
+            artist: true,
+          },
+        },
+        events: {
+          include: {
+            event: {
+              include: {
+                venue: true,
+              },
+            },
+          },
+        },
+      },
+      take: 5,
+    });
+
+    console.log("\nAny Phish posters:", anyPhishPosters.length);
+    if (anyPhishPosters.length > 0) {
+      anyPhishPosters.forEach((poster) => {
+        console.log("\nPoster ID:", poster.id);
+        console.log("Title:", poster.title);
+        console.log(
+          "Artists:",
+          poster.artists.map((pa) => pa.artist.name)
+        );
+        console.log(
+          "Venues:",
+          poster.events.map(
+            (pe) => `${pe.event.venue.name} (${pe.event.venue.city})`
+          )
+        );
+      });
+    }
+
+    // Do we have any Seattle posters at all?
+    const anySeattlePosters = await prisma.poster.findMany({
+      where: {
+        events: {
+          some: {
+            event: {
+              venue: {
+                OR: [
+                  { name: { contains: "seattle", mode: "insensitive" } },
+                  { city: { contains: "seattle", mode: "insensitive" } },
+                ],
+              },
+            },
+          },
+        },
+      },
+      include: {
+        artists: {
+          include: {
+            artist: true,
+          },
+        },
+        events: {
+          include: {
+            event: {
+              include: {
+                venue: true,
+              },
+            },
+          },
+        },
+      },
+      take: 5,
+    });
+
+    console.log("\nAny Seattle posters:", anySeattlePosters.length);
+    if (anySeattlePosters.length > 0) {
+      anySeattlePosters.forEach((poster) => {
+        console.log("\nPoster ID:", poster.id);
+        console.log("Title:", poster.title);
+        console.log(
+          "Artists:",
+          poster.artists.map((pa) => pa.artist.name)
+        );
+        console.log(
+          "Venues:",
+          poster.events.map(
+            (pe) => `${pe.event.venue.name} (${pe.event.venue.city})`
+          )
         );
       });
     }
   } catch (error) {
-    console.error("Error during debug:", error);
-  } finally {
-    await prisma.$disconnect();
+    console.error("Error in debug search:", error);
   }
 }
 
-main();
+debugSearch();

@@ -29,11 +29,14 @@
     "start": "node dist/server.js",
     "dev": "nodemon --watch src --ext ts --exec \"node --inspect --import ./custom-loader.mjs src/server.ts\"",
     "build": "tsc",
-    "test": "jest",
+    "test": "vitest run",
+    "test:integration": "vitest run tests/poster-search.test.ts",
+    "test:integration:watch": "vitest tests/poster-search.test.ts",
     "lint": "eslint --ext .ts src/",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "prisma:studio:test": "node scripts/prisma-studio-test.js"
   },
   "prisma": {
     "seed": "node --loader ts-node/esm ./prisma/seed.mjs"
@@ -45,11 +48,11 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/multer-s3": "^3.0.3",
     "@types/node": "^20.0.0",
-    "jest": "^29.7.0",
     "nodemon": "^3.1.9",
     "prisma": "^6.5.0",
     "supertest": "^7.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^1.6.1"
   }
 }

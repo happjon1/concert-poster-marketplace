@@ -1,9 +1,8 @@
 import { z } from "zod";
-import { router, publicProcedure } from "../trpc.js";
+import { router, publicProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { PrismaClient, Prisma } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "../../config/prisma"; // Import shared Prisma instance
+import { Prisma } from "@prisma/client";
 
 export const eventRouter = router({
   getAll: publicProcedure

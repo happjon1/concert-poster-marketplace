@@ -1,30 +1,84 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../trpc.js";
+import { router, publicProcedure, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma, PosterStatus } from "@prisma/client";
+import { fuzzyPosterSearch } from "../../utils/fuzzy-search";
+import prisma from "../../config/prisma"; // Import shared Prisma instance
 import * as chrono from "chrono-node";
 
-// Initialize Prisma client
-const prisma = new PrismaClient();
+// Create a more robust query preprocessor
+const preprocessSearchQuery = (query: string): string[] => {
+  if (!query) return [];
 
-// Helper function to process search terms
-const processSearchTerms = (query: string) => {
-  // Basic cleaning
-  const cleanedQuery = query.trim().toLowerCase();
+  // Normalize the input string
+  const normalizedQuery = query.trim();
 
-  // 1. For matching full phrases or complete words
-  const exactSearchTerms = cleanedQuery
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((term) => term.toLowerCase());
+  // Always include the original query
+  const queryVariants = [normalizedQuery];
 
-  // 2. For individual word matching (more permissive, still filter very short words)
-  const individualSearchTerms = cleanedQuery
-    .split(/\s+/)
-    .filter((term) => term.length > 1) // Less restrictive - include 2+ character words
-    .map((term) => term.toLowerCase());
+  // Handle special characters in band names (like AC/DC, A$AP Rocky, P!nk)
+  // Strategy 1: Replace special characters with spaces
+  if (/[\W_]+/.test(normalizedQuery)) {
+    const spacedVariant = normalizedQuery.replace(/[\W_]+/g, " ").trim();
+    if (spacedVariant !== normalizedQuery) {
+      queryVariants.push(spacedVariant);
+    }
 
-  return { exactSearchTerms, individualSearchTerms };
+    // Strategy 2: Remove special characters entirely
+    const strippedVariant = normalizedQuery.replace(/[\W_]+/g, "").trim();
+    if (
+      strippedVariant !== normalizedQuery &&
+      strippedVariant !== spacedVariant
+    ) {
+      queryVariants.push(strippedVariant);
+    }
+  }
+
+  // Handle common abbreviation patterns without hardcoding specific band names
+
+  // Pattern 1: All caps might be abbreviations (like RHCP, ACDC, RATM)
+  if (/^[A-Z]{2,}$/.test(normalizedQuery)) {
+    // Add variant with spaces between letters (A C D C)
+    const spacedAbbreviation = normalizedQuery.split("").join(" ");
+    queryVariants.push(spacedAbbreviation);
+
+    // Add variant with slashes between letters (A/C/D/C) - common for some band abbreviations
+    const slashedAbbreviation = normalizedQuery.split("").join("/");
+    queryVariants.push(slashedAbbreviation);
+  }
+
+  // Pattern 2: Spaced capitals might be abbreviation variants (A C D C)
+  if (/^[A-Z](\s+[A-Z])+$/.test(normalizedQuery)) {
+    // Add variant with no spaces (ACDC)
+    const unspacedAbbreviation = normalizedQuery.replace(/\s+/g, "");
+    queryVariants.push(unspacedAbbreviation);
+
+    // Add variant with slashes (A/C/D/C)
+    const slashedAbbreviation = normalizedQuery.replace(/\s+/g, "/");
+    queryVariants.push(slashedAbbreviation);
+  }
+
+  // Handle periods in abbreviations (like N.W.A, J.S. Bach)
+  if (normalizedQuery.includes(".")) {
+    // Remove periods
+    const noPeriods = normalizedQuery.replace(/\./g, "");
+    queryVariants.push(noPeriods);
+
+    // Replace periods with spaces
+    const periodsAsSpaces = normalizedQuery
+      .replace(/\./g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (
+      periodsAsSpaces !== normalizedQuery &&
+      !queryVariants.includes(periodsAsSpaces)
+    ) {
+      queryVariants.push(periodsAsSpaces);
+    }
+  }
+
+  // Return unique variants
+  return [...new Set(queryVariants)];
 };
 
 export const posterRouter = router({
@@ -54,342 +108,250 @@ export const posterRouter = router({
         } = input || {};
 
         // Use either searchQuery or filter as the search term
-        const searchTerm = searchQuery || filter;
-        console.log("Search term (from searchQuery or filter):", searchTerm);
+        let searchTerm = searchQuery || filter || "";
+
+        // Process the search term to generate variants for better matching
+        const searchVariants = preprocessSearchQuery(searchTerm);
+
+        // If we have variants, log them for debugging
+        if (searchVariants.length > 1) {
+          console.log(`Search variants for "${searchTerm}":`, searchVariants);
+        }
 
         // Convert cursor from string to number if provided
         const cursorId = cursor ? parseInt(cursor, 10) : undefined;
 
-        // Build where conditions
-        const whereConditions: Prisma.PosterWhereInput = {};
-        const conditions: Prisma.PosterWhereInput[] = [];
+        let posterIds: number[] = [];
+        let whereConditions: Prisma.PosterWhereInput = {};
+        let enhancedSearchTerm = searchVariants[0]; // Use the original search term for date processing
 
-        // Process search term if provided
-        if (searchTerm) {
-          // Save the original search term for later use
-          const originalSearchTerm = searchTerm.trim();
-          let textSearchTerm = originalSearchTerm;
-          let hasDatePart = false;
-          let dateCondition: Prisma.PosterWhereInput | null = null;
-
+        // === FIRST, USE CHRONO FOR NATURAL LANGUAGE DATE EXTRACTION ===
+        if (enhancedSearchTerm) {
+          // Try to extract dates with chrono for natural language dates
           try {
-            // Extract potential dates using chrono-node
-            let startDate: Date | null = null;
-            let endDate: Date | null = null;
+            const parsedDates = chrono.parse(enhancedSearchTerm);
 
-            // Parse dates from the search query
-            try {
-              const parsedDates = chrono.parse(searchTerm);
-              console.log(
-                "Parsed dates:",
-                JSON.stringify(parsedDates, null, 2)
-              );
+            if (parsedDates && parsedDates.length > 0) {
+              const parsedDate = parsedDates[0];
+              const dateText = parsedDate.text;
 
-              if (parsedDates && parsedDates.length > 0) {
-                hasDatePart = true;
-                // Get the first parsed date result
-                const parsedResult = parsedDates[0];
-                console.log(
-                  "Parsed result:",
-                  JSON.stringify(parsedResult, null, 2)
-                );
+              // Create date range based on the parsed date
+              if (parsedDate.start) {
+                const startDate = parsedDate.start.date();
 
-                // Capture the date text to remove it from search later
-                const dateText = parsedResult.text || "";
+                // Check what components are specified
+                const hasYear = parsedDate.start.isCertain("year");
+                const hasMonth = parsedDate.start.isCertain("month");
+                const hasDay = parsedDate.start.isCertain("day");
 
-                // If it's a range, we have both start and end dates
-                if (parsedResult.start && parsedResult.end) {
-                  startDate = parsedResult.start.date();
-                  endDate = parsedResult.end.date();
-                }
-                // If only a single date, handle month/year appropriately
-                else if (parsedResult.start) {
-                  // Get the date components from the parsed result
-                  startDate = parsedResult.start.date();
+                // Initialize end date and create date ranges based on specificity
+                let endDate: Date;
 
-                  // Check what components were specified in the search
-                  const hasYear = parsedResult.start.isCertain("year");
-                  const hasMonth = parsedResult.start.isCertain("month");
-                  const hasDay = parsedResult.start.isCertain("day");
+                if (hasMonth && hasYear && !hasDay) {
+                  // Month and year specified (e.g., "October 2024")
+                  const year = startDate.getFullYear();
+                  const month = startDate.getMonth();
 
-                  console.log("Date components specified:", {
-                    hasYear,
-                    hasMonth,
-                    hasDay,
-                  });
+                  // Set start date to first day of month
+                  const firstDayOfMonth = new Date(year, month, 1);
 
-                  // If only a year was specified (e.g., "2024")
-                  if (hasYear && !hasMonth && startDate) {
-                    const year = startDate.getFullYear();
-                    startDate = new Date(year, 0, 1); // Jan 1
-                    endDate = new Date(year, 11, 31, 23, 59, 59); // Dec 31, 23:59:59
-                  }
-                  // If a specific day was provided (e.g., "June 6")
-                  else if (hasMonth && hasDay && startDate) {
-                    // For a specific day search, set the time range to the full day
-                    const year = startDate.getFullYear();
-                    const month = startDate.getMonth();
-                    const day = startDate.getDate();
+                  // Set end date to last day of month
+                  const lastDayOfMonth = new Date(
+                    year,
+                    month + 1,
+                    0,
+                    23,
+                    59,
+                    59,
+                    999
+                  );
 
-                    startDate = new Date(year, month, day, 0, 0, 0, 0);
-                    endDate = new Date(year, month, day, 23, 59, 59, 999);
-                  }
-                  // If only a month was specified (e.g., "July"), without a specific year
-                  else if (hasMonth && !hasYear && !hasDay && startDate) {
-                    const year = startDate.getFullYear();
-                    const month = startDate.getMonth();
-                    startDate = new Date(year, month, 1); // First day of month
-                    endDate = new Date(year, month + 1, 0, 23, 59, 59); // Last day of month
-                  }
-                  // If only a month and year was specified (e.g., "July 2024")
-                  else if (hasYear && hasMonth && !hasDay && startDate) {
-                    const year = startDate.getFullYear();
-                    const month = startDate.getMonth();
-                    startDate = new Date(year, month, 1); // First day of month
-                    endDate = new Date(year, month + 1, 0, 23, 59, 59); // Last day of month
-                  }
-                  // Special handling for MM/DD format (like 10/20)
-                  else if (hasMonth && hasDay && !hasYear && startDate) {
-                    // For MM/DD format without year, use current year
-                    const currentYear = new Date().getFullYear();
-                    const month = startDate.getMonth();
-                    const day = startDate.getDate();
-
-                    startDate = new Date(currentYear, month, day, 0, 0, 0, 0);
-                    endDate = new Date(
-                      currentYear,
-                      month,
-                      day,
-                      23,
-                      59,
-                      59,
-                      999
-                    );
-
-                    console.log(
-                      `MM/DD format detected: ${
-                        month + 1
-                      }/${day}, using current year ${currentYear}`
-                    );
-                  }
-                  // Fallback for any other date format
-                  else if (startDate) {
-                    endDate = new Date(startDate.getTime());
-                    endDate.setHours(23, 59, 59);
-                  }
-                }
-
-                // Create the date condition if we have valid dates
-                if (startDate && endDate) {
-                  dateCondition = {
-                    events: {
-                      some: {
-                        event: {
-                          date: {
-                            gte: startDate,
-                            lte: endDate,
-                          },
+                  // Apply date filter for the entire month
+                  whereConditions.events = {
+                    some: {
+                      event: {
+                        date: {
+                          gte: firstDayOfMonth,
+                          lte: lastDayOfMonth,
                         },
                       },
                     },
                   };
 
-                  // Remove the date part from the text search
-                  const dateText = parsedResult.text || "";
-                  textSearchTerm = originalSearchTerm.replace(dateText, "").trim();
-                  if (!textSearchTerm) {
-                    textSearchTerm = originalSearchTerm;
-                  }
-
                   console.log(
-                    "Using text search term (without date part):",
-                    textSearchTerm
+                    `Searching for events between ${firstDayOfMonth.toISOString()} and ${lastDayOfMonth.toISOString()}`
                   );
+                } else if (hasYear && !hasMonth) {
+                  // Only year specified (e.g., "2024")
+                  const year = startDate.getFullYear();
+                  const firstDayOfYear = new Date(year, 0, 1);
+                  const lastDayOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
 
-                  // Add date condition to our conditions
-                  conditions.push(dateCondition);
-                }
-              }
-            } catch (parseError) {
-              console.error("Error parsing date:", parseError);
-              // Fall back to regular text search
-              textSearchTerm = originalSearchTerm;
-            }
-
-            // Special handling for format like "band mm/dd" or "mm/dd band"
-            // Check for patterns like "10/20" or "10-20"
-            const datePattern = /(\d{1,2})[\/\-](\d{1,2})/;
-            const dateMatch = originalSearchTerm.match(datePattern);
-
-            if (dateMatch && !hasDatePart) {
-              console.log("Found date pattern in format MM/DD:", dateMatch[0]);
-              // Extract the potential month and day
-              const month = parseInt(dateMatch[1], 10) - 1; // 0-based month
-              const day = parseInt(dateMatch[2], 10);
-
-              // Validate month and day
-              if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
-                const currentYear = new Date().getFullYear();
-                startDate = new Date(currentYear, month, day, 0, 0, 0, 0);
-                endDate = new Date(currentYear, month, day, 23, 59, 59, 999);
-
-                console.log(
-                  `MM/DD pattern detected: ${
-                    month + 1
-                  }/${day}, using ${startDate.toISOString()} to ${endDate.toISOString()}`
-                );
-
-                // Create date condition
-                dateCondition = {
-                  events: {
+                  // Apply date filter for the entire year
+                  whereConditions.events = {
                     some: {
                       event: {
                         date: {
-                          gte: startDate,
-                          lte: endDate,
+                          gte: firstDayOfYear,
+                          lte: lastDayOfYear,
                         },
                       },
                     },
-                  },
-                };
+                  };
 
-                conditions.push(dateCondition);
+                  console.log(
+                    `Searching for events between ${firstDayOfYear.toISOString()} and ${lastDayOfYear.toISOString()}`
+                  );
+                } else if (hasYear && hasMonth && hasDay) {
+                  // Full date specified (e.g., "October 15, 2024")
+                  // Give a small range around the exact date
+                  const exactDate = new Date(startDate);
 
-                // Remove the date part from the search term for better text matching
-                textSearchTerm = originalSearchTerm.replace(dateMatch[0], "").trim();
-                hasDatePart = true;
-                console.log("Using text search term (without date part):", textSearchTerm);
-              }
-            }
+                  // Look for events on that specific date
+                  // Use the beginning and end of day to catch all events
+                  const beginningOfDay = new Date(exactDate);
+                  beginningOfDay.setHours(0, 0, 0, 0);
 
-            // Always perform text search
-            // Split the search term to handle individual words properly
-            const searchTermWords = textSearchTerm.split(/\s+/).filter(Boolean);
-            console.log("Search term words:", searchTermWords);
+                  const endOfDay = new Date(exactDate);
+                  endOfDay.setHours(23, 59, 59, 999);
 
-            // Create OR conditions for artist search
-            const artistSearchConditions: Prisma.PosterWhereInput[] = [];
-
-            for (const word of searchTermWords) {
-              if (word.length > 1) {
-                // Only use words with more than 1 character
-                artistSearchConditions.push({
-                  artists: {
+                  whereConditions.events = {
                     some: {
-                      artist: {
-                        name: {
-                          contains: word,
-                          mode: "insensitive" as Prisma.QueryMode,
+                      event: {
+                        date: {
+                          gte: beginningOfDay,
+                          lte: endOfDay,
                         },
                       },
                     },
-                  },
-                });
+                  };
+
+                  console.log(
+                    `Searching for events on exact date: ${beginningOfDay.toISOString()}`
+                  );
+                }
+
+                // Remove the date part from search term before passing to fuzzy search
+                enhancedSearchTerm = enhancedSearchTerm
+                  .replace(dateText, "")
+                  .trim();
               }
             }
+          } catch (error) {
+            console.error("Error parsing date:", error);
+          }
+        }
 
-            // Add full text search for entire terms
-            const textSearchConditions: Prisma.PosterWhereInput[] = [
+        // === THEN, USE FUZZY SEARCH FOR SOPHISTICATED MATCHING ===
+        if (enhancedSearchTerm && enhancedSearchTerm.trim()) {
+          // Use the enhanced fuzzy search with the date-cleaned search term
+          posterIds = await fuzzyPosterSearch(prisma, enhancedSearchTerm);
+
+          // If we have poster IDs from fuzzy search, use them for filtering
+          if (posterIds.length > 0) {
+            // If we already have other conditions (like date from above), we need OR logic
+            if (
+              Object.keys(whereConditions).length > 0 &&
+              !whereConditions.OR
+            ) {
+              whereConditions = {
+                OR: [{ id: { in: posterIds } }, whereConditions],
+              };
+            } else {
+              // Otherwise, just use the poster IDs directly
+              whereConditions.id = { in: posterIds };
+            }
+          }
+          // If fuzzy search returned no results, fall back to basic filtering
+          else if (enhancedSearchTerm.trim().length > 0) {
+            const basicFilters = [
               {
                 title: {
-                  contains: textSearchTerm,
+                  contains: enhancedSearchTerm,
                   mode: "insensitive" as Prisma.QueryMode,
                 },
               },
               {
                 description: {
-                  contains: textSearchTerm,
+                  contains: enhancedSearchTerm,
                   mode: "insensitive" as Prisma.QueryMode,
                 },
               },
             ];
 
-            // If we have individual words, add them to artist search conditions
-            if (artistSearchConditions.length > 0) {
-              textSearchConditions.push({
-                OR: artistSearchConditions,
-              });
+            // If we already have OR conditions, add to them
+            if (whereConditions.OR && Array.isArray(whereConditions.OR)) {
+              whereConditions.OR.push(...basicFilters);
+            } else if (Object.keys(whereConditions).length > 0) {
+              // If we have other conditions but not OR, create OR with both
+              const existingConditions = { ...whereConditions };
+              whereConditions = {
+                OR: [existingConditions, ...basicFilters],
+              };
+            } else {
+              // If no existing conditions, just use OR
+              whereConditions.OR = basicFilters;
             }
-
-            // Add the combined text search conditions
-            conditions.push({
-              OR: textSearchConditions,
-            });
-          } catch (searchError) {
-            console.error("Error processing search:", searchError);
-
-            // Fall back to basic search
-            conditions.push({
-              OR: [
-                {
-                  title: {
-                    contains: searchTerm,
-                    mode: "insensitive" as Prisma.QueryMode,
-                  },
-                },
-                {
-                  description: {
-                    contains: searchTerm,
-                    mode: "insensitive" as Prisma.QueryMode,
-                  },
-                },
-                {
-                  artists: {
-                    some: {
-                      artist: {
-                        name: {
-                          contains: searchTerm,
-                          mode: "insensitive" as Prisma.QueryMode,
-                        },
-                      },
-                    },
-                  },
-                },
-              ],
-            });
           }
         }
 
-        // Filter by artist ID if provided
+        // === FILTER BY IDS (still needed for direct ID filtering) ===
         if (artistId) {
-          conditions.push({
+          const artistFilter = {
             artists: {
               some: {
                 artistId: artistId.toString(),
               },
             },
-          });
+          };
+
+          // If we already have OR conditions, add to them as a separate condition that must be met (AND)
+          if (whereConditions.OR) {
+            whereConditions = {
+              AND: [{ OR: whereConditions.OR }, artistFilter],
+            };
+          } else {
+            // Otherwise just add it directly
+            whereConditions = {
+              ...whereConditions,
+              ...artistFilter,
+            };
+          }
         }
 
-        // Filter by event ID if provided
         if (eventId) {
-          conditions.push({
+          const eventFilter = {
             events: {
               some: {
                 eventId: eventId.toString(),
               },
             },
-          });
+          };
+
+          // If we already have OR conditions, add to them as a separate condition that must be met (AND)
+          if (whereConditions.OR) {
+            whereConditions = {
+              AND: [{ OR: whereConditions.OR }, eventFilter],
+            };
+          } else {
+            // Otherwise just add it directly
+            whereConditions = {
+              ...whereConditions,
+              ...eventFilter,
+            };
+          }
         }
 
-        // Apply all where conditions if any exist
-        if (conditions.length > 0) {
-          whereConditions.AND = conditions;
-        }
-
-        console.log(
-          "Final query conditions:",
-          JSON.stringify(whereConditions, null, 2)
-        );
-
-        // Execute the query
+        // === EXECUTE QUERY ===
         const posters = await prisma.poster.findMany({
           take: limit,
           skip: cursorId ? 1 : 0,
           cursor: cursorId ? { id: cursorId } : undefined,
-          orderBy: {
-            createdAt: "desc",
-          },
+          // If we have poster IDs from fuzzy search, maintain their order for relevance
+          orderBy:
+            posterIds.length > 0
+              ? { id: Prisma.SortOrder.asc } // Will be ordered by the IN clause implicitly
+              : { createdAt: "desc" },
           where: whereConditions,
           include: {
             seller: {
@@ -416,40 +378,16 @@ export const posterRouter = router({
           },
         });
 
-        // Log detailed information about the results
-        console.log(
-          `Found ${posters.length} posters matching the search conditions`
-        );
-        if (posters.length > 0) {
-          console.log(
-            "First few posters:",
-            posters.slice(0, 3).map((poster) => ({
-              id: poster.id,
-              title: poster.title,
-              events: poster.events.map((pe) => ({
-                date: pe.event.date,
-                formattedDate: new Date(pe.event.date).toLocaleDateString(
-                  "en-US",
-                  {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  }
-                ),
-                venue: pe.event.venue.name,
-              })),
-              artists: poster.artists.map((pa) => pa.artist.name),
-            }))
-          );
-        }
+        // Calculate the total number of matching records
+        const total = await prisma.poster.count({ where: whereConditions });
 
-        // Get the next cursor
+        // Determine the next cursor
         const nextCursor =
-          posters.length === limit
+          posters.length === limit && posters.length > 0
             ? posters[posters.length - 1].id.toString()
             : null;
 
-        // Format the response
+        // Return formatted results
         return {
           items: posters.map((poster) => ({
             ...poster,
@@ -460,7 +398,7 @@ export const posterRouter = router({
             })),
           })),
           nextCursor,
-          total: await prisma.poster.count({ where: whereConditions }),
+          total,
         };
       } catch (error) {
         console.error("Error in getAll procedure:", error);

@@ -9,8 +9,95 @@ import {
   OrderActor,
 } from "@prisma/client";
 import bcrypt from "bcrypt";
+import readline from "readline";
 
+// Initialize PrismaClient but don't connect yet
 const prisma = new PrismaClient();
+
+// Check environment type with multiple checks for better safety
+const isTestEnvironment = process.env.NODE_ENV === "test";
+const isProduction = process.env.NODE_ENV === "production";
+const isCICD =
+  process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
+const isPrismaStudio = process.env.PRISMA_STUDIO === "true";
+const isManualSeed = process.env.MANUAL_SEED === "true";
+
+// Get database URL to check where we're about to seed
+const databaseUrl = process.env.DATABASE_URL || "unknown";
+console.log(
+  `Database URL: ${databaseUrl.substring(
+    0,
+    databaseUrl.indexOf("@") > 0 ? databaseUrl.indexOf("@") : 20
+  )}...`
+);
+
+// Environment detection with more detailed logging
+console.log(`
+🌱 Seed script environment:
+- NODE_ENV: ${process.env.NODE_ENV || "undefined"}
+- Test Environment: ${isTestEnvironment ? "YES" : "NO"}
+- Production: ${isProduction ? "YES" : "NO"}
+- CI/CD: ${isCICD ? "YES" : "NO"}
+- Prisma Studio: ${isPrismaStudio ? "YES" : "NO"}
+- Manual Seed: ${isManualSeed ? "YES" : "NO"}
+`);
+
+// If this is a test environment, we'll exit early without seeding any data
+if (isTestEnvironment) {
+  console.log("🧪 TEST environment detected - skipping all seed data");
+  process.exit(0);
+}
+
+// Don't run in production unless explicitly authorized
+if (isProduction && !isManualSeed) {
+  console.error(
+    "⛔ Refusing to seed PRODUCTION database without explicit authorization."
+  );
+  console.error("To seed production, set MANUAL_SEED=true in environment.");
+  process.exit(1);
+}
+
+// For development environments, add a safeguard prompt unless CI/CD or manual seed
+const isDevelopmentWithoutOverride =
+  !isTestEnvironment &&
+  !isProduction &&
+  !isCICD &&
+  !isManualSeed &&
+  !isPrismaStudio;
+
+// Create a function to prompt for confirmation
+async function confirmSeed() {
+  if (!isDevelopmentWithoutOverride) {
+    return true; // No need for confirmation in other environments
+  }
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(
+      `
+⚠️  WARNING: You are about to seed the DEVELOPMENT database.
+    This will DELETE ALL EXISTING DATA in the database.
+    
+    Database: ${databaseUrl}
+    
+    Type 'YES' to confirm or anything else to cancel: `,
+      (answer) => {
+        rl.close();
+        if (answer.trim().toUpperCase() === "YES") {
+          console.log("✅ Seed confirmed, proceeding...");
+          resolve(true);
+        } else {
+          console.log("❌ Seed cancelled.");
+          resolve(false);
+        }
+      }
+    );
+  });
+}
 
 // Add these helper functions before your main function
 function generateRandomDate(start, end) {
@@ -498,6 +585,15 @@ async function resetDatabase() {
 }
 
 async function main() {
+  // First check if we should proceed with seeding
+  const shouldProceed = await confirmSeed();
+  if (!shouldProceed) {
+    console.log("Database seeding cancelled.");
+    process.exit(0);
+  }
+
+  console.log("Starting database seeding...");
+
   // Reset the database with direct SQL commands
   await resetDatabase();
 
@@ -829,6 +925,14 @@ async function main() {
   console.log(
     "✅ Fully seeded including admin, verifier, users, posters, and full flow."
   );
+
+  // Skip bulk data seeding in test environment
+  if (isTestEnvironment) {
+    console.log("🧪 Test environment detected - skipping bulk data generation");
+    return;
+  }
+
+  console.log("Starting bulk data generation for development environment...");
 
   // Seed bulk data
   await seedBulkData();

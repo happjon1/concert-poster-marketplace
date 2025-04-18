@@ -1,11 +1,8 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../trpc.js";
 import { TRPCError } from "@trpc/server";
-import { PrismaClient } from "@prisma/client";
-import * as bcrypt from "bcrypt";
-
-// Initialize Prisma client
-const prisma = new PrismaClient();
+import bcrypt from "bcrypt";
+import prisma from "../../config/prisma"; // Import shared Prisma instance
 
 // ------------------- Helper Functions -------------------
 
