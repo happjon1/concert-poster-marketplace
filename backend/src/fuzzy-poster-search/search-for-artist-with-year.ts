@@ -17,28 +17,26 @@ export async function searchForArtistWithYear(
   similarityThreshold: number = 0.3
 ): Promise<number[]> {
   const results = await prisma.$queryRaw<{ id: number }[]>`
-    SELECT p.id
-    FROM "Poster" p
-    LEFT JOIN "Artist" a ON p."artistId" = a.id
-    WHERE 
-      -- Strict year matching
-      (p.year = ${year} OR p.date::text LIKE ${`${year}%`})
-      
-      -- Artist name matching with similarity
-      AND (
-        a.name ILIKE ${`%${artist}%`}
-        OR similarity(a.name, ${artist}) > ${similarityThreshold}
-        OR p.title ILIKE ${`%${artist}%`}
-        OR similarity(p.title, ${artist}) > ${similarityThreshold}
-      )
-    ORDER BY 
-      -- Order by exact matches first, then by similarity
-      CASE WHEN a.name ILIKE ${`%${artist}%`} THEN 1
-           WHEN similarity(a.name, ${artist}) > 0.6 THEN 2
-           ELSE 3
-      END,
-      p.year DESC,
-      p.date DESC
+    WITH matching_posters AS (
+      SELECT DISTINCT p.id
+      FROM "Poster" p
+      LEFT JOIN "PosterArtist" pa ON p.id = pa."posterId"
+      LEFT JOIN "Artist" a ON pa."artistId" = a.id
+      LEFT JOIN "PosterEvent" pe ON p.id = pe."posterId"
+      LEFT JOIN "Event" e ON pe."eventId" = e.id
+      WHERE 
+        -- Strict year matching
+        (EXTRACT(YEAR FROM e.date) = ${year})
+        
+        -- Artist name matching with similarity
+        AND (
+          a.name ILIKE ${`%${artist}%`}
+          OR similarity(a.name, ${artist}) > ${similarityThreshold}
+          OR p.title ILIKE ${`%${artist}%`}
+          OR similarity(p.title, ${artist}) > ${similarityThreshold}
+        )
+    )
+    SELECT id FROM matching_posters
     LIMIT 100;
   `;
 

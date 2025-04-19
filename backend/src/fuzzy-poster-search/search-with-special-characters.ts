@@ -14,24 +14,28 @@ export async function searchWithSpecialCharacters(
 ): Promise<number[]> {
   // Handle terms with special characters like "AC/DC", "R.E.M.", etc.
   const results = await prisma.$queryRaw<{ id: number }[]>`
-    SELECT p.id
-    FROM "Poster" p
-    LEFT JOIN "Artist" a ON p."artistId" = a.id
-    WHERE 
-      -- Check if the search term directly appears in the title, description or artist name
-      p.title ILIKE ${`%${searchTerm}%`} OR
-      p.description ILIKE ${`%${searchTerm}%`} OR
-      a.name ILIKE ${`%${searchTerm}%`} OR
-      
-      -- Also check for versions without the special characters or with spaces instead
-      p.title ILIKE ${`%${searchTerm.replace(/[\W_]+/g, " ")}%`} OR
-      p.description ILIKE ${`%${searchTerm.replace(/[\W_]+/g, " ")}%`} OR
-      a.name ILIKE ${`%${searchTerm.replace(/[\W_]+/g, " ")}%`} OR
-      
-      -- Also check for versions with special characters removed completely
-      p.title ILIKE ${`%${searchTerm.replace(/[\W_]+/g, "")}%`} OR
-      p.description ILIKE ${`%${searchTerm.replace(/[\W_]+/g, "")}%`} OR
-      a.name ILIKE ${`%${searchTerm.replace(/[\W_]+/g, "")}%`}
+    WITH matching_posters AS (
+      SELECT DISTINCT p.id
+      FROM "Poster" p
+      LEFT JOIN "PosterArtist" pa ON p.id = pa."posterId"
+      LEFT JOIN "Artist" a ON pa."artistId" = a.id
+      WHERE 
+        -- Check if the search term directly appears in the title, description or artist name
+        p.title ILIKE ${`%${searchTerm}%`} OR
+        p.description ILIKE ${`%${searchTerm}%`} OR
+        a.name ILIKE ${`%${searchTerm}%`} OR
+        
+        -- Also check for versions without the special characters or with spaces instead
+        p.title ILIKE ${`%${searchTerm.replace(/[\W_]+/g, " ")}%`} OR
+        p.description ILIKE ${`%${searchTerm.replace(/[\W_]+/g, " ")}%`} OR
+        a.name ILIKE ${`%${searchTerm.replace(/[\W_]+/g, " ")}%`} OR
+        
+        -- Also check for versions with special characters removed completely
+        p.title ILIKE ${`%${searchTerm.replace(/[\W_]+/g, "")}%`} OR
+        p.description ILIKE ${`%${searchTerm.replace(/[\W_]+/g, "")}%`} OR
+        a.name ILIKE ${`%${searchTerm.replace(/[\W_]+/g, "")}%`}
+    )
+    SELECT id FROM matching_posters
     LIMIT 100;
   `;
 

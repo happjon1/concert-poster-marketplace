@@ -17,38 +17,31 @@ export async function searchForArtistWithCity(
   similarityThreshold: number = 0.3
 ): Promise<number[]> {
   const results = await prisma.$queryRaw<{ id: number }[]>`
-    SELECT p.id
-    FROM "Poster" p
-    LEFT JOIN "Artist" a ON p."artistId" = a.id
-    LEFT JOIN "Venue" v ON p."venueId" = v.id
-    WHERE 
-      -- Artist name matching with similarity
-      (
-        a.name ILIKE ${`%${artist}%`}
-        OR similarity(a.name, ${artist}) > ${similarityThreshold}
-        OR p.title ILIKE ${`%${artist}%`}
-        OR similarity(p.title, ${artist}) > ${similarityThreshold}
-      )
-      
-      -- City matching with similarity
-      AND (
-        v.city ILIKE ${`%${city}%`}
-        OR p.venue ILIKE ${`%${city}%`}
-        OR p.location ILIKE ${`%${city}%`}
-        OR p.description ILIKE ${`%${city}%`}
-        OR similarity(v.city, ${city}) > ${similarityThreshold}
-        OR similarity(p.venue, ${city}) > ${similarityThreshold}
-        OR similarity(p.location, ${city}) > ${similarityThreshold}
-      )
-    ORDER BY 
-      -- Order by exact matches first, then by similarity
-      CASE WHEN a.name ILIKE ${`%${artist}%`} AND v.city ILIKE ${`%${city}%`} THEN 1
-           WHEN a.name ILIKE ${`%${artist}%`} THEN 2
-           WHEN v.city ILIKE ${`%${city}%`} THEN 3
-           ELSE 4
-      END,
-      p.year DESC,
-      p.date DESC
+    WITH matching_posters AS (
+      SELECT DISTINCT p.id
+      FROM "Poster" p
+      LEFT JOIN "PosterArtist" pa ON p.id = pa."posterId"
+      LEFT JOIN "Artist" a ON pa."artistId" = a.id
+      LEFT JOIN "PosterEvent" pe ON p.id = pe."posterId"
+      LEFT JOIN "Event" e ON pe."eventId" = e.id
+      LEFT JOIN "Venue" v ON e."venueId" = v.id
+      WHERE 
+        -- Artist name matching with similarity
+        (
+          a.name ILIKE ${`%${artist}%`}
+          OR similarity(a.name, ${artist}) > ${similarityThreshold}
+          OR p.title ILIKE ${`%${artist}%`}
+          OR similarity(p.title, ${artist}) > ${similarityThreshold}
+        )
+        
+        -- City matching with similarity
+        AND (
+          v.city ILIKE ${`%${city}%`}
+          OR p.description ILIKE ${`%${city}%`}
+          OR similarity(v.city, ${city}) > ${similarityThreshold}
+        )
+    )
+    SELECT id FROM matching_posters
     LIMIT 100;
   `;
 

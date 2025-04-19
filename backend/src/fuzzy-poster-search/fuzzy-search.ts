@@ -14,6 +14,7 @@ import { extractDateInfo } from "./extract-date-info.js";
 import { isLikelyVenueSearch } from "./is-likely-venue-search.js";
 import { executeComplexSearch } from "./execute-complex-search.js";
 import { executeSingleTermSearch } from "./execute-single-term-search.js";
+import { searchForArtistWithYear } from "./search-for-artist-with-year.js";
 
 /**
  * Performs a fuzzy search on posters using PostgreSQL's trigram similarity.
@@ -32,102 +33,131 @@ export async function fuzzyPosterSearch(
   searchTerm: string,
   similarityThreshold: number = 0.35
 ): Promise<number[]> {
-  // Validate and clean the search term
-  const cleanedSearchTerm = validateAndCleanSearchTerm(searchTerm);
-  if (!cleanedSearchTerm) {
-    return [];
-  }
+  try {
+    // Validate and clean the search term
+    const cleanedSearchTerm = validateAndCleanSearchTerm(searchTerm);
+    if (!cleanedSearchTerm) {
+      return [];
+    }
 
-  // Special check for search terms with special characters like "AC/DC"
-  const specialResults = await handleSpecialCharacterSearch(
-    prisma,
-    cleanedSearchTerm
-  );
-  if (specialResults.length > 0) {
-    return specialResults;
-  }
-
-  // Filter out common stop words and get the term to use
-  const termToUse = filterStopWords(cleanedSearchTerm);
-
-  // Extract query terms and check for year
-  const queryTerms = termToUse.split(/\s+/).filter(Boolean);
-  const { yearValue, searchWithoutYear } = extractYearFromQuery(
-    termToUse,
-    queryTerms
-  );
-
-  // Handle artist+city+year search pattern (e.g., "phish new york 2024")
-  const artistCityYearResults = await handleArtistCityYearSearch(
-    prisma,
-    yearValue,
-    searchWithoutYear
-  );
-  if (artistCityYearResults.length > 0) {
-    return artistCityYearResults;
-  }
-
-  // Handle artist+year search pattern (e.g., "phish 2023")
-  const artistYearResults = await handleArtistYearPattern(prisma, termToUse);
-  if (artistYearResults.length > 0) {
-    return artistYearResults;
-  }
-
-  // Handle artist+city search pattern (e.g., "phish los angeles")
-  const artistCityResults = await handleArtistCityPattern(prisma, termToUse);
-  if (artistCityResults.length > 0) {
-    return artistCityResults;
-  }
-
-  // Handle date patterns (for more complex date formats)
-  const datePatternResults = await handleDatePatterns(prisma, termToUse);
-  if (datePatternResults.length > 0) {
-    return datePatternResults;
-  }
-
-  // Check for multi-word city searches (e.g., "New York", "San Francisco")
-  if (isMultiWordCityName(termToUse)) {
-    return await searchForCity(prisma, termToUse, similarityThreshold);
-  }
-
-  // Handle multi-artist searches with "OR" (e.g., "Artist1 OR Artist2")
-  const multiArtistResults = await handleMultiArtistSearch(
-    prisma,
-    cleanedSearchTerm,
-    similarityThreshold
-  );
-  if (multiArtistResults.length > 0) {
-    return multiArtistResults;
-  }
-
-  // Extract date info for remaining search logic
-  const dateInfo = extractDateInfo(termToUse);
-
-  // Use the search term without date for artist/venue matching if a date was found
-  const termForMatching = dateInfo.hasDate
-    ? dateInfo.searchWithoutDate
-    : termToUse;
-
-  // Check if we might have multiple terms for complex searches
-  const searchTerms = termForMatching.split(/\s+/).filter(Boolean);
-  const isPotentialArtistVenueSearch =
-    searchTerms.length >= 3 || isLikelyVenueSearch(termForMatching);
-
-  // For multi-term searches or searches with dates, use our enhanced approach
-  if (
-    (searchTerms.length > 1 && isPotentialArtistVenueSearch) ||
-    dateInfo.hasDate
-  ) {
-    return await executeComplexSearch(
+    // Special check for search terms with special characters like "AC/DC"
+    const specialResults = await handleSpecialCharacterSearch(
       prisma,
+      cleanedSearchTerm
+    );
+    if (specialResults.length > 0) {
+      return specialResults;
+    }
+
+    // Filter out common stop words and get the term to use
+    const termToUse = filterStopWords(cleanedSearchTerm);
+
+    // Extract date info first - this must be done early to detect date patterns like "12/31"
+    const dateInfo = extractDateInfo(termToUse);
+
+    // Initialize datePatternResults variable
+    let datePatternResults: number[] = [];
+
+    // If we have a specific date pattern, prioritize the date handler
+    if (dateInfo.hasDate) {
+      // Handle date patterns (for more complex date formats)
+      datePatternResults = await handleDatePatterns(prisma, termToUse);
+      if (datePatternResults.length > 0) {
+        return datePatternResults;
+      }
+    }
+
+    // Extract query terms and check for year
+    const queryTerms = termToUse.split(/\s+/).filter(Boolean);
+    const { yearValue, searchWithoutYear } = extractYearFromQuery(
       termToUse,
-      dateInfo,
-      searchTerms,
-      termForMatching,
+      queryTerms
+    );
+
+    // Handle artist+city+year search pattern (e.g., "phish new york 2024")
+    if (yearValue) {
+      const artistCityYearResults = await handleArtistCityYearSearch(
+        prisma,
+        yearValue,
+        searchWithoutYear
+      );
+      if (artistCityYearResults.length > 0) {
+        return artistCityYearResults;
+      }
+
+      // Try a direct search for artist+year
+      const artistYearResults = await searchForArtistWithYear(
+        prisma,
+        searchWithoutYear,
+        yearValue,
+        similarityThreshold
+      );
+
+      if (artistYearResults.length > 0) {
+        return artistYearResults;
+      }
+    }
+
+    // Handle artist+year search pattern (e.g., "phish 2023")
+    const artistYearResults = await handleArtistYearPattern(prisma, termToUse);
+    if (artistYearResults.length > 0) {
+      return artistYearResults;
+    }
+
+    // Handle artist+city search pattern (e.g., "phish los angeles")
+    const artistCityResults = await handleArtistCityPattern(prisma, termToUse);
+    if (artistCityResults.length > 0) {
+      return artistCityResults;
+    }
+
+    // Check for multi-word city searches (e.g., "New York", "San Francisco")
+    if (isMultiWordCityName(termToUse)) {
+      return await searchForCity(prisma, termToUse, similarityThreshold);
+    }
+
+    // Handle multi-artist searches with "OR" (e.g., "Artist1 OR Artist2")
+    const multiArtistResults = await handleMultiArtistSearch(
+      prisma,
+      cleanedSearchTerm,
       similarityThreshold
     );
-  }
+    if (multiArtistResults.length > 0) {
+      return multiArtistResults;
+    }
 
-  // For single-term searches, use a simpler approach
-  return await executeSingleTermSearch(prisma, termToUse, similarityThreshold);
+    // Use the search term without date for artist/venue matching if a date was found
+    const termForMatching = dateInfo.hasDate
+      ? dateInfo.searchWithoutDate
+      : termToUse;
+
+    // Check if we might have multiple terms for complex searches
+    const searchTerms = termForMatching.split(/\s+/).filter(Boolean);
+    const isPotentialArtistVenueSearch =
+      searchTerms.length >= 3 || isLikelyVenueSearch(termForMatching);
+
+    // For multi-term searches or searches with dates, use our enhanced approach
+    if (
+      (searchTerms.length > 1 && isPotentialArtistVenueSearch) ||
+      dateInfo.hasDate
+    ) {
+      return await executeComplexSearch(
+        prisma,
+        termToUse,
+        dateInfo,
+        searchTerms,
+        termForMatching,
+        similarityThreshold
+      );
+    }
+
+    // For single-term searches, use a simpler approach
+    return await executeSingleTermSearch(
+      prisma,
+      termToUse,
+      similarityThreshold
+    );
+  } catch (error) {
+    console.error("Error in fuzzyPosterSearch:", error);
+    throw error;
+  }
 }

@@ -199,104 +199,172 @@ describe("executeComplexSearchQuery Integration Tests", () => {
   });
 
   //   // Reset and re-seed before each test to ensure isolation
-  //   beforeEach(async () => {
-  //     try {
-  //       // Reset database to ensure a clean state for each test
-  //       await resetDatabase();
-  //       // Re-seed test data
-  //       await seedTestData();
-  //     } catch (error) {
-  //       console.error("Failed to reset database before test:", error);
-  //       throw error;
-  //     }
-  //   });
+  beforeEach(async () => {
+    try {
+      // Reset database to ensure a clean state for each test
+      await resetDatabase();
+      // Re-seed test data
+      await seedTestData();
+    } catch (error) {
+      console.error("Failed to reset database before test:", error);
+      throw error;
+    }
+  });
 
   // Helper function to seed test data
   async function seedTestData() {
-    // Create users
-    for (const user of testData.users) {
-      await prisma.user.upsert({
-        where: { id: user.id },
-        update: {},
-        create: user,
+    try {
+      // Create users
+      for (const user of testData.users) {
+        await prisma.user.upsert({
+          where: { id: user.id },
+          update: {},
+          create: user,
+        });
+      }
+
+      // Create artists
+      for (const artist of testData.artists) {
+        await prisma.artist.upsert({
+          where: { id: artist.id },
+          update: {},
+          create: artist,
+        });
+      }
+
+      // Create venues with all required fields
+      for (const venue of testData.venues) {
+        // Check if venue already exists to avoid duplicate key errors
+        const existingVenue = await prisma.venue.findUnique({
+          where: { id: venue.id },
+        });
+
+        if (!existingVenue) {
+          // Create venue with all required fields explicitly
+          await prisma.venue.create({
+            data: {
+              id: venue.id,
+              jambaseId: venue.jambaseId,
+              name: venue.name,
+              city: venue.city,
+              state: venue.state,
+              country: venue.country,
+              // Add explicit nulls for other required fields
+              address: null,
+              province: null,
+              zip: null,
+              latitude: null,
+              longitude: null,
+              capacity: null,
+            },
+          });
+        }
+      }
+
+      // Verify venues were created successfully
+      const venueIds = testData.venues.map((venue) => venue.id);
+      const createdVenues = await prisma.venue.findMany({
+        where: { id: { in: venueIds } },
       });
-    }
 
-    // Create artists
-    for (const artist of testData.artists) {
-      await prisma.artist.upsert({
-        where: { id: artist.id },
-        update: {},
-        create: artist,
-      });
-    }
+      if (createdVenues.length !== venueIds.length) {
+        console.error(
+          `Not all venues were created. Expected ${venueIds.length}, got ${
+            createdVenues.length
+          }. Missing: ${venueIds.filter(
+            (id) => !createdVenues.find((v) => v.id === id)
+          )}`
+        );
+        throw new Error("Failed to create all venues");
+      }
 
-    // Create venues
-    for (const venue of testData.venues) {
-      await prisma.venue.upsert({
-        where: { id: venue.id },
-        update: {},
-        create: venue,
-      });
-    }
-
-    // Create events
-    for (const event of testData.events) {
-      await prisma.event.upsert({
-        where: { id: event.id },
-        update: {},
-        create: event,
-      });
-    }
-
-    // Create event-artist connections
-    const eventArtistConnections = [
-      { eventId: "event1", artistId: "artist1" }, // Phish at MSG
-      { eventId: "event2", artistId: "artist2" }, // Grateful Dead at Red Rocks
-      { eventId: "event3", artistId: "artist3" }, // Flying Lotus at Hollywood
-      { eventId: "event4", artistId: "artist4" }, // RHCP at Seattle
-      { eventId: "event1", artistId: "artist5" }, // Pearl Jam at MSG
-    ];
-
-    for (const connection of eventArtistConnections) {
-      await prisma.eventArtist.upsert({
-        where: {
-          eventId_artistId: {
-            eventId: connection.eventId,
-            artistId: connection.artistId,
+      // Create events with explicit venue connections - sequentially to avoid locks
+      for (const event of testData.events) {
+        const { venue, ...eventData } = event;
+        await prisma.event.upsert({
+          where: { id: event.id },
+          update: {},
+          create: {
+            ...eventData,
+            venueId: venue.connect.id,
           },
-        },
-        update: {},
-        create: connection,
-      });
+        });
+      }
+
+      // Create event-artist connections - sequentially to avoid deadlocks
+      const eventArtistConnections = [
+        { eventId: "event1", artistId: "artist1" }, // Phish at MSG
+        { eventId: "event2", artistId: "artist2" }, // Grateful Dead at Red Rocks
+        { eventId: "event3", artistId: "artist3" }, // Flying Lotus at Hollywood
+        { eventId: "event4", artistId: "artist4" }, // RHCP at Seattle
+        { eventId: "event1", artistId: "artist5" }, // Pearl Jam at MSG
+      ];
+
+      // Avoid deadlocks by using create instead of upsert where possible
+      // and handling potential duplicates with try/catch
+      for (const connection of eventArtistConnections) {
+        try {
+          // Try to create each connection - if it fails due to duplicate, that's okay
+          await prisma.eventArtist.create({
+            data: connection,
+          });
+        } catch (error: any) {
+          // Ignore duplicate key violations (P2002) but throw other errors
+          if (!error.code || error.code !== "P2002") {
+            throw error;
+          }
+        }
+      }
+
+      // Create posters - again sequentially to avoid locks
+      for (const poster of testData.posters) {
+        const { artistIds, eventIds, sellerId, ...posterData } = poster;
+
+        // Verify that all artists and events exist before creating the poster
+        const artists = await prisma.artist.findMany({
+          where: { id: { in: artistIds } },
+        });
+
+        if (artists.length !== artistIds.length) {
+          console.warn(`Some artists not found: ${artistIds.join(", ")}`);
+          continue; // Skip this poster if artists are missing
+        }
+
+        const events = await prisma.event.findMany({
+          where: { id: { in: eventIds } },
+        });
+
+        if (events.length !== eventIds.length) {
+          console.warn(`Some events not found: ${eventIds.join(", ")}`);
+          continue; // Skip this poster if events are missing
+        }
+
+        const createdPoster = await prisma.poster.create({
+          data: {
+            ...posterData,
+            seller: {
+              connect: { id: sellerId },
+            },
+            artists: {
+              create: artistIds.map((artistId) => ({
+                artist: { connect: { id: artistId } },
+              })),
+            },
+            events: {
+              create: eventIds.map((eventId) => ({
+                event: { connect: { id: eventId } },
+              })),
+            },
+          },
+        });
+      }
+
+      // Analyze the database to update statistics for the query planner
+      await prisma.$executeRawUnsafe(`ANALYZE;`);
+    } catch (error) {
+      console.error("Error in seedTestData:", error);
+      throw error;
     }
-
-    // Create posters
-    for (const poster of testData.posters) {
-      const { artistIds, eventIds, sellerId, ...posterData } = poster;
-
-      const createdPoster = await prisma.poster.create({
-        data: {
-          ...posterData,
-          seller: {
-            connect: { id: sellerId },
-          },
-          artists: {
-            create: artistIds.map((artistId) => ({
-              artist: { connect: { id: artistId } },
-            })),
-          },
-          events: {
-            create: eventIds.map((eventId) => ({
-              event: { connect: { id: eventId } },
-            })),
-          },
-        },
-      });
-    }
-
-    // Analyze the database to update statistics for the query planner
-    await prisma.$executeRawUnsafe(`ANALYZE;`);
   }
 
   // Clean up after all tests
