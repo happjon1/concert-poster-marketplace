@@ -1141,6 +1141,157 @@ describe("Poster Search Integration Tests", () => {
     }
   });
 
+  // Test: Search by artist with specific date in MM/DD/YYYY format
+  test("Search by artist with specific date (Phish + specific date)", async () => {
+    // First, retrieve existing Phish events from the database to use in our test
+    const existingPhishEvents = await prisma.event.findMany({
+      where: {
+        artists: {
+          some: {
+            artistId: "artist1", // This is Phish in our test data
+          },
+        },
+      },
+      include: {
+        artists: {
+          include: {
+            artist: true,
+          },
+        },
+        posters: {
+          include: {
+            poster: true,
+          },
+        },
+      },
+      orderBy: {
+        date: "asc",
+      },
+    });
+
+    if (existingPhishEvents.length === 0) {
+      console.log("No Phish events found in test database, skipping test");
+      return;
+    }
+
+    // Get count of total Phish posters in database for reference
+    const totalPhishPosters = await prisma.poster.count({
+      where: {
+        artists: {
+          some: {
+            artistId: "artist1", // Phish
+          },
+        },
+      },
+    });
+
+    console.log(`Total Phish posters in database: ${totalPhishPosters}`);
+
+    // Find an event with posters that we can test
+    const phishEventsWithPosters = existingPhishEvents.filter(
+      (event) => event.posters.length > 0
+    );
+
+    if (phishEventsWithPosters.length === 0) {
+      console.log("No Phish events with posters found, skipping test");
+      return;
+    }
+
+    // Choose the first event with posters for our test
+    const phishEvent = phishEventsWithPosters[0];
+    const eventDate = new Date(phishEvent.date);
+
+    // Format the date as MM/DD/YYYY
+    const month = eventDate.getMonth() + 1; // getMonth() is zero-based
+    const day = eventDate.getDate();
+    const year = eventDate.getFullYear();
+    const formattedDate = `${month}/${day}/${year}`;
+
+    console.log(`Using existing Phish event on ${formattedDate} for test`);
+
+    // Now search using the artist name + specific date
+    const searchQuery = `Phish ${formattedDate}`;
+    const caller = createCaller();
+    const result = await caller.posters.getAll({
+      searchQuery,
+    });
+
+    console.log(
+      `Found ${result.items.length} posters for '${searchQuery}' search:`
+    );
+    result.items.forEach((item, i) => {
+      console.log(
+        `${i + 1}. ${item.title} - Artists: [${item.artists
+          .map((a) => a.name)
+          .join(", ")}]`
+      );
+      console.log(
+        `   Event Date(s): ${item.events
+          .map((e) => new Date(e.date).toLocaleDateString())
+          .join(", ")}`
+      );
+    });
+
+    // We should have at least one result
+    expect(result.items.length).toBeGreaterThan(0);
+
+    // ALL results should have Phish as an artist (not just some)
+    const nonPhishPosters = result.items.filter(
+      (poster) => !poster.artists.some((artist) => artist.name === "Phish")
+    );
+
+    if (nonPhishPosters.length > 0) {
+      console.log("Error: Found posters not related to Phish:");
+      nonPhishPosters.forEach((poster, i) => {
+        console.log(
+          `Non-Phish poster: ${poster.title} with artists: [${poster.artists
+            .map((a) => a.name)
+            .join(", ")}]`
+        );
+      });
+    }
+
+    expect(nonPhishPosters.length).toBe(0);
+
+    // ALL results should have events on the specific date (not just some)
+    const wrongDatePosters = result.items.filter((poster) => {
+      return !poster.events.some((event) => {
+        const date = new Date(event.date);
+        return (
+          date.getFullYear() === eventDate.getFullYear() &&
+          date.getMonth() === eventDate.getMonth() &&
+          date.getDate() === eventDate.getDate()
+        );
+      });
+    });
+
+    if (wrongDatePosters.length > 0) {
+      console.log("Error: Found posters with incorrect dates:");
+      wrongDatePosters.forEach((poster) => {
+        console.log(
+          `Wrong date poster: ${poster.title} with dates: [${poster.events
+            .map((e) => new Date(e.date).toLocaleDateString())
+            .join(", ")}]`
+        );
+      });
+    }
+
+    expect(wrongDatePosters.length).toBe(0);
+
+    // Ensure we don't return ALL Phish posters (only those for the specific date)
+    if (totalPhishPosters > result.items.length) {
+      console.log(
+        `Successfully filtered: Found ${result.items.length} Phish posters for this date out of ${totalPhishPosters} total Phish posters`
+      );
+    } else {
+      // If all Phish posters were returned, that means we're not filtering by date correctly
+      console.log(
+        `Warning: All ${totalPhishPosters} Phish posters were returned, not filtering by date correctly`
+      );
+      expect(result.items.length).toBeLessThan(totalPhishPosters);
+    }
+  });
+
   // Test: Common abbreviations
   test("Search with abbreviation (RHCP instead of Red Hot Chili Peppers)", async () => {
     const caller = createCaller();
