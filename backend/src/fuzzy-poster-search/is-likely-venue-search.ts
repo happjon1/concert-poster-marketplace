@@ -1,4 +1,8 @@
-import { VENUE_KEYWORDS, COMMON_CITIES, SPECIFIC_VENUES } from "./fuzzy-search-constants";
+import {
+  VENUE_KEYWORDS,
+  COMMON_CITIES,
+  SPECIFIC_VENUES,
+} from "./fuzzy-search-constants";
 
 /**
  * Checks if a search term likely contains a venue reference
