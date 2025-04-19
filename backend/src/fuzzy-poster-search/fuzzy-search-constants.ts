@@ -137,6 +137,20 @@ export const VENUE_KEYWORDS = [
 ];
 
 /**
+ * Specific well-known venues that might not be covered by individual keywords
+ */
+export const SPECIFIC_VENUES = [
+  "red rocks",
+  "hollywood bowl",
+  "madison square garden",
+  "the forum",
+  "the gorge",
+  "msg",
+  "barclays center",
+  "greek theatre",
+];
+
+/**
  * List of well-known music venue cities
  */
 export const COMMON_CITIES = [
