@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, protectedProcedure } from "../trpc.js";
-import { fuzzyPosterSearch } from "../../utils/fuzzy-search.js";
+import { fuzzyPosterSearch } from "../../fuzzy-poster-search/fuzzy-search.js";
 import prisma from "../../config/prisma.js"; // Import shared Prisma instance
 import * as chrono from "chrono-node";
 import { Prisma } from "@prisma/client";
