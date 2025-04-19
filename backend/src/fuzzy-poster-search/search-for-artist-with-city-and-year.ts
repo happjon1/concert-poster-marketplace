@@ -23,7 +23,7 @@ export async function searchForArtistWithCityAndYear(
     // For severely misspelled names, we need very low thresholds
     const artistFuzzyThreshold = 0.15;
     const cityFuzzyThreshold = 0.1; // Ultra-low threshold for city names with transposed characters
-    
+
     // This query does the following:
     // 1. Finds artists that match the artist name (exact or fuzzy)
     // 2. Finds venues in the specified city using multiple fuzzy matching techniques
@@ -89,8 +89,8 @@ export async function searchForArtistWithCityAndYear(
       WHERE cp.id NOT IN (SELECT "posterId" FROM non_matching_events)
       LIMIT 100;
     `;
-    
-    return results.map(row => row.id);
+
+    return results.map((row) => row.id);
   } catch (error) {
     console.error("Error in searchForArtistWithCityAndYear:", error);
     return [];
