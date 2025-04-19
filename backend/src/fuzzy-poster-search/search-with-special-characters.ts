@@ -1,51 +1,39 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 /**
- * Function specifically for handling search terms with special characters
- * like "AC/DC", "P!nk", or "Panic! At The Disco"
+ * Performs a search for terms with special characters like "AC/DC" or "R.E.M."
+ * This function handles exact and fuzzy matching for band names or terms with special characters.
  *
  * @param prisma - PrismaClient instance
- * @param searchTerm - The search term containing special characters
+ * @param searchTerm - The search term containing special characters (e.g., "AC/DC")
  * @returns Array of poster IDs that match the search criteria
  */
 export async function searchWithSpecialCharacters(
   prisma: PrismaClient,
   searchTerm: string
 ): Promise<number[]> {
-  // Replace special characters with wildcards in pattern matching
-  // This helps with artists like "AC/DC" where the "/" is significant
-  const searchPattern = `%${searchTerm.replace(/[\W_]+/g, "%")}%`;
-
-  // Also create a version with spaces instead of special chars for similarity matching
-  const spacedSearchTerm = searchTerm.replace(/[\W_]+/g, " ").trim();
-
-  // Use a lower threshold for special character searches to catch more matches
-  const result = await prisma.$queryRaw<
-    Array<{ id: number; match_priority: number }>
-  >`
-    SELECT DISTINCT 
-      p.id,
-      CASE 
-        WHEN LOWER(a.name) = LOWER(${searchTerm}) THEN 1
-        WHEN LOWER(a.name) LIKE LOWER(${`%${searchTerm}%`}) THEN 2
-        ELSE 3
-      END AS match_priority
+  // Handle terms with special characters like "AC/DC", "R.E.M.", etc.
+  const results = await prisma.$queryRaw<{ id: number }[]>`
+    SELECT p.id
     FROM "Poster" p
-    JOIN "PosterArtist" pa ON p.id = pa."posterId"
-    JOIN "Artist" a ON pa."artistId" = a.id
+    LEFT JOIN "Artist" a ON p."artistId" = a.id
     WHERE 
-      -- Direct substring match (handles exact special character matches)
-      LOWER(a.name) LIKE LOWER(${`%${searchTerm}%`})
-      -- Pattern match with % replacing special chars (handles case differences)
-      OR LOWER(a.name) LIKE LOWER(${searchPattern})
-      -- Similarity match with spaced version (handles cases where DB has spaces instead of special chars)
-      OR similarity(LOWER(a.name), LOWER(${spacedSearchTerm})) >= 0.3
-      -- Also check poster title/description which might mention the artist with special chars
-      OR LOWER(p.title) LIKE LOWER(${`%${searchTerm}%`})
-      OR LOWER(p.description) LIKE LOWER(${`%${searchTerm}%`})
-    ORDER BY match_priority
-    LIMIT 50
+      -- Check if the search term directly appears in the title, description or artist name
+      p.title ILIKE ${`%${searchTerm}%`} OR
+      p.description ILIKE ${`%${searchTerm}%`} OR
+      a.name ILIKE ${`%${searchTerm}%`} OR
+      
+      -- Also check for versions without the special characters or with spaces instead
+      p.title ILIKE ${`%${searchTerm.replace(/[\W_]+/g, " ")}%`} OR
+      p.description ILIKE ${`%${searchTerm.replace(/[\W_]+/g, " ")}%`} OR
+      a.name ILIKE ${`%${searchTerm.replace(/[\W_]+/g, " ")}%`} OR
+      
+      -- Also check for versions with special characters removed completely
+      p.title ILIKE ${`%${searchTerm.replace(/[\W_]+/g, "")}%`} OR
+      p.description ILIKE ${`%${searchTerm.replace(/[\W_]+/g, "")}%`} OR
+      a.name ILIKE ${`%${searchTerm.replace(/[\W_]+/g, "")}%`}
+    LIMIT 100;
   `;
 
-  return result.map((row) => row.id);
+  return results.map((row) => row.id);
 }

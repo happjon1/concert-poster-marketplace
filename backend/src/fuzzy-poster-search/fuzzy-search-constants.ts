@@ -6,16 +6,24 @@
  * Common stop words to filter out from search queries
  */
 export const STOP_WORDS = new Set([
-  "or",
-  "and",
   "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "but",
   "in",
-  "at",
   "on",
+  "at",
+  "to",
+  "for",
+  "with",
   "by",
   "of",
-  "with",
-  "for",
+  "from",
+  "as",
+  "poster",
+  "posters",
 ]);
 
 /**

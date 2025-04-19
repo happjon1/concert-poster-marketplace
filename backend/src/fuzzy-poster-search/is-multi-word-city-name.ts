@@ -1,4 +1,4 @@
-import { MULTI_WORD_CITIES } from "./fuzzy-search-constants";
+import { MULTI_WORD_CITIES } from "./fuzzy-search-constants.js";
 
 /**
  * Checks if the search term is likely a multi-word city name

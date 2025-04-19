@@ -113,11 +113,6 @@ export const posterRouter = router({
         // Process the search term to generate variants for better matching
         const searchVariants = preprocessSearchQuery(searchTerm);
 
-        // If we have variants, log them for debugging
-        if (searchVariants.length > 1) {
-          console.log(`Search variants for "${searchTerm}":`, searchVariants);
-        }
-
         // Convert cursor from string to number if provided
         const cursorId = cursor ? parseInt(cursor, 10) : undefined;
 
@@ -177,10 +172,6 @@ export const posterRouter = router({
                       },
                     },
                   };
-
-                  console.log(
-                    `Searching for events between ${firstDayOfMonth.toISOString()} and ${lastDayOfMonth.toISOString()}`
-                  );
                 } else if (hasYear && !hasMonth) {
                   // Only year specified (e.g., "2024")
                   const year = startDate.getFullYear();
@@ -198,10 +189,6 @@ export const posterRouter = router({
                       },
                     },
                   };
-
-                  console.log(
-                    `Searching for events between ${firstDayOfYear.toISOString()} and ${lastDayOfYear.toISOString()}`
-                  );
                 } else if (hasYear && hasMonth && hasDay) {
                   // Full date specified (e.g., "October 15, 2024")
                   // Give a small range around the exact date
@@ -225,10 +212,6 @@ export const posterRouter = router({
                       },
                     },
                   };
-
-                  console.log(
-                    `Searching for events on exact date: ${beginningOfDay.toISOString()}`
-                  );
                 }
 
                 // Remove the date part from search term before passing to fuzzy search
@@ -238,7 +221,7 @@ export const posterRouter = router({
               }
             }
           } catch (error) {
-            console.error("Error parsing date:", error);
+            // Error parsing date - continue without date filtering
           }
         }
 
@@ -401,7 +384,6 @@ export const posterRouter = router({
           total,
         };
       } catch (error) {
-        console.error("Error in getAll procedure:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch posters",

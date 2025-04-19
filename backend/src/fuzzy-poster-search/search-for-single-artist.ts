@@ -1,29 +1,41 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 /**
- * Helper function to search for a single artist by name
+ * Searches for posters matching a single artist name
+ * This function is used for individual artist searches in multi-artist queries like "Artist1 OR Artist2"
  *
  * @param prisma - PrismaClient instance
- * @param artistName - The name of the artist to search for
- * @param similarityThreshold - Minimum similarity threshold (0.0 to 1.0, default 0.3)
+ * @param artist - The artist name to search for
+ * @param similarityThreshold - Minimum similarity threshold for matching
  * @returns Array of poster IDs that match the search criteria
  */
 export async function searchForSingleArtist(
   prisma: PrismaClient,
-  artistName: string,
+  artist: string,
   similarityThreshold: number = 0.3
 ): Promise<number[]> {
-  // Execute a specific search just for this artist name
-  const result = await prisma.$queryRaw<Array<{ id: number }>>(
-    Prisma.sql`
-      SELECT DISTINCT p.id
-      FROM "Poster" p
-      JOIN "PosterArtist" pa ON p.id = pa."posterId"
-      JOIN "Artist" a ON pa."artistId" = a.id
-      WHERE similarity(LOWER(a.name), LOWER(${artistName})) >= ${similarityThreshold}
-      LIMIT 20
-    `
-  );
+  const results = await prisma.$queryRaw<{ id: number }[]>`
+    SELECT p.id
+    FROM "Poster" p
+    LEFT JOIN "Artist" a ON p."artistId" = a.id
+    WHERE 
+      -- Artist name matching with similarity
+      a.name ILIKE ${`%${artist}%`}
+      OR similarity(a.name, ${artist}) > ${similarityThreshold}
+      OR p.title ILIKE ${`%${artist}%`}
+      OR similarity(p.title, ${artist}) > ${similarityThreshold}
+      OR p.description ILIKE ${`%${artist}%`}
+    ORDER BY 
+      -- Order by exact matches first, then by similarity
+      CASE WHEN a.name ILIKE ${`%${artist}%`} THEN 1
+           WHEN p.title ILIKE ${`%${artist}%`} THEN 2
+           WHEN similarity(a.name, ${artist}) > 0.7 THEN 3
+           ELSE 4
+      END,
+      p.year DESC,
+      p.date DESC
+    LIMIT 50;
+  `;
 
-  return result.map((row) => row.id);
+  return results.map((row) => row.id);
 }

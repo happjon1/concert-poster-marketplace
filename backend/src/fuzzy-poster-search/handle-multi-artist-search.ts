@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { searchForSingleArtist } from "./search-for-single-artist";
+import { searchForSingleArtist } from "./search-for-single-artist.js";
 
 /**
  * Handles multi-artist searches with "OR" (e.g., "Artist1 OR Artist2")

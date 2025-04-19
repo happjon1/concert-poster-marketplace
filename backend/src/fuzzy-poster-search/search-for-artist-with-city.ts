@@ -1,61 +1,56 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 /**
- * Function specifically for handling "artist name + city" queries
- * This ensures strict AND logic between the artist name and the city
+ * Searches for posters matching a specific artist and city
+ * This function is used for targeted searches like "Phish Seattle"
  *
  * @param prisma - PrismaClient instance
- * @param artistName - The artist name to search for
- * @param cityName - The city name to search for
- * @param similarityThreshold - Minimum similarity threshold (0.0 to 1.0, default 0.3)
- * @returns Array of poster IDs that match both the artist and city criteria
+ * @param artist - The artist name to search for
+ * @param city - The city name to search for
+ * @param similarityThreshold - Minimum similarity threshold for matching
+ * @returns Array of poster IDs that match the search criteria
  */
 export async function searchForArtistWithCity(
   prisma: PrismaClient,
-  artistName: string,
-  cityName: string,
+  artist: string,
+  city: string,
   similarityThreshold: number = 0.3
 ): Promise<number[]> {
-  console.log(
-    `Performing strict artist+city search for "${artistName}" in "${cityName}"`
-  );
-
-  // First find artists that match the artist name
-  const artistMatches = await prisma.$queryRaw<
-    { id: number; similarity: number }[]
-  >`
-    SELECT a.id, similarity(LOWER(a.name), LOWER(${artistName})) as similarity
-    FROM "Artist" a
-    WHERE similarity(LOWER(a.name), LOWER(${artistName})) > ${similarityThreshold}
-    ORDER BY similarity DESC
-  `;
-
-  if (artistMatches.length === 0) {
-    console.log("No matching artists found");
-    return [];
-  }
-
-  console.log(`Found ${artistMatches.length} potential artist matches`);
-
-  // Get all artist IDs with their similarity scores
-  const artistIds = artistMatches.map((match) => match.id);
-
-  // Find posters with these artists AND in the specific city
-  const posterResults = await prisma.$queryRaw<{ id: number }[]>`
+  const results = await prisma.$queryRaw<{ id: number }[]>`
     SELECT p.id
     FROM "Poster" p
-    JOIN "PosterArtist" pa ON p.id = pa."posterId"
-    JOIN "PosterEvent" pe ON p.id = pe."posterId"
-    JOIN "Event" e ON pe."eventId" = e.id
-    JOIN "Venue" v ON e."venueId" = v.id
+    LEFT JOIN "Artist" a ON p."artistId" = a.id
+    LEFT JOIN "Venue" v ON p."venueId" = v.id
     WHERE 
-      pa."artistId" IN (${Prisma.join(artistIds)})
-      AND similarity(LOWER(v.city), LOWER(${cityName})) >= ${similarityThreshold}
+      -- Artist name matching with similarity
+      (
+        a.name ILIKE ${`%${artist}%`}
+        OR similarity(a.name, ${artist}) > ${similarityThreshold}
+        OR p.title ILIKE ${`%${artist}%`}
+        OR similarity(p.title, ${artist}) > ${similarityThreshold}
+      )
+      
+      -- City matching with similarity
+      AND (
+        v.city ILIKE ${`%${city}%`}
+        OR p.venue ILIKE ${`%${city}%`}
+        OR p.location ILIKE ${`%${city}%`}
+        OR p.description ILIKE ${`%${city}%`}
+        OR similarity(v.city, ${city}) > ${similarityThreshold}
+        OR similarity(p.venue, ${city}) > ${similarityThreshold}
+        OR similarity(p.location, ${city}) > ${similarityThreshold}
+      )
+    ORDER BY 
+      -- Order by exact matches first, then by similarity
+      CASE WHEN a.name ILIKE ${`%${artist}%`} AND v.city ILIKE ${`%${city}%`} THEN 1
+           WHEN a.name ILIKE ${`%${artist}%`} THEN 2
+           WHEN v.city ILIKE ${`%${city}%`} THEN 3
+           ELSE 4
+      END,
+      p.year DESC,
+      p.date DESC
+    LIMIT 100;
   `;
 
-  console.log(
-    `Found ${posterResults.length} posters matching both artist "${artistName}" and city "${cityName}"`
-  );
-
-  return posterResults.map((result) => result.id);
+  return results.map((row) => row.id);
 }

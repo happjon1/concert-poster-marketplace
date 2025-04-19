@@ -1,4 +1,4 @@
-import { STOP_WORDS } from "./fuzzy-search-constants";
+import { STOP_WORDS } from "./fuzzy-search-constants.js";
 
 /**
  * Filters out common stop words from a search term

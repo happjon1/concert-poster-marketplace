@@ -1,19 +1,19 @@
 import { PrismaClient } from "@prisma/client";
-import { validateAndCleanSearchTerm } from "./validate-and-clean-search-term";
-import { filterStopWords } from "./filter-stop-words";
-import { handleSpecialCharacterSearch } from "./handle-special-character-search";
-import { extractYearFromQuery } from "./extract-year-from-query";
-import { handleArtistCityYearSearch } from "./handle-artist-city-year-search";
-import { handleArtistYearPattern } from "./handle-artist-year-pattern";
-import { handleArtistCityPattern } from "./handle-artist-city-pattern";
-import { handleDatePatterns } from "./handle-date-patterns";
-import { isMultiWordCityName } from "./is-multi-word-city-name";
-import { searchForCity } from "./search-for-city";
-import { handleMultiArtistSearch } from "./handle-multi-artist-search";
-import { extractDateInfo } from "./extract-date-info";
-import { isLikelyVenueSearch } from "./is-likely-venue-search";
-import { executeComplexSearch } from "./execute-complex-search";
-import { executeSingleTermSearch } from "./execute-single-term-search";
+import { validateAndCleanSearchTerm } from "./validate-and-clean-search-term.js";
+import { filterStopWords } from "./filter-stop-words.js";
+import { handleSpecialCharacterSearch } from "./handle-special-character-search.js";
+import { extractYearFromQuery } from "./extract-year-from-query.js";
+import { handleArtistCityYearSearch } from "./handle-artist-city-year-search.js";
+import { handleArtistYearPattern } from "./handle-artist-year-pattern.js";
+import { handleArtistCityPattern } from "./handle-artist-city-pattern.js";
+import { handleDatePatterns } from "./handle-date-patterns.js";
+import { isMultiWordCityName } from "./is-multi-word-city-name.js";
+import { searchForCity } from "./search-for-city.js";
+import { handleMultiArtistSearch } from "./handle-multi-artist-search.js";
+import { extractDateInfo } from "./extract-date-info.js";
+import { isLikelyVenueSearch } from "./is-likely-venue-search.js";
+import { executeComplexSearch } from "./execute-complex-search.js";
+import { executeSingleTermSearch } from "./execute-single-term-search.js";
 
 /**
  * Performs a fuzzy search on posters using PostgreSQL's trigram similarity.

@@ -1,4 +1,4 @@
-import { MONTH_NAMES } from "./fuzzy-search-constants";
+import { MONTH_NAMES } from "./fuzzy-search-constants.js";
 
 /**
  * Extract date information from search term

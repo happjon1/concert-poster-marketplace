@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
-import { searchForArtistWithCity } from "./search-for-artist-with-city";
-import { MULTI_WORD_CITIES } from "./fuzzy-search-constants";
-import { isMultiWordCityName } from "./is-multi-word-city-name";
+import { searchForArtistWithCity } from "./search-for-artist-with-city.js";
+import { MULTI_WORD_CITIES } from "./fuzzy-search-constants.js";
+import { isMultiWordCityName } from "./is-multi-word-city-name.js";
 
 /**
  * Handles the artist+city search pattern (e.g., "phish los angeles")

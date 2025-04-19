@@ -1,8 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { isLikelyVenueSearch } from "./is-likely-venue-search";
-import { executeComplexSearchQuery } from "./execute-complex-search-query";
-import { generatePotentialArtistTerms } from "./generate-potential-artist-terms";
-import { generatePotentialVenueTerms } from "./generate-potential-venue-terms";
+import { isLikelyVenueSearch } from "./is-likely-venue-search.js";
+import { executeComplexSearchQuery } from "./execute-complex-search-query.js";
+import { generatePotentialArtistTerms } from "./generate-potential-artist-terms.js";
+import { generatePotentialVenueTerms } from "./generate-potential-venue-terms.js";
 
 /**
  * Generates SQL for complex multi-term searches

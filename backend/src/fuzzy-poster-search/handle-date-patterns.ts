@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { extractDateInfo } from "./extract-date-info";
-import { searchForArtistWithYear } from "./search-for-artist-with-year";
+import { extractDateInfo } from "./extract-date-info.js";
+import { searchForArtistWithYear } from "./search-for-artist-with-year.js";
 
 /**
  * Handles date patterns in the search (using extractDateInfo)

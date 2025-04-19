@@ -1,5 +1,5 @@
-import { MULTI_WORD_CITIES } from "./fuzzy-search-constants";
-import { isMultiWordCityName } from "./is-multi-word-city-name";
+import { MULTI_WORD_CITIES } from "./fuzzy-search-constants.js";
+import { isMultiWordCityName } from "./is-multi-word-city-name.js";
 
 /**
  * Generates possible artist-city combinations for a search without year

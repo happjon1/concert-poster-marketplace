@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { searchForArtistWithCityAndYear } from "./search-for-artist-with-city-and-year";
-import { generateArtistCityCombinations } from "./generate-artist-city-combinations";
+import { searchForArtistWithCityAndYear } from "./search-for-artist-with-city-and-year.js";
+import { generateArtistCityCombinations } from "./generate-artist-city-combinations.js";
 
 /**
  * Handles the artist+city+year search pattern

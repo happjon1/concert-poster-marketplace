@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { searchWithSpecialCharacters } from "./search-with-special-characters";
+import { searchWithSpecialCharacters } from "./search-with-special-characters.js";
 
 /**
  * Handles search terms with special characters like "AC/DC"

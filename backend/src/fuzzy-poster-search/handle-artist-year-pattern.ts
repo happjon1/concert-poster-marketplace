@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { searchForArtistWithYear } from "./search-for-artist-with-year";
+import { searchForArtistWithYear } from "./search-for-artist-with-year.js";
 
 /**
  * Handles the artist+year search pattern (e.g., "phish 2023")
