@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { preprocessSearchQuery } from "./preprocess-search-query";
 import { validateAndCleanSearchTerm } from "./validate-and-clean-search-term";
 import { filterStopWords } from "./filter-stop-words";
 import { handleSpecialCharacterSearch } from "./handle-special-character-search";
@@ -39,11 +38,11 @@ export async function fuzzyPosterSearch(
     return [];
   }
 
-  // Preprocess the search term to generate variants
-  const searchVariants = preprocessSearchQuery(cleanedSearchTerm);
-
   // Special check for search terms with special characters like "AC/DC"
-  const specialResults = await handleSpecialCharacterSearch(prisma, cleanedSearchTerm);
+  const specialResults = await handleSpecialCharacterSearch(
+    prisma,
+    cleanedSearchTerm
+  );
   if (specialResults.length > 0) {
     return specialResults;
   }
@@ -53,7 +52,10 @@ export async function fuzzyPosterSearch(
 
   // Extract query terms and check for year
   const queryTerms = termToUse.split(/\s+/).filter(Boolean);
-  const { yearValue, searchWithoutYear } = extractYearFromQuery(termToUse, queryTerms);
+  const { yearValue, searchWithoutYear } = extractYearFromQuery(
+    termToUse,
+    queryTerms
+  );
 
   // Handle artist+city+year search pattern (e.g., "phish new york 2024")
   const artistCityYearResults = await handleArtistCityYearSearch(
@@ -112,7 +114,10 @@ export async function fuzzyPosterSearch(
     searchTerms.length >= 3 || isLikelyVenueSearch(termForMatching);
 
   // For multi-term searches or searches with dates, use our enhanced approach
-  if ((searchTerms.length > 1 && isPotentialArtistVenueSearch) || dateInfo.hasDate) {
+  if (
+    (searchTerms.length > 1 && isPotentialArtistVenueSearch) ||
+    dateInfo.hasDate
+  ) {
     return await executeComplexSearch(
       prisma,
       termToUse,
