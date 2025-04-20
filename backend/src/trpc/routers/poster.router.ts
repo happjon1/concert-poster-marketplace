@@ -3,83 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, protectedProcedure } from "../trpc.js";
 import { fuzzyPosterSearch } from "../../fuzzy-poster-search/fuzzy-search.js";
 import prisma from "../../config/prisma.js"; // Import shared Prisma instance
-import * as chrono from "chrono-node";
 import { Prisma } from "@prisma/client";
-
-// Create a more robust query preprocessor
-const preprocessSearchQuery = (query: string): string[] => {
-  if (!query) return [];
-
-  // Normalize the input string
-  const normalizedQuery = query.trim();
-
-  // Always include the original query
-  const queryVariants = [normalizedQuery];
-
-  // Handle special characters in band names (like AC/DC, A$AP Rocky, P!nk)
-  // Strategy 1: Replace special characters with spaces
-  if (/[\W_]+/.test(normalizedQuery)) {
-    const spacedVariant = normalizedQuery.replace(/[\W_]+/g, " ").trim();
-    if (spacedVariant !== normalizedQuery) {
-      queryVariants.push(spacedVariant);
-    }
-
-    // Strategy 2: Remove special characters entirely
-    const strippedVariant = normalizedQuery.replace(/[\W_]+/g, "").trim();
-    if (
-      strippedVariant !== normalizedQuery &&
-      strippedVariant !== spacedVariant
-    ) {
-      queryVariants.push(strippedVariant);
-    }
-  }
-
-  // Handle common abbreviation patterns without hardcoding specific band names
-
-  // Pattern 1: All caps might be abbreviations (like RHCP, ACDC, RATM)
-  if (/^[A-Z]{2,}$/.test(normalizedQuery)) {
-    // Add variant with spaces between letters (A C D C)
-    const spacedAbbreviation = normalizedQuery.split("").join(" ");
-    queryVariants.push(spacedAbbreviation);
-
-    // Add variant with slashes between letters (A/C/D/C) - common for some band abbreviations
-    const slashedAbbreviation = normalizedQuery.split("").join("/");
-    queryVariants.push(slashedAbbreviation);
-  }
-
-  // Pattern 2: Spaced capitals might be abbreviation variants (A C D C)
-  if (/^[A-Z](\s+[A-Z])+$/.test(normalizedQuery)) {
-    // Add variant with no spaces (ACDC)
-    const unspacedAbbreviation = normalizedQuery.replace(/\s+/g, "");
-    queryVariants.push(unspacedAbbreviation);
-
-    // Add variant with slashes (A/C/D/C)
-    const slashedAbbreviation = normalizedQuery.replace(/\s+/g, "/");
-    queryVariants.push(slashedAbbreviation);
-  }
-
-  // Handle periods in abbreviations (like N.W.A, J.S. Bach)
-  if (normalizedQuery.includes(".")) {
-    // Remove periods
-    const noPeriods = normalizedQuery.replace(/\./g, "");
-    queryVariants.push(noPeriods);
-
-    // Replace periods with spaces
-    const periodsAsSpaces = normalizedQuery
-      .replace(/\./g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (
-      periodsAsSpaces !== normalizedQuery &&
-      !queryVariants.includes(periodsAsSpaces)
-    ) {
-      queryVariants.push(periodsAsSpaces);
-    }
-  }
-
-  // Return unique variants
-  return [...new Set(queryVariants)];
-};
 
 export const posterRouter = router({
   // Get all posters
@@ -110,171 +34,37 @@ export const posterRouter = router({
         // Use either searchQuery or filter as the search term
         let searchTerm = searchQuery || filter || "";
 
-        // Process the search term to generate variants for better matching
-        const searchVariants = preprocessSearchQuery(searchTerm);
-
         // Convert cursor from string to number if provided
         const cursorId = cursor ? parseInt(cursor, 10) : undefined;
 
         let posterIds: number[] = [];
         let whereConditions: Prisma.PosterWhereInput = {};
-        let enhancedSearchTerm = searchVariants[0]; // Use the original search term for date processing
 
-        // === FIRST, USE CHRONO FOR NATURAL LANGUAGE DATE EXTRACTION ===
-        if (enhancedSearchTerm) {
-          // Try to extract dates with chrono for natural language dates
-          try {
-            const parsedDates = chrono.parse(enhancedSearchTerm);
-
-            if (parsedDates && parsedDates.length > 0) {
-              const parsedDate = parsedDates[0];
-              const dateText = parsedDate.text;
-
-              // Create date range based on the parsed date
-              if (parsedDate.start) {
-                const startDate = parsedDate.start.date();
-
-                // Check what components are specified
-                const hasYear = parsedDate.start.isCertain("year");
-                const hasMonth = parsedDate.start.isCertain("month");
-                const hasDay = parsedDate.start.isCertain("day");
-
-                // Initialize end date and create date ranges based on specificity
-                let endDate: Date;
-
-                if (hasMonth && hasYear && !hasDay) {
-                  // Month and year specified (e.g., "October 2024")
-                  const year = startDate.getFullYear();
-                  const month = startDate.getMonth();
-
-                  // Set start date to first day of month
-                  const firstDayOfMonth = new Date(year, month, 1);
-
-                  // Set end date to last day of month
-                  const lastDayOfMonth = new Date(
-                    year,
-                    month + 1,
-                    0,
-                    23,
-                    59,
-                    59,
-                    999
-                  );
-
-                  // Apply date filter for the entire month
-                  whereConditions.events = {
-                    some: {
-                      event: {
-                        date: {
-                          gte: firstDayOfMonth,
-                          lte: lastDayOfMonth,
-                        },
-                      },
-                    },
-                  };
-                } else if (hasYear && !hasMonth) {
-                  // Only year specified (e.g., "2024")
-                  const year = startDate.getFullYear();
-                  const firstDayOfYear = new Date(year, 0, 1);
-                  const lastDayOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
-
-                  // Apply date filter for the entire year
-                  whereConditions.events = {
-                    some: {
-                      event: {
-                        date: {
-                          gte: firstDayOfYear,
-                          lte: lastDayOfYear,
-                        },
-                      },
-                    },
-                  };
-                } else if (hasYear && hasMonth && hasDay) {
-                  // Full date specified (e.g., "October 15, 2024")
-                  // Give a small range around the exact date
-                  const exactDate = new Date(startDate);
-
-                  // Look for events on that specific date
-                  // Use the beginning and end of day to catch all events
-                  const beginningOfDay = new Date(exactDate);
-                  beginningOfDay.setHours(0, 0, 0, 0);
-
-                  const endOfDay = new Date(exactDate);
-                  endOfDay.setHours(23, 59, 59, 999);
-
-                  whereConditions.events = {
-                    some: {
-                      event: {
-                        date: {
-                          gte: beginningOfDay,
-                          lte: endOfDay,
-                        },
-                      },
-                    },
-                  };
-                }
-
-                // Remove the date part from search term before passing to fuzzy search
-                enhancedSearchTerm = enhancedSearchTerm
-                  .replace(dateText, "")
-                  .trim();
-              }
-            }
-          } catch (error) {
-            // Error parsing date - continue without date filtering
-          }
-        }
-
-        // === THEN, USE FUZZY SEARCH FOR SOPHISTICATED MATCHING ===
-        if (enhancedSearchTerm && enhancedSearchTerm.trim()) {
-          // Use the enhanced fuzzy search with the date-cleaned search term
-          posterIds = await fuzzyPosterSearch(prisma, enhancedSearchTerm);
+        // === USE FUZZY SEARCH FOR SOPHISTICATED MATCHING ===
+        if (searchTerm && searchTerm.trim()) {
+          // Use the enhanced fuzzy search which already handles date extraction internally
+          posterIds = await fuzzyPosterSearch(prisma, searchTerm);
 
           // If we have poster IDs from fuzzy search, use them for filtering
           if (posterIds.length > 0) {
-            // If we already have other conditions (like date from above), we need OR logic
-            if (
-              Object.keys(whereConditions).length > 0 &&
-              !whereConditions.OR
-            ) {
-              whereConditions = {
-                OR: [{ id: { in: posterIds } }, whereConditions],
-              };
-            } else {
-              // Otherwise, just use the poster IDs directly
-              whereConditions.id = { in: posterIds };
-            }
+            whereConditions.id = { in: posterIds };
           }
           // If fuzzy search returned no results, fall back to basic filtering
-          else if (enhancedSearchTerm.trim().length > 0) {
-            const basicFilters = [
+          else if (searchTerm.trim().length > 0) {
+            whereConditions.OR = [
               {
                 title: {
-                  contains: enhancedSearchTerm,
+                  contains: searchTerm,
                   mode: "insensitive" as Prisma.QueryMode,
                 },
               },
               {
                 description: {
-                  contains: enhancedSearchTerm,
+                  contains: searchTerm,
                   mode: "insensitive" as Prisma.QueryMode,
                 },
               },
             ];
-
-            // If we already have OR conditions, add to them
-            if (whereConditions.OR && Array.isArray(whereConditions.OR)) {
-              whereConditions.OR.push(...basicFilters);
-            } else if (Object.keys(whereConditions).length > 0) {
-              // If we have other conditions but not OR, create OR with both
-              const existingConditions = { ...whereConditions };
-              whereConditions = {
-                OR: [existingConditions, ...basicFilters],
-              };
-            } else {
-              // If no existing conditions, just use OR
-              whereConditions.OR = basicFilters;
-            }
           }
         }
 
