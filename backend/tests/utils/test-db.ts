@@ -193,35 +193,99 @@ async function clearAllData() {
     console.log("Clearing all data from test database...");
     await ensureConnection();
 
-    // Disable foreign key checks
-    await prisma.$executeRaw`SET session_replication_role = 'replica';`;
+    // First approach: Use transaction for atomicity
+    await prisma.$transaction(
+      async (tx) => {
+        // Disable foreign key checks
+        await tx.$executeRaw`SET session_replication_role = 'replica';`;
 
-    // Get all tables in the public schema
+        // Get all tables in the public schema
+        const tables = await tx.$queryRaw<{ tablename: string }[]>`
+        SELECT tablename
+        FROM pg_tables
+        WHERE schemaname = 'public'
+        AND tablename NOT IN ('_prisma_migrations', 'pg_stat_statements')
+        ORDER BY tablename
+      `;
+
+        // Truncate each table
+        for (const { tablename } of tables) {
+          try {
+            await tx.$executeRawUnsafe(
+              `TRUNCATE TABLE "${tablename}" CASCADE;`
+            );
+            console.log(`Truncated table: ${tablename}`);
+          } catch (truncateError) {
+            console.error(`Error truncating ${tablename}:`, truncateError);
+            throw truncateError; // Fail transaction on error
+          }
+        }
+
+        // Re-enable foreign key checks
+        await tx.$executeRaw`SET session_replication_role = 'origin';`;
+      },
+      {
+        maxWait: 10000, // 10s timeout
+        timeout: 20000, // 20s timeout
+        isolationLevel: "Serializable", // Strongest isolation
+      }
+    );
+
+    // Verify the tables are empty - this will help catch truncation failures
     const tables = await prisma.$queryRaw<{ tablename: string }[]>`
       SELECT tablename
       FROM pg_tables
       WHERE schemaname = 'public'
       AND tablename NOT IN ('_prisma_migrations', 'pg_stat_statements')
+      AND tablename IN ('Poster', 'Artist', 'Event', 'Venue', 'PosterArtist', 'PosterEvent')
     `;
 
-    // Truncate each table
     for (const { tablename } of tables) {
-      try {
-        await prisma.$executeRawUnsafe(
-          `TRUNCATE TABLE "${tablename}" CASCADE;`
+      const count = await prisma.$executeRawUnsafe(
+        `SELECT COUNT(*) FROM "${tablename}"`
+      );
+      if (count > 0) {
+        console.warn(
+          `Warning: Table ${tablename} still has ${count} records after truncation!`
         );
-        console.log(`Truncated table: ${tablename}`);
-      } catch (truncateError) {
-        console.error(`Error truncating ${tablename}:`, truncateError);
       }
     }
-
-    // Re-enable foreign key checks
-    await prisma.$executeRaw`SET session_replication_role = 'origin';`;
 
     return true;
   } catch (error) {
     console.error("Error clearing test data:", error);
+
+    // Backup approach if transaction failed
+    try {
+      console.log("Trying alternative approach to clear data...");
+      // Disable foreign key checks outside transaction
+      await prisma.$executeRaw`SET session_replication_role = 'replica';`;
+
+      // Direct truncation of critical tables
+      const criticalTables = [
+        "PosterArtist",
+        "PosterEvent",
+        "EventArtist",
+        "Poster",
+        "Event",
+        "Artist",
+        "User",
+        "Venue",
+      ];
+      for (const table of criticalTables) {
+        try {
+          await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${table}" CASCADE;`);
+        } catch (e) {
+          console.warn(`Could not truncate ${table}: ${e.message}`);
+        }
+      }
+
+      // Re-enable foreign key checks
+      await prisma.$executeRaw`SET session_replication_role = 'origin';`;
+    } catch (backupError) {
+      console.error("Backup clearing approach also failed:", backupError);
+    }
+
     return false;
   } finally {
     // Always release the lock
@@ -260,7 +324,34 @@ export async function resetDatabase() {
     while (!success && retries < 3) {
       try {
         await clearAllData();
-        success = true;
+
+        // Verify the database is truly empty by checking critical tables
+        const tablesWithCounts = await Promise.all([
+          prisma.poster.count(),
+          prisma.artist.count(),
+          prisma.event.count(),
+          prisma.venue.count(),
+          prisma.posterArtist.count(),
+          prisma.posterEvent.count(),
+          prisma.eventArtist.count(),
+        ]);
+
+        const totalRecords = tablesWithCounts.reduce(
+          (sum, count) => sum + count,
+          0
+        );
+
+        if (totalRecords === 0) {
+          success = true;
+          console.log("Database reset successful - all tables are empty");
+        } else {
+          console.warn(
+            `Database reset incomplete - ${totalRecords} records remain`
+          );
+          // Wait before retry
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          retries++;
+        }
       } catch (error) {
         retries++;
         console.error(`Database clear attempt ${retries} failed:`, error);
@@ -276,15 +367,7 @@ export async function resetDatabase() {
       throw new Error("Failed to clear database after multiple attempts");
     }
 
-    // Verify the database is empty
-    const posterCount = await prisma.poster.count();
-    console.log(`Poster count after reset: ${posterCount}`);
-
-    if (posterCount > 0) {
-      console.warn(
-        `Warning: Database still contains ${posterCount} posters after reset!`
-      );
-    }
+    await prisma.$executeRawUnsafe(`ANALYZE;`);
 
     return prisma;
   } catch (error) {
