@@ -73,13 +73,13 @@ export const eventRouter = router({
 
         if (fromDate) {
           conditions.push({
-            date: { gte: new Date(fromDate) },
+            startDate: { gte: new Date(fromDate) },
           });
         }
 
         if (toDate) {
           conditions.push({
-            date: { lte: new Date(toDate) },
+            startDate: { lte: new Date(toDate) },
           });
         }
 
@@ -93,7 +93,7 @@ export const eventRouter = router({
         if (sortBy === "venue") {
           orderBy.venue = { name: sortOrder };
         } else {
-          orderBy[sortBy as "date" | "name"] = sortOrder;
+          orderBy[sortBy as "startDate" | "name"] = sortOrder;
         }
 
         // Execute query with proper typing

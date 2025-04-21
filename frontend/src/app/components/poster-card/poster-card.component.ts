@@ -31,7 +31,8 @@ export class PosterCardComponent {
   eventDetailsArray = computed(
     () =>
       this.poster()?.events.map(
-        event => `${event.venue.name} - ${event.date}`
+        event =>
+          `${event.venue.name} - ${event.startMonth}/${event.startDay}/${event.startYear}`
       ) || []
   );
 
@@ -44,7 +45,10 @@ export class PosterCardComponent {
 
   eventDetails = computed(() =>
     this.poster()
-      ?.events.map(event => `${event.venue.name} - ${event.date}`)
+      ?.events.map(
+        event =>
+          `${event.venue.name} - ${event.startMonth}/${event.startDay}/${event.startYear}`
+      )
       .join(', ')
   );
 

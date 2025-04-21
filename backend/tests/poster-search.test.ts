@@ -124,84 +124,124 @@ describe("Poster Search Integration Tests", () => {
         id: "event1",
         jambaseId: "jb-event1",
         name: "New Years Eve 2024",
-        date: dayjs("2024-12-31").toDate(),
+        startDate: dayjs("2024-12-31").toDate(),
+        startYear: 2024,
+        startMonth: 12,
+        startDay: 31,
         venue: { connect: { id: "venue1" } },
       },
       {
         id: "event2",
         jambaseId: "jb-event2",
         name: "Summer Tour 2024",
-        date: dayjs("2024-07-15").toDate(),
+        startDate: dayjs("2024-07-15").toDate(),
+        startYear: 2024,
+        startMonth: 7,
+        startDay: 15,
         venue: { connect: { id: "venue2" } },
       },
       {
         id: "event3",
         jambaseId: "jb-event3",
         name: "Fall Tour 2024",
-        date: dayjs("2024-10-10").toDate(),
+        startDate: dayjs("2024-10-10").toDate(),
+        startYear: 2024,
+        startMonth: 10,
+        startDay: 10,
         venue: { connect: { id: "venue3" } },
       },
       {
         id: "event4",
         jambaseId: "jb-event4",
         name: "Spring Tour 2025",
-        date: dayjs("2025-04-05").toDate(),
-        venue: { connect: { id: "venue5" } }, // The Showbox in Seattle
+        startDate: dayjs("2025-04-05").toDate(),
+        startYear: 2025,
+        startMonth: 4,
+        startDay: 5,
+        venue: { connect: { id: "venue5" } },
       },
       {
         id: "event5",
         jambaseId: "jb-event5",
         name: "Outside Lands 2024",
-        date: dayjs("2024-08-10").toDate(),
-        venue: { connect: { id: "venue6" } }, // Golden Gate Park in San Francisco
+        startDate: dayjs("2024-08-10").toDate(),
+        endDate: dayjs("2024-08-12").toDate(),
+        startYear: 2024,
+        startMonth: 8,
+        startDay: 10,
+        endYear: 2024,
+        endMonth: 8,
+        endDay: 12,
+        venue: { connect: { id: "venue6" } },
       },
       {
         id: "event6",
         jambaseId: "jb-event6",
         name: "Phish Summer Tour 2023",
-        date: dayjs("2023-07-14").toDate(),
+        startDate: dayjs("2023-07-14").toDate(),
+        startYear: 2023,
+        startMonth: 7,
+        startDay: 14,
         venue: { connect: { id: "venue4" } },
       },
       {
         id: "event7",
         jambaseId: "jb-event7",
         name: "Pearl Jam Tour 2023",
-        date: dayjs("2023-09-18").toDate(),
+        startDate: dayjs("2023-09-18").toDate(),
+        startYear: 2023,
+        startMonth: 9,
+        startDay: 18,
         venue: { connect: { id: "venue4" } },
       },
       {
         id: "event8",
         jambaseId: "jb-event8",
         name: "Phish LA Show 2024",
-        date: dayjs("2024-08-15").toDate(),
+        startDate: dayjs("2024-08-15").toDate(),
+        startYear: 2024,
+        startMonth: 8,
+        startDay: 15,
         venue: { connect: { id: "venue3" } },
       },
       {
         id: "event9",
         jambaseId: "jb-event9",
         name: "Pearl Jam LA Show 2024",
-        date: dayjs("2024-08-20").toDate(),
+        startDate: dayjs("2024-08-20").toDate(),
+        startYear: 2024,
+        startMonth: 8,
+        startDay: 20,
         venue: { connect: { id: "venue3" } },
       },
       {
         id: "event10",
         jambaseId: "jb-event10",
         name: "Phish Seattle Show 2024",
-        date: dayjs("2024-06-15").toDate(),
-        venue: { connect: { id: "venue5" } }, // The Showbox in Seattle
+        startDate: dayjs("2024-06-15").toDate(),
+        startYear: 2024,
+        startMonth: 6,
+        startDay: 15,
+        venue: { connect: { id: "venue5" } },
       },
       {
         id: "event11",
         name: "Phish Summer Tour",
-        date: dayjs("2023-08-05").toDate(),
-        venue: { connect: { id: "venue5" } }, // Seattle venue
+        startDate: dayjs("2023-08-05").toDate(),
+        startYear: 2023,
+        startMonth: 8,
+        startDay: 5,
+        venue: { connect: { id: "venue5" } },
         jambaseId: "104",
       },
       {
         id: "event12",
         name: "Phish at The Anthem",
-        date: dayjs("2023-07-20").toDate(),
-        venue: { connect: { id: "venue6" } }, // Madison Square Garden
+        startDate: dayjs("2023-07-20").toDate(),
+        startYear: 2023,
+        startMonth: 7,
+        startDay: 20,
+        venue: { connect: { id: "venue6" } },
         jambaseId: "105",
       },
     ] satisfies Prisma.EventCreateInput[],
@@ -699,7 +739,7 @@ describe("Poster Search Integration Tests", () => {
 
     const all2023Events = result.items.every((poster) =>
       poster.events.some((event) => {
-        const date = dayjs(event.date);
+        const date = dayjs(event.startDate);
         return date.year() === 2023;
       })
     );
@@ -720,10 +760,7 @@ describe("Poster Search Integration Tests", () => {
     expect(allPhishPosters).toBe(true);
 
     const allLosAngelesEvents = result.items.every((poster) =>
-      poster.events.some((event) => {
-        const date = dayjs(event.date);
-        return event.venue.city === "Los Angeles";
-      })
+      poster.events.some((event) => event.venue.city === "Los Angeles")
     );
     expect(allLosAngelesEvents).toBe(true);
   });
@@ -771,8 +808,11 @@ describe("Poster Search Integration Tests", () => {
           data: {
             id: "event-acdc",
             name: "AC/DC Rock Concert",
-            date: dayjs("2024-09-15").toDate(),
-            venueId: "venue3",
+            startDate: dayjs("2024-09-15").toDate(),
+            startYear: 2024,
+            startMonth: 9,
+            startDay: 15,
+            venue: { connect: { id: "venue3" } },
             jambaseId: "acdc-event-123456",
           },
         });
@@ -934,7 +974,7 @@ describe("Poster Search Integration Tests", () => {
           (artist) => artist.name === "Phish"
         );
         const has2024 = poster.events.some((event) => {
-          const date = dayjs(event.date);
+          const date = dayjs(event.startDate);
           return date.year() === 2024;
         });
         return hasPhish && has2024;
@@ -984,7 +1024,7 @@ describe("Poster Search Integration Tests", () => {
     // Verify all results have the correct date with more flexible comparison
     const allCorrectDatePosters = result.items.some((poster) =>
       poster.events.some((event) => {
-        const eventDate = dayjs(event.date);
+        const eventDate = dayjs(event.startDate);
         // Compare year, month and day values separately for more reliable comparison
         return (
           eventDate.year() === dateToSearch.year() &&
@@ -1019,7 +1059,7 @@ describe("Poster Search Integration Tests", () => {
     if (result.items.length > 0) {
       const hasAugust2024Event = result.items.some((poster) => {
         return poster.events.some((event) => {
-          const date = dayjs(event.date);
+          const date = dayjs(event.startDate);
           return date.year() === 2024 && date.month() === 7;
         });
       });
@@ -1109,7 +1149,7 @@ describe("Poster Search Integration Tests", () => {
     if (result.items.length > 0) {
       const hasSummer2024Event = result.items.some((poster) =>
         poster.events.some((event) => {
-          const date = dayjs(event.date);
+          const date = dayjs(event.startDate);
           return date.year() === 2024 && date.month() >= 5 && date.month() <= 7;
         })
       );
@@ -1146,7 +1186,7 @@ describe("Poster Search Integration Tests", () => {
         (event) => event.venue.city === "New York"
       );
       const has2024 = poster.events.some((event) => {
-        const date = dayjs(event.date);
+        const date = dayjs(event.startDate);
         return date.year() === 2024;
       });
       return hasPhish && hasNewYork && has2024;

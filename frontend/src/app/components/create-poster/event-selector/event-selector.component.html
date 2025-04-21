@@ -36,7 +36,7 @@
             <div>{{ event.name }}</div>
             <small class="text-muted">
               {{ event.venue.name }} •
-              {{ event.date | date: 'mediumDate' }}
+              {{ event.startDate | date: 'mediumDate' }}
             </small>
           </div>
           <i class="bi bi-plus-circle"></i>
@@ -61,7 +61,9 @@
             <div>{{ getEvent(eventIdControl.value)?.name }}</div>
             <small class="text-muted">
               {{ getEvent(eventIdControl.value)?.venue?.name }} •
-              {{ getEvent(eventIdControl.value)?.date | date: 'mediumDate' }}
+              {{
+                getEvent(eventIdControl.value)?.startDate | date: 'mediumDate'
+              }}
             </small>
           </div>
           <button

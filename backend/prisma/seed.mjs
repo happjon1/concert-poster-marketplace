@@ -10,6 +10,7 @@ import {
 } from "@prisma/client";
 import bcrypt from "bcrypt";
 import readline from "readline";
+import dayjs from "dayjs";
 
 // Initialize PrismaClient but don't connect yet
 const prisma = new PrismaClient();
@@ -21,6 +22,7 @@ const isCICD =
   process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
 const isPrismaStudio = process.env.PRISMA_STUDIO === "true";
 const isManualSeed = process.env.MANUAL_SEED === "true";
+const isAutoConfirm = process.env.AUTO_CONFIRM === "true"; // Add auto-confirm option
 
 // Get database URL to check where we're about to seed
 const databaseUrl = process.env.DATABASE_URL || "unknown";
@@ -40,6 +42,7 @@ console.log(`
 - CI/CD: ${isCICD ? "YES" : "NO"}
 - Prisma Studio: ${isPrismaStudio ? "YES" : "NO"}
 - Manual Seed: ${isManualSeed ? "YES" : "NO"}
+- Auto Confirm: ${isAutoConfirm ? "YES" : "NO"}
 `);
 
 // If this is a test environment, we'll exit early without seeding any data
@@ -63,7 +66,8 @@ const isDevelopmentWithoutOverride =
   !isProduction &&
   !isCICD &&
   !isManualSeed &&
-  !isPrismaStudio;
+  !isPrismaStudio &&
+  !isAutoConfirm;
 
 // Create a function to prompt for confirmation
 async function confirmSeed() {
@@ -104,6 +108,42 @@ function generateRandomDate(start, end) {
   return new Date(
     start.getTime() + Math.random() * (end.getTime() - start.getTime())
   );
+}
+
+// Helper to generate date components from a Date object
+function generateDateComponents(date) {
+  const dayjsDate = dayjs(date);
+  return {
+    startYear: dayjsDate.year(),
+    startMonth: dayjsDate.month() + 1, // dayjs months are 0-indexed
+    startDay: dayjsDate.date(),
+  };
+}
+
+// Helper to generate a random end date for multi-day events
+function generateEndDate(startDate, maxDays = 3) {
+  // 70% chance of single-day event
+  if (Math.random() < 0.7) {
+    return null;
+  }
+
+  // Generate random number of additional days (1-maxDays)
+  const additionalDays = Math.floor(Math.random() * maxDays) + 1;
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + additionalDays);
+  return endDate;
+}
+
+// Helper to generate end date components
+function generateEndDateComponents(endDate) {
+  if (!endDate) return { endYear: null, endMonth: null, endDay: null };
+
+  const dayjsDate = dayjs(endDate);
+  return {
+    endYear: dayjsDate.year(),
+    endMonth: dayjsDate.month() + 1,
+    endDay: dayjsDate.date(),
+  };
 }
 
 function pickRandom(array) {
@@ -506,15 +546,23 @@ async function seedBulkData() {
 
   const events = [];
   for (let i = 0; i < 500; i++) {
-    const eventDate = generateRandomDate(startDate, endDate);
+    const eventStartDate = generateRandomDate(startDate, endDate);
+    const eventEndDate = generateEndDate(eventStartDate);
     const venue = pickRandom(createdVenues);
     const headliner = pickRandom(createdArtists);
 
+    // Generate date components
+    const dateComponents = generateDateComponents(eventStartDate);
+    const endDateComponents = generateEndDateComponents(eventEndDate);
+
     events.push({
       name: `${headliner.name} at ${venue.name}`,
-      date: eventDate,
+      startDate: eventStartDate,
+      endDate: eventEndDate,
       venueId: venue.id,
       jambaseId: `event-${i + 1000}`,
+      ...dateComponents,
+      ...endDateComponents,
     });
   }
 
@@ -713,23 +761,49 @@ async function main() {
     },
   });
 
-  // Events
+  // Events with new schema
+  const phishStartDate = new Date("2024-07-01");
+  const phishEventData = {
+    name: "Phish at Red Rocks",
+    jambaseId: "event-001",
+    startDate: phishStartDate,
+    endDate: null, // Single day event
+    startYear: phishStartDate.getFullYear(),
+    startMonth: phishStartDate.getMonth() + 1,
+    startDay: phishStartDate.getDate(),
+    endYear: null,
+    endMonth: null,
+    endDay: null,
+    venueId: redRocks.id,
+  };
+
   const phishEvent = await prisma.event.create({
     data: {
-      name: "Phish at Red Rocks",
-      jambaseId: "event-001",
-      date: new Date("2024-07-01"),
-      venueId: redRocks.id,
+      ...phishEventData,
       artists: { create: { artistId: phish.id } },
     },
   });
 
+  // Festival example - multi-day event
+  const deadStartDate = new Date("2024-08-15");
+  const deadEndDate = new Date("2024-08-17"); // 3-day festival
+  const deadEventData = {
+    name: "Grateful Dead Reunion Festival",
+    jambaseId: "event-002",
+    startDate: deadStartDate,
+    endDate: deadEndDate,
+    startYear: deadStartDate.getFullYear(),
+    startMonth: deadStartDate.getMonth() + 1,
+    startDay: deadStartDate.getDate(),
+    endYear: deadEndDate.getFullYear(),
+    endMonth: deadEndDate.getMonth() + 1,
+    endDay: deadEndDate.getDate(),
+    venueId: redRocks.id,
+  };
+
   const deadEvent = await prisma.event.create({
     data: {
-      name: "Grateful Dead Reunion",
-      jambaseId: "event-002",
-      date: new Date("2024-08-15"),
-      venueId: redRocks.id,
+      ...deadEventData,
       artists: { create: { artistId: dead.id } },
     },
   });

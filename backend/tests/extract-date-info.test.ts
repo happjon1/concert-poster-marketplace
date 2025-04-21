@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { extractDateInfo } from "../src/fuzzy-poster-search/extract-date-info";
+import dayjs from "dayjs";
+
+// Helper function to check if value is a dayjs object
+function isDayjs(value: any): boolean {
+  return dayjs.isDayjs(value);
+}
 
 describe("extractDateInfo Integration Tests", () => {
   // Test basic year extraction
@@ -11,8 +17,8 @@ describe("extractDateInfo Integration Tests", () => {
     expect(result.month).toBeNull();
     expect(result.day).toBeNull();
     expect(result.searchWithoutDate).toBe("Phish poster");
-    expect(result.startDate).toBeInstanceOf(Date);
-    expect(result.startDate?.getFullYear()).toBe(2023);
+    expect(isDayjs(result.startDate)).toBe(true);
+    expect(result.startDate?.year()).toBe(2023);
   });
 
   // Test no date found
@@ -34,8 +40,8 @@ describe("extractDateInfo Integration Tests", () => {
     expect(result.hasDate).toBe(true);
     expect(result.year).toBe(2024);
     expect(result.searchWithoutDate).toBe("Pearl Jam MSG");
-    expect(result.startDate).toBeInstanceOf(Date);
-    expect(result.startDate?.getFullYear()).toBe(2024);
+    expect(isDayjs(result.startDate)).toBe(true);
+    expect(result.startDate?.year()).toBe(2024);
   });
 
   // Test years from 1900s
@@ -45,8 +51,8 @@ describe("extractDateInfo Integration Tests", () => {
     expect(result.hasDate).toBe(true);
     expect(result.year).toBe(1977);
     expect(result.searchWithoutDate).toBe("Grateful Dead Cornell");
-    expect(result.startDate).toBeInstanceOf(Date);
-    expect(result.startDate?.getFullYear()).toBe(1977);
+    expect(isDayjs(result.startDate)).toBe(true);
+    expect(result.startDate?.year()).toBe(1977);
   });
 
   // Test multiple years - should pick the first one and remove all years
@@ -56,8 +62,8 @@ describe("extractDateInfo Integration Tests", () => {
     expect(result.hasDate).toBe(true);
     expect(result.year).toBe(1995);
     expect(result.searchWithoutDate).toBe("Phish");
-    expect(result.startDate).toBeInstanceOf(Date);
-    expect(result.startDate?.getFullYear()).toBe(1995);
+    expect(isDayjs(result.startDate)).toBe(true);
+    expect(result.startDate?.year()).toBe(1995);
   });
 
   // Test month extraction
@@ -68,8 +74,8 @@ describe("extractDateInfo Integration Tests", () => {
     expect(result.year).toBeNull();
     expect(result.month).toBe(7); // August is index 7 (0-based index)
     expect(result.searchWithoutDate).toBe("Pink Floyd poster");
-    expect(result.startDate).toBeInstanceOf(Date);
-    expect(result.startDate?.getMonth()).toBe(7);
+    expect(isDayjs(result.startDate)).toBe(true);
+    expect(result.startDate?.month()).toBe(7);
   });
 
   // Test month extraction with different casing
@@ -80,8 +86,8 @@ describe("extractDateInfo Integration Tests", () => {
     expect(result.year).toBeNull();
     expect(result.month).toBe(0); // January is index 0 (0-based index)
     expect(result.searchWithoutDate).toBe("Pink Floyd poster");
-    expect(result.startDate).toBeInstanceOf(Date);
-    expect(result.startDate?.getMonth()).toBe(0);
+    expect(isDayjs(result.startDate)).toBe(true);
+    expect(result.startDate?.month()).toBe(0);
   });
 
   // Test both year and month extraction
@@ -92,9 +98,9 @@ describe("extractDateInfo Integration Tests", () => {
     expect(result.year).toBe(2022);
     expect(result.month).toBe(11); // December is index 11 (0-based index)
     expect(result.searchWithoutDate).toBe("Red Hot Chili Peppers");
-    expect(result.startDate).toBeInstanceOf(Date);
-    expect(result.startDate?.getFullYear()).toBe(2022);
-    expect(result.startDate?.getMonth()).toBe(11);
+    expect(isDayjs(result.startDate)).toBe(true);
+    expect(result.startDate?.year()).toBe(2022);
+    expect(result.startDate?.month()).toBe(11);
   });
 
   // Test that month at word boundary is detected
@@ -104,8 +110,8 @@ describe("extractDateInfo Integration Tests", () => {
     expect(result.hasDate).toBe(true);
     expect(result.month).toBe(6); // July is index 6 (0-based index)
     expect(result.searchWithoutDate).toBe("Phish New York");
-    expect(result.startDate).toBeInstanceOf(Date);
-    expect(result.startDate?.getMonth()).toBe(6);
+    expect(isDayjs(result.startDate)).toBe(true);
+    expect(result.startDate?.month()).toBe(6);
   });
 
   // Test that substring month is not incorrectly detected
@@ -156,9 +162,9 @@ describe("extractDateInfo Integration Tests", () => {
     expect(result.searchWithoutDate).toBe(
       "Red Hot Chili Peppers Los Angeles Poster"
     );
-    expect(result.startDate).toBeInstanceOf(Date);
-    expect(result.startDate?.getFullYear()).toBe(2024);
-    expect(result.startDate?.getMonth()).toBe(2);
+    expect(isDayjs(result.startDate)).toBe(true);
+    expect(result.startDate?.year()).toBe(2024);
+    expect(result.startDate?.month()).toBe(2);
   });
 
   // === NEW TESTS FOR CHRONO NATURAL LANGUAGE PARSING ===
@@ -169,7 +175,7 @@ describe("extractDateInfo Integration Tests", () => {
 
     expect(result.hasDate).toBe(true);
     expect(result.searchWithoutDate).toBe("Phish concert");
-    expect(result.startDate).toBeInstanceOf(Date);
+    expect(isDayjs(result.startDate)).toBe(true);
     // We can't test the exact date since it depends on when the test runs
     // but we can verify it extracted something
     expect(result.dateText).toBe("next month");
@@ -182,8 +188,8 @@ describe("extractDateInfo Integration Tests", () => {
 
     expect(result.hasDate).toBe(true);
     expect(result.isDateRange).toBe(true);
-    expect(result.startDate).toBeInstanceOf(Date);
-    expect(result.endDate).toBeInstanceOf(Date);
+    expect(isDayjs(result.startDate)).toBe(true);
+    expect(isDayjs(result.endDate)).toBe(true);
     expect(result.searchWithoutDate).toBe("Phish");
     expect(result.month).toBe(5); // June is index 5
   });
@@ -197,7 +203,7 @@ describe("extractDateInfo Integration Tests", () => {
     expect(result.month).toBe(5); // June is index 5
     expect(result.day).toBe(15);
     expect(result.searchWithoutDate).toBe("Phish on");
-    expect(result.startDate).toBeInstanceOf(Date);
+    expect(isDayjs(result.startDate)).toBe(true);
   });
 
   // Test spelled out dates
@@ -209,7 +215,7 @@ describe("extractDateInfo Integration Tests", () => {
     expect(result.hasDate).toBe(true);
     expect(result.searchWithoutDate).not.toContain("June");
     expect(result.searchWithoutDate).not.toContain("fifteenth");
-    expect(result.startDate).toBeInstanceOf(Date);
+    expect(isDayjs(result.startDate)).toBe(true);
   });
 
   // Test complex date descriptions - using a more specific format for the test
@@ -220,7 +226,7 @@ describe("extractDateInfo Integration Tests", () => {
     expect(result.hasDate).toBe(true);
     expect(result.month).toBe(3); // April is index 3
     expect(result.searchWithoutDate).toBe("Phish concert weekend");
-    expect(result.startDate).toBeInstanceOf(Date);
-    expect(result.startDate?.getMonth()).toBe(3);
+    expect(isDayjs(result.startDate)).toBe(true);
+    expect(result.startDate?.month()).toBe(3);
   });
 });

@@ -101,8 +101,7 @@ export class PosterDetailsComponent implements OnInit {
 
     const events = this.poster()!.events.map(event => {
       const venue = event.venue?.name || 'Unknown Venue';
-      const date = event.date ? dayjs(event.date).format('MMMM D, YYYY') : '';
-
+      const date = `${event.startMonth}/${event.startDay}/${event.startYear}`;
       return `${venue} - ${date}`;
     });
 

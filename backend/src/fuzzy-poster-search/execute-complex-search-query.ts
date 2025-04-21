@@ -157,16 +157,16 @@ export async function executeComplexSearchQuery(
             pe.id as poster_event_id,
             pe."posterId",
             e.name as event_name,
-            e.date as event_date,
-            EXTRACT(MONTH FROM e.date) as event_month,
-            EXTRACT(DAY FROM e.date) as event_day,
-            EXTRACT(YEAR FROM e.date) as event_year,
+            e."startDate" as event_date,
+            EXTRACT(MONTH FROM e."startDate") as event_month,
+            EXTRACT(DAY FROM e."startDate") as event_day,
+            EXTRACT(YEAR FROM e."startDate") as event_year,
             GREATEST(
               similarity(LOWER(e.name), LOWER(${termToUse})),
               -- Check if year matches (exact match gets higher score)
               CASE 
                 WHEN ${dateInfo.year ? dateInfo.year : 0} > 0 
-                AND EXTRACT(YEAR FROM e.date) = ${
+                AND EXTRACT(YEAR FROM e."startDate") = ${
                   dateInfo.year ? dateInfo.year : 0
                 } THEN 1.0
                 ELSE 0.0
@@ -174,33 +174,33 @@ export async function executeComplexSearchQuery(
               -- Add month and day matching with high similarity if they match
               CASE 
                 WHEN ${dateInfo.month ? dateInfo.month : 0} > 0 
-                AND EXTRACT(MONTH FROM e.date) = ${
+                AND EXTRACT(MONTH FROM e."startDate") = ${
                   dateInfo.month ? dateInfo.month : 0
                 } THEN 0.9
                 ELSE 0.0
               END,
               CASE 
                 WHEN ${dateInfo.day ? dateInfo.day : 0} > 0 
-                AND EXTRACT(DAY FROM e.date) = ${
+                AND EXTRACT(DAY FROM e."startDate") = ${
                   dateInfo.day ? dateInfo.day : 0
                 } THEN 0.9
                 ELSE 0.0
               END
             ) AS event_similarity,
             -- Add specific flags for exact date matching
-            CASE WHEN EXTRACT(YEAR FROM e.date) = ${
+            CASE WHEN EXTRACT(YEAR FROM e."startDate") = ${
               dateInfo.year ? dateInfo.year : 0
             } 
                       AND ${dateInfo.year ? dateInfo.year : 0} > 0 
                  THEN true ELSE false 
             END AS year_match,
-            CASE WHEN EXTRACT(MONTH FROM e.date) = ${
+            CASE WHEN EXTRACT(MONTH FROM e."startDate") = ${
               dateInfo.month ? dateInfo.month : 0
             } 
                       AND ${dateInfo.month ? dateInfo.month : 0} > 0 
                  THEN true ELSE false 
             END AS month_match,
-            CASE WHEN EXTRACT(DAY FROM e.date) = ${
+            CASE WHEN EXTRACT(DAY FROM e."startDate") = ${
               dateInfo.day ? dateInfo.day : 0
             } 
                       AND ${dateInfo.day ? dateInfo.day : 0} > 0 
@@ -210,10 +210,12 @@ export async function executeComplexSearchQuery(
             CASE WHEN 
               ${dateInfo.month ? dateInfo.month : 0} > 0 AND
               ${dateInfo.day ? dateInfo.day : 0} > 0 AND
-              EXTRACT(MONTH FROM e.date) = ${
+              EXTRACT(MONTH FROM e."startDate") = ${
                 dateInfo.month ? dateInfo.month : 0
               } AND
-              EXTRACT(DAY FROM e.date) = ${dateInfo.day ? dateInfo.day : 0}
+              EXTRACT(DAY FROM e."startDate") = ${
+                dateInfo.day ? dateInfo.day : 0
+              }
               THEN true ELSE false 
             END AS month_day_match,
             -- Add an exact_date_match flag for precise date matching (all three components)
@@ -221,13 +223,15 @@ export async function executeComplexSearchQuery(
               ${dateInfo.year ? dateInfo.year : 0} > 0 AND
               ${dateInfo.month ? dateInfo.month : 0} > 0 AND
               ${dateInfo.day ? dateInfo.day : 0} > 0 AND
-              EXTRACT(YEAR FROM e.date) = ${
+              EXTRACT(YEAR FROM e."startDate") = ${
                 dateInfo.year ? dateInfo.year : 0
               } AND
-              EXTRACT(MONTH FROM e.date) = ${
+              EXTRACT(MONTH FROM e."startDate") = ${
                 dateInfo.month ? dateInfo.month : 0
               } AND
-              EXTRACT(DAY FROM e.date) = ${dateInfo.day ? dateInfo.day : 0}
+              EXTRACT(DAY FROM e."startDate") = ${
+                dateInfo.day ? dateInfo.day : 0
+              }
               THEN true ELSE false 
             END AS exact_date_match
           FROM "PosterEvent" pe
@@ -236,15 +240,15 @@ export async function executeComplexSearchQuery(
           ${
             dateInfo.hasDate && dateInfo.year
               ? Prisma.sql`WHERE (
-            EXTRACT(YEAR FROM e.date) = ${dateInfo.year}
+            EXTRACT(YEAR FROM e."startDate") = ${dateInfo.year}
             ${
               dateInfo.month
-                ? Prisma.sql`AND EXTRACT(MONTH FROM e.date) = ${dateInfo.month}`
+                ? Prisma.sql`AND EXTRACT(MONTH FROM e."startDate") = ${dateInfo.month}`
                 : Prisma.empty
             }
             ${
               dateInfo.day
-                ? Prisma.sql`AND EXTRACT(DAY FROM e.date) = ${dateInfo.day}`
+                ? Prisma.sql`AND EXTRACT(DAY FROM e."startDate") = ${dateInfo.day}`
                 : Prisma.empty
             }
           )`

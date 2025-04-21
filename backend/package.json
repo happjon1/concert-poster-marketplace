@@ -37,10 +37,11 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:studio:test": "node scripts/prisma-studio-test.js"
+    "prisma:studio:test": "node scripts/prisma-studio-test.js",
+    "test:db:init": "DATABASE_URL=postgresql://jonathanhapp@localhost:5432/concert_poster_marketplace_test npx prisma migrate deploy && DATABASE_URL=postgresql://jonathanhapp@localhost:5432/concert_poster_marketplace_test npx prisma db seed"
   },
   "prisma": {
-    "seed": "node --loader ts-node/esm ./prisma/seed.mjs"
+    "seed": "node --import tsx ./prisma/seed.mjs"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -53,6 +54,7 @@
     "prisma": "^6.5.0",
     "supertest": "^7.1.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "vitest": "^1.6.1"
   }

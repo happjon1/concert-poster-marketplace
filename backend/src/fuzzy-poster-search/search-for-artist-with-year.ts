@@ -25,8 +25,8 @@ export async function searchForArtistWithYear(
       LEFT JOIN "PosterEvent" pe ON p.id = pe."posterId"
       LEFT JOIN "Event" e ON pe."eventId" = e.id
       WHERE 
-        -- Strict year matching
-        (EXTRACT(YEAR FROM e.date) = ${year})
+        -- Strict year matching using the new startYear field
+        (e."startYear" = ${year})
         
         -- Artist name matching with similarity
         AND (

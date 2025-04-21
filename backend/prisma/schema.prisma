@@ -253,10 +253,21 @@ model ArtistGenre {
 }
 
 model Event {
-  id        String   @id @default(uuid())
-  jambaseId String   @unique
+  id        String @id @default(uuid())
+  jambaseId String @unique
   name      String
-  date      DateTime
+
+  // Date fields for multi-day events
+  startDate DateTime
+  endDate   DateTime?
+
+  // Date components for optimized search
+  startYear  Int
+  startMonth Int
+  startDay   Int
+  endYear    Int?
+  endMonth   Int?
+  endDay     Int?
 
   venueId String
   venue   Venue  @relation(fields: [venueId], references: [id])

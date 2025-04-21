@@ -57,7 +57,8 @@ export async function handleDatePatterns(
 
       console.log(`Found artist: ${artist.name} (ID: ${artist.id})`);
 
-      // Find all events for this artist on the specified month/day (any year)
+      // Find all events for this artist directly using the date components
+      // This is more efficient than filtering after the query
       const events = await prisma.event.findMany({
         where: {
           artists: {
@@ -65,6 +66,11 @@ export async function handleDatePatterns(
               artistId: artist.id,
             },
           },
+          // Use the date component fields directly for more efficient search
+          startMonth: dateInfo.month + 1, // Convert from 0-indexed to 1-indexed
+          startDay: dateInfo.day,
+          // If we have a year, include it in the search
+          ...(dateInfo.year ? { startYear: dateInfo.year } : {}),
         },
         include: {
           venue: true,
@@ -74,48 +80,14 @@ export async function handleDatePatterns(
       console.log(`Found ${events.length} events for ${artist.name}:`);
       events.forEach((e) =>
         console.log(
-          `- ${e.name} on ${dayjs(e.date).format("YYYY-MM-DD")} at ${
-            e.venue.name
-          }`
+          `- ${e.name} on ${dayjs(e.startDate).format("YYYY-MM-DD")}${
+            e.endDate ? " to " + dayjs(e.endDate).format("YYYY-MM-DD") : ""
+          } at ${e.venue.name}`
         )
       );
 
-      // Filter events to match month/day, ignoring timezone
-      const matchingEvents = events.filter((event) => {
-        // Use dayjs to parse the date and extract components
-        // When we use dayjs without format, we'll get the local representation of the date
-        const eventDateObj = dayjs(event.date);
-
-        // Extract date components - getting direct components from the object
-        const eventMonth = eventDateObj.month(); // 0-indexed, same as our dateInfo.month
-        const eventDay = eventDateObj.date(); // day of month (1-31)
-        const eventYear = eventDateObj.year();
-
-        console.log(
-          `Event date: ${event.date}, extracted: ${
-            eventMonth + 1
-          }/${eventDay}/${eventYear}`
-        );
-
-        const monthMatches = eventMonth === dateInfo.month;
-        const dayMatches = eventDay === dateInfo.day;
-
-        // If we have a year in the search query, also match that
-        const yearMatches =
-          dateInfo.year === null || dateInfo.year === eventYear;
-
-        if (monthMatches && dayMatches && yearMatches) {
-          console.log(
-            `MATCH! Event on ${eventMonth + 1}/${eventDay}${
-              dateInfo.year ? "/" + eventYear : ""
-            } matches search for ${
-              dateInfo.month !== null ? dateInfo.month + 1 : "unknown"
-            }/${dateInfo.day}${dateInfo.year ? "/" + dateInfo.year : ""}`
-          );
-        }
-
-        return monthMatches && dayMatches && yearMatches;
-      });
+      // No need to filter events since our database query already did the filtering
+      const matchingEvents = events;
 
       console.log(
         `${matchingEvents.length} events match the month/day criteria`
@@ -182,15 +154,14 @@ export async function handleDatePatterns(
             OR similarity(a.name, ${artistName}) > 0.3
         ),
         -- Find events on the exact date we're looking for
+        -- Using the new date component fields for more efficient search
         matching_events AS (
           SELECT DISTINCT e.id
           FROM "Event" e
           WHERE 
-            EXTRACT(YEAR FROM date_trunc('day', e.date)) = ${dateInfo.year} AND
-            EXTRACT(MONTH FROM date_trunc('day', e.date)) = ${
-              dateInfo.month + 1
-            } AND
-            EXTRACT(DAY FROM date_trunc('day', e.date)) = ${dateInfo.day}
+            e."startYear" = ${dateInfo.year} AND
+            e."startMonth" = ${dateInfo.month + 1} AND 
+            e."startDay" = ${dateInfo.day}
         ),
         -- Find posters that have ANY of our matching artists
         artist_posters AS (
@@ -234,12 +205,10 @@ export async function handleDatePatterns(
           INNER JOIN "PosterEvent" pe ON p.id = pe."posterId"
           INNER JOIN "Event" e ON pe."eventId" = e.id
           WHERE 
-            -- Month-day matching, ignoring time part of timestamp
+            -- Month-day matching, using date component fields
             (
-              EXTRACT(MONTH FROM date_trunc('day', e.date)) = ${
-                dateInfo.month + 1
-              } AND
-              EXTRACT(DAY FROM date_trunc('day', e.date)) = ${dateInfo.day}
+              e."startMonth" = ${dateInfo.month + 1} AND
+              e."startDay" = ${dateInfo.day}
             )
             
             -- Artist name matching with similarity

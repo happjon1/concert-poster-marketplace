@@ -82,70 +82,100 @@ describe("searchForArtistWithCityAndYear Integration Tests", () => {
         id: "event1",
         jambaseId: "jb-event1",
         name: "New Years Eve 2023",
-        date: new Date("2023-12-31"),
+        startDate: new Date("2023-12-31"),
+        startYear: 2023,
+        startMonth: 12,
+        startDay: 31,
         venue: { connect: { id: "venue1" } },
       },
       {
         id: "event2",
         jambaseId: "jb-event2",
         name: "New Years Eve 2024",
-        date: new Date("2024-12-31"),
+        startDate: new Date("2024-12-31"),
+        startYear: 2024,
+        startMonth: 12,
+        startDay: 31,
         venue: { connect: { id: "venue1" } },
       },
       {
         id: "event3",
         jambaseId: "jb-event3",
         name: "Summer Tour 2023",
-        date: new Date("2023-07-15"),
+        startDate: new Date("2023-07-15"),
+        startYear: 2023,
+        startMonth: 7,
+        startDay: 15,
         venue: { connect: { id: "venue2" } },
       },
       {
         id: "event4",
         jambaseId: "jb-event4",
         name: "Summer Tour 2024",
-        date: new Date("2024-07-20"),
+        startDate: new Date("2024-07-20"),
+        startYear: 2024,
+        startMonth: 7,
+        startDay: 20,
         venue: { connect: { id: "venue2" } },
       },
       {
         id: "event5",
         jambaseId: "jb-event5",
         name: "Fall Tour LA 2023",
-        date: new Date("2023-10-10"),
+        startDate: new Date("2023-10-10"),
+        startYear: 2023,
+        startMonth: 10,
+        startDay: 10,
         venue: { connect: { id: "venue3" } },
       },
       {
         id: "event6",
         jambaseId: "jb-event6",
         name: "Fall Tour LA 2024",
-        date: new Date("2024-10-15"),
+        startDate: new Date("2024-10-15"),
+        startYear: 2024,
+        startMonth: 10,
+        startDay: 15,
         venue: { connect: { id: "venue3" } },
       },
       {
         id: "event7",
         jambaseId: "jb-event7",
         name: "Phish at Beacon 2023",
-        date: new Date("2023-05-01"),
+        startDate: new Date("2023-05-01"),
+        startYear: 2023,
+        startMonth: 5,
+        startDay: 1,
         venue: { connect: { id: "venue4" } },
       },
       {
         id: "event8",
         jambaseId: "jb-event8",
         name: "Phish at Beacon 2024",
-        date: new Date("2024-05-05"),
+        startDate: new Date("2024-05-05"),
+        startYear: 2024,
+        startMonth: 5,
+        startDay: 5,
         venue: { connect: { id: "venue4" } },
       },
       {
         id: "event9",
         jambaseId: "jb-event9",
         name: "Pearl Jam at Gorge 2023",
-        date: new Date("2023-08-10"),
+        startDate: new Date("2023-08-10"),
+        startYear: 2023,
+        startMonth: 8,
+        startDay: 10,
         venue: { connect: { id: "venue5" } },
       },
       {
         id: "event10",
         jambaseId: "jb-event10",
         name: "Pearl Jam at Gorge 2024",
-        date: new Date("2024-08-15"),
+        startDate: new Date("2024-08-15"),
+        startYear: 2024,
+        startMonth: 8,
+        startDay: 15,
         venue: { connect: { id: "venue5" } },
       },
       // Special test case: Multiple cities for the same artist in the same year
@@ -153,7 +183,10 @@ describe("searchForArtistWithCityAndYear Integration Tests", () => {
         id: "event11",
         jambaseId: "jb-event11",
         name: "Phish at LA 2024",
-        date: new Date("2024-09-01"),
+        startDate: new Date("2024-09-01"),
+        startYear: 2024,
+        startMonth: 9,
+        startDay: 1,
         venue: { connect: { id: "venue3" } },
       },
       // Special test case: Multiple events at the same venue
@@ -161,21 +194,30 @@ describe("searchForArtistWithCityAndYear Integration Tests", () => {
         id: "event12",
         jambaseId: "jb-event12",
         name: "Phish 3-Night Run MSG 2024 Night 1",
-        date: new Date("2024-10-01"),
+        startDate: new Date("2024-10-01"),
+        startYear: 2024,
+        startMonth: 10,
+        startDay: 1,
         venue: { connect: { id: "venue1" } },
       },
       {
         id: "event13",
         jambaseId: "jb-event13",
         name: "Phish 3-Night Run MSG 2024 Night 2",
-        date: new Date("2024-10-02"),
+        startDate: new Date("2024-10-02"),
+        startYear: 2024,
+        startMonth: 10,
+        startDay: 2,
         venue: { connect: { id: "venue1" } },
       },
       {
         id: "event14",
         jambaseId: "jb-event14",
         name: "Phish 3-Night Run MSG 2024 Night 3",
-        date: new Date("2024-10-03"),
+        startDate: new Date("2024-10-03"),
+        startYear: 2024,
+        startMonth: 10,
+        startDay: 3,
         venue: { connect: { id: "venue1" } },
       },
       // Special test case: Event with multiple artists
@@ -183,7 +225,10 @@ describe("searchForArtistWithCityAndYear Integration Tests", () => {
         id: "event15",
         jambaseId: "jb-event15",
         name: "Festival 2024",
-        date: new Date("2024-06-15"),
+        startDate: new Date("2024-06-15"),
+        startYear: 2024,
+        startMonth: 6,
+        startDay: 15,
         venue: { connect: { id: "venue2" } },
       },
     ] satisfies Prisma.EventCreateInput[],
@@ -614,7 +659,7 @@ describe("searchForArtistWithCityAndYear Integration Tests", () => {
     expect(
       posters.every((p) =>
         p.events.some((e) => {
-          const date = new Date(e.event.date);
+          const date = new Date(e.event.startDate);
           return (
             e.event.venue.city === "New York" && date.getFullYear() === 2024
           );
@@ -626,7 +671,7 @@ describe("searchForArtistWithCityAndYear Integration Tests", () => {
     expect(
       posters.every((p) =>
         p.events.every((e) => {
-          const date = new Date(e.event.date);
+          const date = new Date(e.event.startDate);
           return (
             e.event.venue.city === "New York" && date.getFullYear() === 2024
           );
@@ -680,7 +725,7 @@ describe("searchForArtistWithCityAndYear Integration Tests", () => {
     expect(
       posters.every((p) =>
         p.events.some((e) => {
-          const date = new Date(e.event.date);
+          const date = new Date(e.event.startDate);
           return (
             e.event.venue.city === "Los Angeles" && date.getFullYear() === 2024
           );
@@ -741,7 +786,7 @@ describe("searchForArtistWithCityAndYear Integration Tests", () => {
     expect(
       posters.every((p) =>
         p.events.every((e) => {
-          const date = new Date(e.event.date);
+          const date = new Date(e.event.startDate);
           return (
             e.event.venue.city === "Los Angeles" && date.getFullYear() === 2023
           );
@@ -795,7 +840,7 @@ describe("searchForArtistWithCityAndYear Integration Tests", () => {
     expect(
       posters.every((p) =>
         p.events.every((e) => {
-          const date = new Date(e.event.date);
+          const date = new Date(e.event.startDate);
           return e.event.venue.city === "George" && date.getFullYear() === 2024;
         })
       )

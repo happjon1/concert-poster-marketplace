@@ -71,28 +71,40 @@ describe("executeComplexSearchQuery Integration Tests", () => {
         id: "event1",
         jambaseId: "jb-event1",
         name: "New Years Eve 2024",
-        date: new Date("2024-12-31"),
+        startDate: new Date("2024-12-31"),
+        startYear: 2024,
+        startMonth: 12,
+        startDay: 31,
         venue: { connect: { id: "venue1" } },
       },
       {
         id: "event2",
         jambaseId: "jb-event2",
         name: "Summer Tour 2023",
-        date: new Date("2023-07-15"),
+        startDate: new Date("2023-07-15"),
+        startYear: 2023,
+        startMonth: 7,
+        startDay: 15,
         venue: { connect: { id: "venue2" } },
       },
       {
         id: "event3",
         jambaseId: "jb-event3",
         name: "Fall Tour 2023",
-        date: new Date("2023-10-10"),
+        startDate: new Date("2023-10-10"),
+        startYear: 2023,
+        startMonth: 10,
+        startDay: 10,
         venue: { connect: { id: "venue3" } },
       },
       {
         id: "event4",
         jambaseId: "jb-event4",
         name: "Spring Tour 2025",
-        date: new Date("2025-04-05"),
+        startDate: new Date("2025-04-05"),
+        startYear: 2025,
+        startMonth: 4,
+        startDay: 5,
         venue: { connect: { id: "venue4" } },
       },
     ] satisfies Prisma.EventCreateInput[],
@@ -570,7 +582,9 @@ describe("executeComplexSearchQuery Integration Tests", () => {
     const gratefulDead2023Posters = posters.filter(
       (poster) =>
         poster.artists.some((a) => a.artist.name === "Grateful Dead") &&
-        poster.events.some((e) => new Date(e.event.date).getFullYear() === 2023)
+        poster.events.some(
+          (e) => new Date(e.event.startDate).getFullYear() === 2023
+        )
     );
 
     expect(gratefulDead2023Posters.length).toBeGreaterThan(0);
@@ -636,7 +650,7 @@ describe("executeComplexSearchQuery Integration Tests", () => {
         poster.events.some(
           (e) =>
             e.event.venue.city === "New York" &&
-            new Date(e.event.date).getFullYear() === 2024
+            new Date(e.event.startDate).getFullYear() === 2024
         )
     );
 
@@ -773,7 +787,7 @@ describe("executeComplexSearchQuery Integration Tests", () => {
     // Make sure we have a New Year's Eve event date - using UTC date for consistency
     let nyeEvent = await prisma.event.findFirst({
       where: {
-        date: {
+        startDate: {
           gte: new Date("2024-12-31T00:00:00.000Z"),
           lt: new Date("2025-01-01T00:00:00.000Z"),
         },
@@ -787,7 +801,10 @@ describe("executeComplexSearchQuery Integration Tests", () => {
           id: "nye-event",
           name: "New Years Eve Concert",
           // Using noon to ensure it's the correct date in all timezones
-          date: new Date("2024-12-31T12:00:00.000Z"),
+          startDate: new Date("2024-12-31T12:00:00.000Z"),
+          startYear: 2024,
+          startMonth: 12,
+          startDay: 31,
           venueId: venue!.id,
           jambaseId: "nye-jambase-id",
         },
@@ -891,7 +908,7 @@ describe("executeComplexSearchQuery Integration Tests", () => {
       (poster) =>
         poster.artists.some((a) => a.artist.name === "Phish") &&
         poster.events.some((e) => {
-          const date = new Date(e.event.date);
+          const date = new Date(e.event.startDate);
           return date.getUTCMonth() === 11 && date.getUTCDate() === 31; // Month is 0-based
         })
     );
@@ -920,7 +937,7 @@ describe("executeComplexSearchQuery Integration Tests", () => {
     // This accounts for the possibility that the search might return additional results
     const allPhish1231Posters = allPhishPosters.filter((poster) =>
       poster.events.some((e) => {
-        const date = new Date(e.event.date);
+        const date = new Date(e.event.startDate);
         return date.getUTCMonth() === 11 && date.getUTCDate() === 31;
       })
     );
