@@ -26,6 +26,7 @@ import {
   TrpcService,
 } from '../../services/trpc.service';
 import Stepper from 'bs-stepper';
+import dayjs from 'dayjs';
 
 // Component imports
 import { BasicInfoFormComponent } from './basic-info-form/basic-info-form.component';
@@ -420,7 +421,7 @@ export class CreatePosterComponent
           : formValue.auctionMinPrice || 0,
       auctionEndDate:
         formValue.listingType === 'auction' && formValue.auctionEndDate
-          ? new Date(formValue.auctionEndDate)
+          ? dayjs(formValue.auctionEndDate).toDate()
           : null,
       imageUrls:
         (formValue.images?.filter(url => url !== null) as string[]) || [],

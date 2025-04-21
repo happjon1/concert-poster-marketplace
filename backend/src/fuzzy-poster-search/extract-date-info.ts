@@ -1,5 +1,6 @@
 import { MONTH_NAMES } from "./fuzzy-search-constants.js";
 import * as chrono from "chrono-node";
+import dayjs from "dayjs";
 
 /**
  * Result type for date extraction
@@ -12,8 +13,8 @@ export interface DateExtractionResult {
   searchWithoutDate: string;
   // Additional fields for more detailed date information
   dateText?: string; // The original text that was identified as a date
-  startDate?: Date | null; // Parsed start date if available
-  endDate?: Date | null; // Parsed end date if range is detected
+  startDate?: dayjs.Dayjs | null; // Parsed start date if available
+  endDate?: dayjs.Dayjs | null; // Parsed end date if range is detected
   isDateRange?: boolean; // Whether the detected date is a range
 }
 
@@ -30,8 +31,8 @@ export function extractDateInfo(searchTerm: string): DateExtractionResult {
   let searchWithoutDate = searchTerm;
   let hasDate = false;
   let dateText: string | undefined;
-  let startDate: Date | null = null;
-  let endDate: Date | null = null;
+  let startDate: dayjs.Dayjs | null = null;
+  let endDate: dayjs.Dayjs | null = null;
   let isDateRange = false;
 
   // Check for MM/DD/YYYY format first (like 6/30/2024)
@@ -61,8 +62,8 @@ export function extractDateInfo(searchTerm: string): DateExtractionResult {
       hasDate = true;
       dateText = mmDdYyyyMatch[0];
 
-      // Build full date
-      startDate = new Date(year, month, day);
+      // Build full date using Day.js
+      startDate = dayjs().year(year).month(month).date(day).startOf('day');
 
       // Remove the date pattern from search term
       searchWithoutDate = searchTerm.replace(mmDdYyyyPattern, "").trim();
@@ -97,9 +98,9 @@ export function extractDateInfo(searchTerm: string): DateExtractionResult {
         hasDate = true;
         dateText = mmDdMatch[0];
 
-        // Build current year date (will be replaced if year is found later)
-        const currentYear = new Date().getFullYear();
-        startDate = new Date(currentYear, month, day);
+        // Build current year date using Day.js
+        const currentYear = dayjs().year();
+        startDate = dayjs().year(currentYear).month(month).date(day).startOf('day');
 
         // Remove the date pattern from search term
         searchWithoutDate = searchTerm.replace(mmDdPattern, "").trim();
@@ -134,25 +135,26 @@ export function extractDateInfo(searchTerm: string): DateExtractionResult {
 
         // Get start date information
         if (parsedDate.start) {
-          startDate = parsedDate.start.date();
+          // Convert to Day.js object
+          startDate = dayjs(parsedDate.start.date());
 
           // Extract year, month, day if available and certain
           if (parsedDate.start.isCertain("year")) {
-            year = startDate.getFullYear();
+            year = startDate.year();
           }
 
           if (parsedDate.start.isCertain("month")) {
-            month = startDate.getMonth(); // 0-based month index
+            month = startDate.month(); // 0-based month index
           }
 
           if (parsedDate.start.isCertain("day")) {
-            day = startDate.getDate();
+            day = startDate.date();
           }
         }
 
         // Check if it's a date range
         if (parsedDate.end) {
-          endDate = parsedDate.end.date();
+          endDate = dayjs(parsedDate.end.date());
           isDateRange = true;
         } else if (containsRangeWords) {
           // If contains range words but no explicit end date, set the end date
@@ -162,10 +164,10 @@ export function extractDateInfo(searchTerm: string): DateExtractionResult {
           if (startDate) {
             if (month !== null && year !== null) {
               // End of month
-              endDate = new Date(year, month + 1, 0, 23, 59, 59);
+              endDate = dayjs().year(year).month(month).endOf('month');
             } else if (year !== null) {
               // End of year
-              endDate = new Date(year, 11, 31, 23, 59, 59);
+              endDate = dayjs().year(year).endOf('year');
             }
           }
         }
@@ -242,9 +244,9 @@ export function extractDateInfo(searchTerm: string): DateExtractionResult {
         searchWithoutDate = searchTerm.replace(yearPattern, "").trim();
         searchWithoutDate = searchWithoutDate.replace(/\s+/g, " ");
 
-        // Create a basic date object for the year
-        startDate = new Date(year, 0, 1);
-        endDate = new Date(year, 11, 31, 23, 59, 59);
+        // Create a basic date object for the year using Day.js
+        startDate = dayjs().year(year).startOf('year');
+        endDate = dayjs().year(year).endOf('year');
         isDateRange = true;
       }
 
@@ -262,15 +264,15 @@ export function extractDateInfo(searchTerm: string): DateExtractionResult {
 
           // If we already found a year, enhance the date object
           if (year !== null) {
-            startDate = new Date(year, month, 1);
+            startDate = dayjs().year(year).month(month).startOf('month');
             // Last day of month
-            endDate = new Date(year, month + 1, 0, 23, 59, 59);
+            endDate = dayjs().year(year).month(month).endOf('month');
             isDateRange = true;
           } else {
             // Just month, use current year
-            const currentYear = new Date().getFullYear();
-            startDate = new Date(currentYear, month, 1);
-            endDate = new Date(currentYear, month + 1, 0, 23, 59, 59);
+            const currentYear = dayjs().year();
+            startDate = dayjs().year(currentYear).month(month).startOf('month');
+            endDate = dayjs().year(currentYear).month(month).endOf('month');
             isDateRange = true;
           }
 
@@ -288,7 +290,7 @@ export function extractDateInfo(searchTerm: string): DateExtractionResult {
   if (hasDate && searchTerm.includes("weekend") && month !== null) {
     // Keep the month value even if chrono didn't expose it through isCertain
     if (startDate) {
-      month = startDate.getMonth();
+      month = startDate.month();
     }
   }
 

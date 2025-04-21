@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { TrpcService, Poster } from '../../services/trpc.service';
 import { AuthService } from '../../services/auth.service';
+import dayjs from 'dayjs';
 
 @Component({
   selector: 'app-poster-details',
@@ -100,14 +101,7 @@ export class PosterDetailsComponent implements OnInit {
 
     const events = this.poster()!.events.map(event => {
       const venue = event.venue?.name || 'Unknown Venue';
-      const dateObj = event.date ? new Date(event.date) : null;
-      const date = dateObj
-        ? dateObj.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
-        : '';
+      const date = event.date ? dayjs(event.date).format('MMMM D, YYYY') : '';
 
       return `${venue} - ${date}`;
     });
@@ -122,15 +116,7 @@ export class PosterDetailsComponent implements OnInit {
     }
 
     const endDate = this.poster()!.auctionEndAt;
-    return (
-      endDate?.toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }) ?? null
-    );
+    return endDate ? dayjs(endDate).format('MMMM D, YYYY h:mm A') : null;
   }
 
   // Get time remaining for auction
@@ -139,11 +125,11 @@ export class PosterDetailsComponent implements OnInit {
       return '';
     }
 
-    const now = new Date();
-    const endDate = this.poster()!.auctionEndAt;
+    const now = dayjs();
+    const endDate = dayjs(this.poster()!.auctionEndAt);
     if (!endDate) return null;
 
-    const diff = endDate.getTime() - now.getTime();
+    const diff = endDate.diff(now, 'millisecond');
 
     if (diff <= 0) {
       return 'Auction ended';

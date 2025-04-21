@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { extractDateInfo } from "./extract-date-info.js";
 import { searchForArtistWithYear } from "./search-for-artist-with-year.js";
+import dayjs from "dayjs";
 
 /**
  * Handles date patterns in the search (using extractDateInfo)
@@ -73,21 +74,47 @@ export async function handleDatePatterns(
       console.log(`Found ${events.length} events for ${artist.name}:`);
       events.forEach((e) =>
         console.log(
-          `- ${e.name} on ${new Date(e.date).toISOString().split("T")[0]} at ${
+          `- ${e.name} on ${dayjs(e.date).format("YYYY-MM-DD")} at ${
             e.venue.name
           }`
         )
       );
 
-      // Filter events to match month/day
+      // Filter events to match month/day, ignoring timezone
       const matchingEvents = events.filter((event) => {
-        const eventDate = new Date(event.date);
-        const eventMonth = eventDate.getMonth(); // 0-indexed
-        const eventDay = eventDate.getDate();
+        // Use dayjs to parse the date and extract components
+        // When we use dayjs without format, we'll get the local representation of the date
+        const eventDateObj = dayjs(event.date);
+
+        // Extract date components - getting direct components from the object
+        const eventMonth = eventDateObj.month(); // 0-indexed, same as our dateInfo.month
+        const eventDay = eventDateObj.date(); // day of month (1-31)
+        const eventYear = eventDateObj.year();
+
+        console.log(
+          `Event date: ${event.date}, extracted: ${
+            eventMonth + 1
+          }/${eventDay}/${eventYear}`
+        );
 
         const monthMatches = eventMonth === dateInfo.month;
         const dayMatches = eventDay === dateInfo.day;
-        return monthMatches && dayMatches;
+
+        // If we have a year in the search query, also match that
+        const yearMatches =
+          dateInfo.year === null || dateInfo.year === eventYear;
+
+        if (monthMatches && dayMatches && yearMatches) {
+          console.log(
+            `MATCH! Event on ${eventMonth + 1}/${eventDay}${
+              dateInfo.year ? "/" + eventYear : ""
+            } matches search for ${
+              dateInfo.month !== null ? dateInfo.month + 1 : "unknown"
+            }/${dateInfo.day}${dateInfo.year ? "/" + dateInfo.year : ""}`
+          );
+        }
+
+        return monthMatches && dayMatches && yearMatches;
       });
 
       console.log(
@@ -98,6 +125,9 @@ export async function handleDatePatterns(
 
       // Find posters for these events
       const eventIds = matchingEvents.map((e) => e.id);
+
+      // Changed query: Now getting all posters that have ANY matching event and where the artist appears
+      // (but not requiring the artist to be the ONLY artist on the poster)
       const posters = await prisma.poster.findMany({
         where: {
           events: {
@@ -107,6 +137,7 @@ export async function handleDatePatterns(
               },
             },
           },
+          // This ensures the artist is one of potentially many artists on the poster
           artists: {
             some: {
               artistId: artist.id,
@@ -138,34 +169,47 @@ export async function handleDatePatterns(
         }/${dateInfo.day}/${dateInfo.year}`
       );
 
-      // Use strict result for complete date with INNER JOINs to ensure exact matches
+      // Use strict result for complete date with LEFT JOINs to find posters with any matching artist and event
       const strictResults = await prisma.$queryRaw<{ id: number }[]>`
-        WITH matching_posters AS (
+        WITH 
+        -- Find artists that match our search term
+        matching_artists AS (
+          SELECT DISTINCT a.id
+          FROM "Artist" a
+          WHERE 
+            LOWER(a.name) = LOWER(${artistName})
+            OR LOWER(a.name) ILIKE LOWER(${`%${artistName}%`})
+            OR similarity(a.name, ${artistName}) > 0.3
+        ),
+        -- Find events on the exact date we're looking for
+        matching_events AS (
+          SELECT DISTINCT e.id
+          FROM "Event" e
+          WHERE 
+            EXTRACT(YEAR FROM date_trunc('day', e.date)) = ${dateInfo.year} AND
+            EXTRACT(MONTH FROM date_trunc('day', e.date)) = ${
+              dateInfo.month + 1
+            } AND
+            EXTRACT(DAY FROM date_trunc('day', e.date)) = ${dateInfo.day}
+        ),
+        -- Find posters that have ANY of our matching artists
+        artist_posters AS (
           SELECT DISTINCT p.id
           FROM "Poster" p
-          INNER JOIN "PosterArtist" pa ON p.id = pa."posterId"
-          INNER JOIN "Artist" a ON pa."artistId" = a.id
-          INNER JOIN "PosterEvent" pe ON p.id = pe."posterId"
-          INNER JOIN "Event" e ON pe."eventId" = e.id
-          WHERE 
-            -- Strict full date matching by year, month, day separately for better compatibility
-            (
-              EXTRACT(YEAR FROM e.date) = ${dateInfo.year} AND
-              EXTRACT(MONTH FROM e.date) = ${dateInfo.month + 1} AND
-              EXTRACT(DAY FROM e.date) = ${dateInfo.day}
-            )
-            
-            -- Artist name matching with similarity
-            AND (
-              -- First attempt exact match by name (case insensitive)
-              LOWER(a.name) = LOWER(${artistName})
-              -- Then allow substring match
-              OR LOWER(a.name) ILIKE LOWER(${`%${artistName}%`})
-              -- Finally allow similarity as fallback
-              OR similarity(a.name, ${artistName}) > 0.3
-            )
+          JOIN "PosterArtist" pa ON p.id = pa."posterId"
+          WHERE pa."artistId" IN (SELECT id FROM matching_artists)
+        ),
+        -- Find posters that have ANY of our matching events
+        event_posters AS (
+          SELECT DISTINCT p.id
+          FROM "Poster" p
+          JOIN "PosterEvent" pe ON p.id = pe."posterId"
+          WHERE pe."eventId" IN (SELECT id FROM matching_events)
         )
-        SELECT id FROM matching_posters
+        -- Find the intersection: posters that have both a matching artist AND a matching event
+        SELECT p.id
+        FROM artist_posters p
+        JOIN event_posters e ON p.id = e.id
         LIMIT 100;
       `;
 
@@ -190,10 +234,12 @@ export async function handleDatePatterns(
           INNER JOIN "PosterEvent" pe ON p.id = pe."posterId"
           INNER JOIN "Event" e ON pe."eventId" = e.id
           WHERE 
-            -- Month-day matching
+            -- Month-day matching, ignoring time part of timestamp
             (
-              EXTRACT(MONTH FROM e.date) = ${dateInfo.month + 1} AND
-              EXTRACT(DAY FROM e.date) = ${dateInfo.day}
+              EXTRACT(MONTH FROM date_trunc('day', e.date)) = ${
+                dateInfo.month + 1
+              } AND
+              EXTRACT(DAY FROM date_trunc('day', e.date)) = ${dateInfo.day}
             )
             
             -- Artist name matching with similarity

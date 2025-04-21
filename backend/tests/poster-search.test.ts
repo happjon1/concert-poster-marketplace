@@ -4,6 +4,7 @@ import { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import * as dotenv from "dotenv";
 import { describe, expect, test, beforeEach, afterAll } from "vitest";
 import prisma, { resetDatabase } from "./utils/test-db";
+import dayjs from "dayjs";
 
 // Load environment variables
 dotenv.config();
@@ -123,83 +124,83 @@ describe("Poster Search Integration Tests", () => {
         id: "event1",
         jambaseId: "jb-event1",
         name: "New Years Eve 2024",
-        date: new Date("2024-12-31"),
+        date: dayjs("2024-12-31").toDate(),
         venue: { connect: { id: "venue1" } },
       },
       {
         id: "event2",
         jambaseId: "jb-event2",
         name: "Summer Tour 2024",
-        date: new Date("2024-07-15"),
+        date: dayjs("2024-07-15").toDate(),
         venue: { connect: { id: "venue2" } },
       },
       {
         id: "event3",
         jambaseId: "jb-event3",
         name: "Fall Tour 2024",
-        date: new Date("2024-10-10"),
+        date: dayjs("2024-10-10").toDate(),
         venue: { connect: { id: "venue3" } },
       },
       {
         id: "event4",
         jambaseId: "jb-event4",
         name: "Spring Tour 2025",
-        date: new Date("2025-04-05"),
+        date: dayjs("2025-04-05").toDate(),
         venue: { connect: { id: "venue5" } }, // The Showbox in Seattle
       },
       {
         id: "event5",
         jambaseId: "jb-event5",
         name: "Outside Lands 2024",
-        date: new Date("2024-08-10"),
+        date: dayjs("2024-08-10").toDate(),
         venue: { connect: { id: "venue6" } }, // Golden Gate Park in San Francisco
       },
       {
         id: "event6",
         jambaseId: "jb-event6",
         name: "Phish Summer Tour 2023",
-        date: new Date("2023-07-14"),
+        date: dayjs("2023-07-14").toDate(),
         venue: { connect: { id: "venue4" } },
       },
       {
         id: "event7",
         jambaseId: "jb-event7",
         name: "Pearl Jam Tour 2023",
-        date: new Date("2023-09-18"),
+        date: dayjs("2023-09-18").toDate(),
         venue: { connect: { id: "venue4" } },
       },
       {
         id: "event8",
         jambaseId: "jb-event8",
         name: "Phish LA Show 2024",
-        date: new Date("2024-08-15"),
+        date: dayjs("2024-08-15").toDate(),
         venue: { connect: { id: "venue3" } },
       },
       {
         id: "event9",
         jambaseId: "jb-event9",
         name: "Pearl Jam LA Show 2024",
-        date: new Date("2024-08-20"),
+        date: dayjs("2024-08-20").toDate(),
         venue: { connect: { id: "venue3" } },
       },
       {
         id: "event10",
         jambaseId: "jb-event10",
         name: "Phish Seattle Show 2024",
-        date: new Date("2024-06-15"),
+        date: dayjs("2024-06-15").toDate(),
         venue: { connect: { id: "venue5" } }, // The Showbox in Seattle
       },
       {
         id: "event11",
         name: "Phish Summer Tour",
-        date: new Date("2023-08-05"),
+        date: dayjs("2023-08-05").toDate(),
         venue: { connect: { id: "venue5" } }, // Seattle venue
         jambaseId: "104",
       },
       {
         id: "event12",
         name: "Phish at The Anthem",
-        date: new Date("2023-07-20"),
+        date: dayjs("2023-07-20").toDate(),
         venue: { connect: { id: "venue6" } }, // Madison Square Garden
         jambaseId: "105",
       },
@@ -227,7 +228,7 @@ describe("Poster Search Integration Tests", () => {
         isAuction: true,
         buyNowPrice: null,
         startPrice: 49.99,
-        auctionEndAt: new Date("2025-05-01"),
+        auctionEndAt: dayjs("2025-05-01").toDate(),
         imageUrls: ["https://example.com/poster2.jpg"],
         artistIds: ["artist2"],
         eventIds: ["event2"],
@@ -271,7 +272,7 @@ describe("Poster Search Integration Tests", () => {
         isAuction: true,
         buyNowPrice: null,
         startPrice: 199.99,
-        auctionEndAt: new Date("2025-06-01"),
+        auctionEndAt: dayjs("2025-06-01").toDate(),
         imageUrls: ["https://example.com/poster5.jpg"],
         artistIds: ["artist1", "artist3", "artist4"],
         eventIds: ["event5"],
@@ -313,7 +314,7 @@ describe("Poster Search Integration Tests", () => {
         isAuction: true,
         buyNowPrice: null,
         startPrice: 149.99,
-        auctionEndAt: new Date("2025-07-01"),
+        auctionEndAt: dayjs("2025-07-01").toDate(),
         imageUrls: ["https://example.com/poster8.jpg"],
         artistIds: ["artist6"],
         eventIds: ["event7"],
@@ -341,7 +342,7 @@ describe("Poster Search Integration Tests", () => {
         isAuction: true,
         buyNowPrice: null,
         startPrice: 129.99,
-        auctionEndAt: new Date("2025-12-01"),
+        auctionEndAt: dayjs("2025-12-01").toDate(),
         imageUrls: ["https://example.com/poster10.jpg"],
         artistIds: ["artist6"],
         eventIds: ["event9"],
@@ -698,8 +699,8 @@ describe("Poster Search Integration Tests", () => {
 
     const all2023Events = result.items.every((poster) =>
       poster.events.some((event) => {
-        const date = new Date(event.date);
-        return date.getFullYear() === 2023;
+        const date = dayjs(event.date);
+        return date.year() === 2023;
       })
     );
     expect(all2023Events).toBe(true);
@@ -720,7 +721,7 @@ describe("Poster Search Integration Tests", () => {
 
     const allLosAngelesEvents = result.items.every((poster) =>
       poster.events.some((event) => {
-        const date = new Date(event.date);
+        const date = dayjs(event.date);
         return event.venue.city === "Los Angeles";
       })
     );
@@ -770,7 +771,7 @@ describe("Poster Search Integration Tests", () => {
           data: {
             id: "event-acdc",
             name: "AC/DC Rock Concert",
-            date: new Date("2024-09-15"),
+            date: dayjs("2024-09-15").toDate(),
             venueId: "venue3",
             jambaseId: "acdc-event-123456",
           },
@@ -933,8 +934,8 @@ describe("Poster Search Integration Tests", () => {
           (artist) => artist.name === "Phish"
         );
         const has2024 = poster.events.some((event) => {
-          const date = new Date(event.date);
-          return date.getFullYear() === 2024;
+          const date = dayjs(event.date);
+          return date.year() === 2024;
         });
         return hasPhish && has2024;
       });
@@ -944,24 +945,24 @@ describe("Poster Search Integration Tests", () => {
 
   test("Search by artist with specific date (Phish + specific date)", async () => {
     // Create a specific date format to search for
-    const dateToSearch = new Date("2023-08-05"); // Using a known date from event11
-    const formattedDate = `${dateToSearch.getMonth() + 1}/${dateToSearch.getDate()}/${dateToSearch.getFullYear()}`;
-    
+    const dateToSearch = dayjs("2023-08-05"); // Using a known date from event11
+    const formattedDate = dateToSearch.format("M/D/YYYY");
+
     const caller = createCaller();
     // Add a small delay to ensure the search has time to process
     await delay(100);
-    
+
     const result = await caller.posters.getAll({
       searchQuery: `Phish ${formattedDate}`,
     });
 
     // If no results, try with different date format
     if (result.items.length === 0) {
-      const altFormattedDate = `${dateToSearch.getFullYear()}-${String(dateToSearch.getMonth() + 1).padStart(2, '0')}-${String(dateToSearch.getDate()).padStart(2, '0')}`;
+      const altFormattedDate = dateToSearch.format("YYYY-MM-DD");
       const altResult = await caller.posters.getAll({
         searchQuery: `Phish ${altFormattedDate}`,
       });
-      
+
       if (altResult.items.length > 0) {
         const allPhishPosters = altResult.items.every((poster) =>
           poster.artists.some((artist) => artist.name === "Phish")
@@ -973,7 +974,7 @@ describe("Poster Search Integration Tests", () => {
 
     // Continue with original test
     expect(result.items.length).toBeGreaterThan(0);
-    
+
     // Verify all results contain Phish as an artist
     const allPhishPosters = result.items.every((poster) =>
       poster.artists.some((artist) => artist.name === "Phish")
@@ -983,12 +984,12 @@ describe("Poster Search Integration Tests", () => {
     // Verify all results have the correct date with more flexible comparison
     const allCorrectDatePosters = result.items.some((poster) =>
       poster.events.some((event) => {
-        const eventDate = new Date(event.date);
+        const eventDate = dayjs(event.date);
         // Compare year, month and day values separately for more reliable comparison
         return (
-          eventDate.getFullYear() === dateToSearch.getFullYear() &&
-          eventDate.getMonth() === dateToSearch.getMonth() &&
-          eventDate.getDate() === dateToSearch.getDate()
+          eventDate.year() === dateToSearch.year() &&
+          eventDate.month() === dateToSearch.month() &&
+          eventDate.date() === dateToSearch.date()
         );
       })
     );
@@ -1018,8 +1019,8 @@ describe("Poster Search Integration Tests", () => {
     if (result.items.length > 0) {
       const hasAugust2024Event = result.items.some((poster) => {
         return poster.events.some((event) => {
-          const date = new Date(event.date);
-          return date.getFullYear() === 2024 && date.getMonth() === 7;
+          const date = dayjs(event.date);
+          return date.year() === 2024 && date.month() === 7;
         });
       });
       expect(hasAugust2024Event).toBe(true);
@@ -1108,12 +1109,8 @@ describe("Poster Search Integration Tests", () => {
     if (result.items.length > 0) {
       const hasSummer2024Event = result.items.some((poster) =>
         poster.events.some((event) => {
-          const date = new Date(event.date);
-          return (
-            date.getFullYear() === 2024 &&
-            date.getMonth() >= 5 &&
-            date.getMonth() <= 7
-          );
+          const date = dayjs(event.date);
+          return date.year() === 2024 && date.month() >= 5 && date.month() <= 7;
         })
       );
       expect(hasSummer2024Event).toBe(true);
@@ -1141,18 +1138,20 @@ describe("Poster Search Integration Tests", () => {
     });
 
     expect(result.items.length).toBeGreaterThan(0);
-    
+
     // Verify all results have all three criteria: Phish as artist, New York as city, and 2024 as year
     const allMatchingPosters = result.items.every((poster) => {
       const hasPhish = poster.artists.some((artist) => artist.name === "Phish");
-      const hasNewYork = poster.events.some((event) => event.venue.city === "New York");
+      const hasNewYork = poster.events.some(
+        (event) => event.venue.city === "New York"
+      );
       const has2024 = poster.events.some((event) => {
-        const date = new Date(event.date);
-        return date.getFullYear() === 2024;
+        const date = dayjs(event.date);
+        return date.year() === 2024;
       });
       return hasPhish && hasNewYork && has2024;
     });
-    
+
     expect(allMatchingPosters).toBe(true);
   });
 
